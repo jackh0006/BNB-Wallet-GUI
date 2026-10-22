@@ -1,0 +1,65 @@
+name: bnb_wallet_gui
+description: "BNB Wallet GUI based on v1 terminal wallet"
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter build
+# by specifying --build-name and --build-number, respectively.
+version: 1.0.5+5
+
+environment:
+  sdk: ^3.13.5
+
+# Dependencies specify other packages that your package needs to work.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  web3dart: ^3.0.3
+  bip39_mnemonic: ^4.1.0
+  bip32_plus: ^1.0.0
+  dargon2_flutter: ^3.3.0
+  cryptography: ^2.9.0
+  # SOCKS5 CONNECT for the optional Tor mode (MIT, minimal deps, audited
+  # pattern of HttpClient.connectionFactory assignments for HTTPS).
+  socks5_proxy: ^2.1.1
+  flutter_secure_storage: ^11.2.0
+  local_auth: ^3.0.2
+  qr_flutter: ^4.1.0
+  shared_preferences: ^2.5.6
+  http: ^1.6.0
+  intl: ^0.20.3
+  path_provider: ^2.1.6
+  crypto: ^3.0.6
+  wallet: ^0.0.18
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices.
+  flutter_lints: ^6.0.0
+  test: ^1.31.1
+  path_provider_platform_interface: ^2.1.3
+
+# For information on the generic Dart part of this file, see:
+# https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/icon/bnb-wallet-1024.png
+    - assets/token_sources.json

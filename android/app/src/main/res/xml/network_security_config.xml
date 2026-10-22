@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- TLS-only for known BSC hosts; cleartext is blocked globally in the manifest. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">bsc-dataseed.bnbchain.org</domain>
+        <domain includeSubdomains="true">bsc-dataseed-public.bnbchain.org</domain>
+        <domain includeSubdomains="true">bsc-dataseed.nariox.org</domain>
+        <domain includeSubdomains="true">bsc-rpc.publicnode.com</domain>
+        <domain includeSubdomains="true">api.bscscan.com</domain>
+        <domain includeSubdomains="true">api-testnet.bscscan.com</domain>
+    </domain-config>
+</network-security-config>

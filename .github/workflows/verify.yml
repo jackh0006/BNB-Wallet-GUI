@@ -1,0 +1,30 @@
+# Static verification: analyzer, full test suite, trusted-source links,
+# and SBOM freshness. No builds here — the deb release line is built and
+# signed locally by the maintainer (scripts/build-deb.sh).
+name: verify
+on: [push, pull_request]
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: bash scripts/test-suite.sh
+
+  sources-and-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_token_sources.py
+      - run: python3 scripts/sbom.py --out docs/SBOM.json
+      - name: SBOM must be committed and current
+        run: |
+          git diff --exit-code docs/SBOM.json || {
+            echo "::error ::docs/SBOM.json is stale — regenerate with scripts/sbom.py"
+            exit 1
+          }

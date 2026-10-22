@@ -1,0 +1,25 @@
+# BNB Wallet test policy (weak 2-core release machine).
+#
+# Why this file exists: on 2026-10-20 the Argon2id-heavy suites
+# (vault_test.dart, workers_test.dart — each test derives a real 64 MiB KDF)
+# reported "did not complete" in a run. Reason: `flutter test` runs suites in
+# parallel by default, those two suites are alphabetically last and overlapped
+# on 2 cores while the box sat at load ~5; the 10-minute run watchdog sent
+# SIGTERM and package:test marked the in-flight tests "did not complete".
+# Every test that actually finished, passed. This policy makes that cascade
+# impossible by construction:
+#
+# - `concurrency: 1` — suite-level execution is sequential by default; the
+#   KDF suites must NEVER overlap on this machine.
+# - `timeout: 6m` — generous default per test; the KDF tests keep their own
+#   explicit minutes-scale timeouts.
+# - `scripts/test-suite.sh` runs the light suites two-wide first and the
+#   `kdf`-tagged suites strictly one-wide, so the release routine stays both
+#   deterministic and quick.
+concurrency: 1
+timeout: 6m
+
+tags:
+  kdf:
+    # Heavy 64 MiB Argon2id suites (vault_test, workers_test). Tagged so
+    # scripts/test-suite.sh can isolate them; never run these overlapped.

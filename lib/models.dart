@@ -1,0 +1,760 @@
+import 'package:flutter/foundation.dart';
+
+import 'wallet_core.dart';
+
+/// A token shown in the wallet. `native` marks BNB itself.
+@immutable
+class TokenInfo {
+  const TokenInfo({
+    required this.symbol,
+    required this.name,
+    required this.address,
+    required this.decimals,
+    this.network = 'mainnet',
+    this.native = false,
+  });
+
+  final String symbol;
+  final String name;
+  final String address;
+  final int decimals;
+  final String network;
+  final bool native;
+
+  TokenInfo copyWith({
+    String? symbol,
+    String? name,
+    String? address,
+    int? decimals,
+    String? network,
+    bool? native,
+  }) => TokenInfo(
+    symbol: symbol ?? this.symbol,
+    name: name ?? this.name,
+    address: address ?? this.address,
+    decimals: decimals ?? this.decimals,
+    network: network ?? this.network,
+    native: native ?? this.native,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'symbol': symbol,
+    'name': name,
+    'address': address,
+    'decimals': decimals,
+    'network': network,
+  };
+
+  factory TokenInfo.fromJson(Map<String, dynamic> json) => TokenInfo(
+    symbol: (json['symbol'] ?? '').toString(),
+    name: (json['name'] ?? '').toString(),
+    address: (json['address'] ?? '').toString(),
+    decimals: (json['decimals'] as num?)?.toInt() ?? 18,
+    network: (json['network'] ?? 'mainnet').toString(),
+  );
+}
+
+/// A public-only watch profile: label + address, never a secret.
+@immutable
+class WalletProfile {
+  const WalletProfile({
+    required this.label,
+    required this.address,
+    this.source = 'watch',
+    this.createdAt,
+  });
+
+  final String label;
+  final String address;
+  final String source;
+  final String? createdAt;
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'address': address,
+    'source': source,
+    if (createdAt != null) 'createdAt': createdAt,
+  };
+
+  factory WalletProfile.fromJson(Map<String, dynamic> json) => WalletProfile(
+    label: (json['label'] ?? '').toString(),
+    address: (json['address'] ?? '').toString(),
+    source: (json['source'] ?? 'watch').toString(),
+    createdAt: json['createdAt']?.toString(),
+  );
+}
+
+/// A user-saved RPC node.
+@immutable
+class RpcNode {
+  const RpcNode({
+    required this.label,
+    required this.url,
+    this.network = 'mainnet',
+    this.enabled = true,
+    this.transport = NodeTransport.inherit,
+    this.proxyHost,
+    this.proxyPort,
+    this.proxyUser,
+    this.proxyPass,
+    // R4 networking hardening fields
+    this.authType = NodeAuthType.none,
+    this.authToken,
+    this.authUsername,
+    this.authPassword,
+    this.customHeaders = const {},
+    this.pinnedSpkiHashes = const [],
+    this.useForReads = true,
+    this.useForBroadcast = true,
+  });
+
+  final String label;
+  final String url;
+  final String network;
+
+  /// A switched-off node stays in the book but the wallet never asks it
+  /// anything (§10d enable/disable). Defaults to true for old saved books.
+  final bool enabled;
+
+  /// Per-node transport override (§10d, R2). Default: inherit global setting.
+  final NodeTransport transport;
+
+  /// Custom SOCKS5 proxy for this node (when transport = NodeTransport.customProxy).
+  final String? proxyHost;
+  final int? proxyPort;
+  final String? proxyUser;
+  final String? proxyPass;
+
+  // R4: HTTP authentication (Bearer/Basic)
+  final NodeAuthType authType;
+  final String? authToken;        // for Bearer
+  final String? authUsername;     // for Basic
+  final String? authPassword;     // for Basic
+
+  // R4: Custom headers (with validation to prevent identifying headers)
+  final Map<String, String> customHeaders;
+
+  // R4: Certificate pinning — list of SPKI SHA-256 hashes (base64)
+  final List<String> pinnedSpkiHashes;
+
+  // R4: Selection mode flags
+  final bool useForReads;
+  final bool useForBroadcast;
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'url': url,
+    'network': network,
+    'enabled': enabled,
+    'transport': transport.index,
+    if (proxyHost != null) 'proxyHost': proxyHost,
+    if (proxyPort != null) 'proxyPort': proxyPort,
+    if (proxyUser != null) 'proxyUser': proxyUser,
+    if (proxyPass != null) 'proxyPass': proxyPass,
+    if (authType != NodeAuthType.none) 'authType': authType.index,
+    if (authToken != null) 'authToken': authToken,
+    if (authUsername != null) 'authUsername': authUsername,
+    if (authPassword != null) 'authPassword': authPassword,
+    if (customHeaders.isNotEmpty) 'customHeaders': customHeaders,
+    if (pinnedSpkiHashes.isNotEmpty) 'pinnedSpkiHashes': pinnedSpkiHashes,
+    'useForReads': useForReads,
+    'useForBroadcast': useForBroadcast,
+  };
+
+  factory RpcNode.fromJson(Map<String, dynamic> json) => RpcNode(
+    label: (json['label'] ?? '').toString(),
+    url: (json['url'] ?? '').toString(),
+    network: (json['network'] ?? 'mainnet').toString(),
+    enabled: json['enabled'] is bool ? json['enabled'] as bool : true,
+    transport:
+        NodeTransport.values
+            .where((t) => t.index == (json['transport'] as int? ?? 0))
+            .firstOrNull ??
+        NodeTransport.inherit,
+    proxyHost: json['proxyHost']?.toString(),
+    proxyPort: (json['proxyPort'] as num?)?.toInt(),
+    proxyUser: json['proxyUser']?.toString(),
+    proxyPass: json['proxyPass']?.toString(),
+    authType:
+        NodeAuthType.values
+            .where((t) => t.index == (json['authType'] as int? ?? 0))
+            .firstOrNull ??
+        NodeAuthType.none,
+    authToken: json['authToken']?.toString(),
+    authUsername: json['authUsername']?.toString(),
+    authPassword: json['authPassword']?.toString(),
+    customHeaders: (json['customHeaders'] as Map?)?.cast<String, String>() ??
+        const {},
+    pinnedSpkiHashes: (json['pinnedSpkiHashes'] as List?)
+            ?.cast<String>() ??
+        const [],
+    useForReads: json['useForReads'] as bool? ?? true,
+    useForBroadcast: json['useForBroadcast'] as bool? ?? true,
+  );
+}
+
+/// Transport mode for a node (or globally). Matches spec §5/§10d.
+enum NodeTransport {
+  /// Inherit the global transport setting (default).
+  inherit,
+
+  /// Direct HTTPS (TLS 1.3, UA scrubbed).
+  direct,
+
+  /// Tor via system SOCKS5 (Orbot/Tor daemon).
+  tor,
+
+  /// Custom SOCKS5 proxy (with optional auth).
+  customProxy,
+
+  /// HTTP CONNECT proxy (RFC 7231 §4.3.6) — for corporate/transparent proxies.
+  /// The CONNECT request carries the target hostname, so DNS stays inside the tunnel.
+  httpConnect,
+}
+
+extension NodeTransportLabel on NodeTransport {
+  String get label {
+    switch (this) {
+      case NodeTransport.inherit:
+        return 'Inherit (global)';
+      case NodeTransport.direct:
+        return 'Direct HTTPS';
+      case NodeTransport.tor:
+        return 'Tor (SOCKS5)';
+      case NodeTransport.customProxy:
+        return 'Custom SOCKS5 proxy';
+      case NodeTransport.httpConnect:
+        return 'HTTP CONNECT proxy';
+    }
+  }
+}
+
+/// HTTP authentication type for a node (R4).
+enum NodeAuthType {
+  /// No authentication.
+  none,
+
+  /// Bearer token in Authorization header.
+  bearer,
+
+  /// HTTP Basic authentication.
+  basic,
+}
+
+/// Node-URL policy (spec §10d): HTTPS everywhere, with HTTP allowed only for
+/// loopback / LAN addresses or `.onion` endpoints (which are only ever
+/// reached through the Tor SOCKS5 route). Pure and unit-tested.
+bool nodeUrlAllowed(String url) {
+  try {
+    final uri = Uri.parse(url.trim());
+    if (uri.host.isEmpty) return false;
+    if (uri.scheme == 'https' || uri.scheme == 'wss') return true;
+    if (uri.scheme != 'http') return false;
+    var host = uri.host.toLowerCase();
+    if (host.startsWith('[') && host.endsWith(']'))
+      host = host.substring(1, host.length - 1);
+    if (host == 'localhost' || host == '::1' || host == '0.0.0.0') return true;
+    if (host.endsWith('.onion')) return true;
+    final v4 = host.split('.');
+    if (v4.length == 4 && v4.every((p) => int.tryParse(p) != null)) {
+      final a = int.parse(v4[0]);
+      if (a == 127 || a == 10) return true;
+      if (a == 192 && int.tryParse(v4[1]) == 168) return true;
+      if (a == 172) {
+        final b = int.tryParse(v4[1]) ?? -1;
+        if (b >= 16 && b <= 31) return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// One line of the "Test node" checklist (§10d) — label, result, and what
+/// was actually seen. Pure data; the RPC layer and the dialog both use it.
+@immutable
+class NodeCheckRow {
+  const NodeCheckRow(this.label, this.ok, this.detail);
+  final String label;
+  final bool ok;
+  final String detail;
+}
+
+/// Reorders a phone-book entry inside the SAME side of the network. Returns
+/// the new full-list index (or the input when the move is impossible), so
+/// the UI arrow buttons and the tests share one pure function.
+int moveNodeIndex(List<RpcNode> nodes, int index, int delta) {
+  if (index < 0 || index >= nodes.length) return index;
+  final side = nodes[index].network;
+  var target = index;
+  if (delta < 0) {
+    for (var i = index - 1; i >= 0; i--) {
+      if (nodes[i].network == side) {
+        target = i;
+        break;
+      }
+    }
+  } else {
+    for (var i = index + 1; i < nodes.length; i++) {
+      if (nodes[i].network == side) {
+        target = i;
+        break;
+      }
+    }
+  }
+  return target;
+}
+
+/// One urgency tier offered before a transfer.
+@immutable
+class FeePreset {
+  const FeePreset({
+    required this.label,
+    required this.target,
+    required this.priorityFeePerGas,
+    required this.maxFeePerGas,
+    required this.expectedFeePerGas,
+    this.gasPrice,
+    this.mode = 'eip1559',
+    this.source = '',
+    this.warning,
+    this.recommended = false,
+    this.etaSecondsLow,
+    this.etaSecondsHigh,
+    this.expectedBlocks,
+  });
+
+  final String label;
+  final String target;
+  final BigInt priorityFeePerGas;
+  final BigInt maxFeePerGas;
+  final BigInt expectedFeePerGas;
+  final BigInt? gasPrice;
+  final String mode;
+  final String source;
+
+  /// Plain-words caution for this tier (raised to the live floor, congested
+  /// blocks, …). Null when there is nothing to warn about.
+  final String? warning;
+
+  /// True for the tier the engine recommends in the current conditions.
+  final bool recommended;
+
+  /// Measured ETA range in seconds; null when block time was unmeasurable.
+  final int? etaSecondsLow;
+  final int? etaSecondsHigh;
+
+  /// Roughly how many blocks this tier expects to wait (measured).
+  final int? expectedBlocks;
+
+  FeePreset copyWith({String? label, bool? recommended}) => FeePreset(
+    label: label ?? this.label,
+    target: target,
+    priorityFeePerGas: priorityFeePerGas,
+    maxFeePerGas: maxFeePerGas,
+    expectedFeePerGas: expectedFeePerGas,
+    gasPrice: gasPrice,
+    mode: mode,
+    source: source,
+    warning: warning,
+    recommended: recommended ?? this.recommended,
+    etaSecondsLow: etaSecondsLow,
+    etaSecondsHigh: etaSecondsHigh,
+    expectedBlocks: expectedBlocks,
+  );
+}
+
+/// A decrypted local vault account.
+@immutable
+class VaultAccount {
+  const VaultAccount({
+    required this.label,
+    required this.address,
+    required this.keystoreJson,
+    this.savedAt,
+  });
+
+  final String label;
+  final String address;
+  final String keystoreJson;
+  final String? savedAt;
+}
+
+/// A public transaction-history row from BscScan.
+@immutable
+class HistoryTx {
+  const HistoryTx({
+    required this.hash,
+    required this.from,
+    required this.to,
+    required this.value,
+    required this.timestamp,
+    required this.isError,
+  });
+
+  final String hash;
+  final String from;
+  final String to;
+  final String value;
+  final String timestamp;
+  final bool isError;
+}
+
+/// One locally kept receipt, built from chain data after a send. Stored
+/// encrypted (outside the vault file, keyed by wallet + device secret) so the
+/// history works offline without asking the explorer who you paid.
+@immutable
+class LocalReceipt {
+  const LocalReceipt({
+    required this.hash,
+    required this.network,
+    required this.chainId,
+    required this.status,
+    required this.from,
+    required this.to,
+    required this.assetSymbol,
+    required this.assetAddress,
+    required this.amountHuman,
+    required this.amountRaw,
+    required this.decimals,
+    required this.nonce,
+    required this.gasLimit,
+    required this.gasUsed,
+    required this.feeWei,
+    required this.blockNumber,
+    required this.confirmations,
+    required this.verifiedNodes,
+    required this.finalized,
+    required this.tierLabel,
+    required this.reason,
+    required this.nodeUsed,
+    required this.transport,
+    required this.savedAt,
+    this.blockTimestamp,
+    this.effectiveGasPriceWei,
+    this.rawTxHex,
+    this.note,
+    this.revertReason,
+    this.balanceBeforeWei,
+    this.balanceAfterWei,
+    this.blockHash,
+    this.transactionIndex,
+    this.txType,
+    this.inputData,
+    this.eventLogs = const [],
+  });
+
+  final String hash;
+  final String network;
+  final int chainId;
+  final String status; // 'success' | 'reverted'
+  final String from;
+  final String to;
+  final String assetSymbol;
+  final String assetAddress; // '' for native BNB
+  final String amountHuman;
+  final String amountRaw;
+  final int decimals;
+  final int nonce;
+  final String gasLimit;
+  final String gasUsed;
+  final String feeWei; // actually charged
+  final int blockNumber;
+  final int confirmations;
+  final int verifiedNodes;
+  final bool finalized;
+  final String tierLabel;
+  final String reason;
+  final String nodeUsed;
+  final String transport;
+  final String savedAt; // ISO
+  final String? blockTimestamp; // ISO
+  final String? effectiveGasPriceWei;
+  final String? rawTxHex;
+  final String? note; // fee-on-transfer finding, unknown outcome, …
+  final String? revertReason;
+  final String? balanceBeforeWei;
+  final String? balanceAfterWei;
+  final String? blockHash;
+  final int? transactionIndex;
+  final String? txType; // 'legacy' | 'eip1559'
+  final String? inputData; // calldata as 0x-hex, when this send carried any
+  final List<Map<String, dynamic>> eventLogs; // already-public receipt logs
+
+  LocalReceipt copyWith({int? confirmations, bool? finalized}) => LocalReceipt(
+    hash: hash,
+    network: network,
+    chainId: chainId,
+    status: status,
+    from: from,
+    to: to,
+    assetSymbol: assetSymbol,
+    assetAddress: assetAddress,
+    amountHuman: amountHuman,
+    amountRaw: amountRaw,
+    decimals: decimals,
+    nonce: nonce,
+    gasLimit: gasLimit,
+    gasUsed: gasUsed,
+    feeWei: feeWei,
+    blockNumber: blockNumber,
+    confirmations: confirmations ?? this.confirmations,
+    verifiedNodes: verifiedNodes,
+    finalized: finalized ?? this.finalized,
+    tierLabel: tierLabel,
+    reason: reason,
+    nodeUsed: nodeUsed,
+    transport: transport,
+    savedAt: savedAt,
+    blockTimestamp: blockTimestamp,
+    effectiveGasPriceWei: effectiveGasPriceWei,
+    rawTxHex: rawTxHex,
+    note: note,
+    revertReason: revertReason,
+    balanceBeforeWei: balanceBeforeWei,
+    balanceAfterWei: balanceAfterWei,
+    blockHash: blockHash,
+    transactionIndex: transactionIndex,
+    txType: txType,
+    inputData: inputData,
+    eventLogs: eventLogs,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'hash': hash,
+    'network': network,
+    'chainId': chainId,
+    'status': status,
+    'from': from,
+    'to': to,
+    'assetSymbol': assetSymbol,
+    'assetAddress': assetAddress,
+    'amountHuman': amountHuman,
+    'amountRaw': amountRaw,
+    'decimals': decimals,
+    'nonce': nonce,
+    'gasLimit': gasLimit,
+    'gasUsed': gasUsed,
+    'feeWei': feeWei,
+    'blockNumber': blockNumber,
+    'confirmations': confirmations,
+    'verifiedNodes': verifiedNodes,
+    'finalized': finalized,
+    'tierLabel': tierLabel,
+    'reason': reason,
+    'nodeUsed': nodeUsed,
+    'transport': transport,
+    'savedAt': savedAt,
+    if (blockTimestamp != null) 'blockTimestamp': blockTimestamp,
+    if (effectiveGasPriceWei != null)
+      'effectiveGasPriceWei': effectiveGasPriceWei,
+    if (rawTxHex != null) 'rawTxHex': rawTxHex,
+    if (note != null) 'note': note,
+    if (revertReason != null) 'revertReason': revertReason,
+    if (balanceBeforeWei != null) 'balanceBeforeWei': balanceBeforeWei,
+    if (balanceAfterWei != null) 'balanceAfterWei': balanceAfterWei,
+    if (blockHash != null) 'blockHash': blockHash,
+    if (transactionIndex != null) 'transactionIndex': transactionIndex,
+    if (txType != null) 'txType': txType,
+    if (inputData != null) 'inputData': inputData,
+    if (eventLogs.isNotEmpty) 'eventLogs': eventLogs,
+  };
+
+  static LocalReceipt fromJson(Map<String, dynamic> json) => LocalReceipt(
+    hash: '${json['hash'] ?? ''}',
+    network: '${json['network'] ?? 'mainnet'}',
+    chainId: (json['chainId'] as num?)?.toInt() ?? 56,
+    status: '${json['status'] ?? 'unknown'}',
+    from: '${json['from'] ?? ''}',
+    to: '${json['to'] ?? ''}',
+    assetSymbol: '${json['assetSymbol'] ?? 'BNB'}',
+    assetAddress: '${json['assetAddress'] ?? ''}',
+    amountHuman: '${json['amountHuman'] ?? ''}',
+    amountRaw: '${json['amountRaw'] ?? '0'}',
+    decimals: (json['decimals'] as num?)?.toInt() ?? 18,
+    nonce: (json['nonce'] as num?)?.toInt() ?? 0,
+    gasLimit: '${json['gasLimit'] ?? '0'}',
+    gasUsed: '${json['gasUsed'] ?? '0'}',
+    feeWei: '${json['feeWei'] ?? '0'}',
+    blockNumber: (json['blockNumber'] as num?)?.toInt() ?? 0,
+    confirmations: (json['confirmations'] as num?)?.toInt() ?? 0,
+    verifiedNodes: (json['verifiedNodes'] as num?)?.toInt() ?? 1,
+    finalized: json['finalized'] == true,
+    tierLabel: '${json['tierLabel'] ?? ''}',
+    reason: '${json['reason'] ?? ''}',
+    nodeUsed: '${json['nodeUsed'] ?? ''}',
+    transport: '${json['transport'] ?? ''}',
+    savedAt: '${json['savedAt'] ?? ''}',
+    blockTimestamp: json['blockTimestamp']?.toString(),
+    effectiveGasPriceWei: json['effectiveGasPriceWei']?.toString(),
+    rawTxHex: json['rawTxHex']?.toString(),
+    note: json['note']?.toString(),
+    revertReason: json['revertReason']?.toString(),
+    balanceBeforeWei: json['balanceBeforeWei']?.toString(),
+    balanceAfterWei: json['balanceAfterWei']?.toString(),
+    blockHash: json['blockHash']?.toString(),
+    transactionIndex: (json['transactionIndex'] as num?)?.toInt(),
+    txType: json['txType']?.toString(),
+    inputData: json['inputData']?.toString(),
+    eventLogs: [
+      for (final log in (json['eventLogs'] as List? ?? const []))
+        if (log is Map) Map<String, dynamic>.from(log),
+    ],
+  );
+}
+
+/// One locally tracked outgoing transaction that is not yet confirmed.
+/// Only public chain facts live here — no keys, no secrets.
+@immutable
+class PendingTx {
+  const PendingTx({
+    required this.hash,
+    required this.network,
+    required this.from,
+    required this.to,
+    required this.native,
+    required this.assetSymbol,
+    required this.assetAddress,
+    required this.amountRaw,
+    required this.amountHuman,
+    required this.decimals,
+    required this.gasLimit,
+    required this.nonce,
+    required this.mode,
+    required this.priorityFeePerGas,
+    required this.maxFeePerGas,
+    required this.gasPrice,
+    required this.sentAt,
+    required this.tierLabel,
+    this.replacedBy,
+    this.note,
+  });
+
+  final String hash;
+  final String network;
+  final String from;
+  final String to;
+  final bool native;
+  final String assetSymbol;
+  final String assetAddress;
+  final String amountRaw;
+  final String amountHuman;
+  final int decimals;
+  final String gasLimit;
+  final int nonce;
+  final String mode; // 'eip1559' | 'legacy'
+  final String priorityFeePerGas;
+  final String maxFeePerGas;
+  final String gasPrice;
+  final String sentAt; // ISO
+  final String tierLabel;
+  final String? replacedBy; // hash of the replacement, when known
+  final String? note; // 'speed-up' | 'cancel' marker
+
+  PendingTx copyWith({String? replacedBy, String? note}) => PendingTx(
+    hash: hash,
+    network: network,
+    from: from,
+    to: to,
+    native: native,
+    assetSymbol: assetSymbol,
+    assetAddress: assetAddress,
+    amountRaw: amountRaw,
+    amountHuman: amountHuman,
+    decimals: decimals,
+    gasLimit: gasLimit,
+    nonce: nonce,
+    mode: mode,
+    priorityFeePerGas: priorityFeePerGas,
+    maxFeePerGas: maxFeePerGas,
+    gasPrice: gasPrice,
+    sentAt: sentAt,
+    tierLabel: tierLabel,
+    replacedBy: replacedBy ?? this.replacedBy,
+    note: note ?? this.note,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'hash': hash,
+    'network': network,
+    'from': from,
+    'to': to,
+    'native': native,
+    'assetSymbol': assetSymbol,
+    'assetAddress': assetAddress,
+    'amountRaw': amountRaw,
+    'amountHuman': amountHuman,
+    'decimals': decimals,
+    'gasLimit': gasLimit,
+    'nonce': nonce,
+    'mode': mode,
+    'priorityFeePerGas': priorityFeePerGas,
+    'maxFeePerGas': maxFeePerGas,
+    'gasPrice': gasPrice,
+    'sentAt': sentAt,
+    'tierLabel': tierLabel,
+    if (replacedBy != null) 'replacedBy': replacedBy,
+    if (note != null) 'note': note,
+  };
+
+  static PendingTx fromJson(Map<String, dynamic> json) => PendingTx(
+    hash: '${json['hash'] ?? ''}',
+    network: '${json['network'] ?? 'mainnet'}',
+    from: '${json['from'] ?? ''}',
+    to: '${json['to'] ?? ''}',
+    native: json['native'] == true,
+    assetSymbol: '${json['assetSymbol'] ?? 'BNB'}',
+    assetAddress: '${json['assetAddress'] ?? ''}',
+    amountRaw: '${json['amountRaw'] ?? '0'}',
+    amountHuman: '${json['amountHuman'] ?? ''}',
+    decimals: (json['decimals'] as num?)?.toInt() ?? 18,
+    gasLimit: '${json['gasLimit'] ?? '0'}',
+    nonce: (json['nonce'] as num?)?.toInt() ?? 0,
+    mode: '${json['mode'] ?? 'eip1559'}',
+    priorityFeePerGas: '${json['priorityFeePerGas'] ?? '0'}',
+    maxFeePerGas: '${json['maxFeePerGas'] ?? '0'}',
+    gasPrice: '${json['gasPrice'] ?? '0'}',
+    sentAt: '${json['sentAt'] ?? ''}',
+    tierLabel: '${json['tierLabel'] ?? ''}',
+    replacedBy: json['replacedBy']?.toString(),
+    note: json['note']?.toString(),
+  );
+}
+
+/// =====================================================================
+/// R5: Cold Wallet Mode (offline signing) — §10f
+/// =====================================================================
+
+/// The wallet's operating mode. Default is [WalletMode.hot] (normal hot wallet).
+/// [WalletMode.cold] = offline signer (holds seed, no network).
+/// [WalletMode.online] = watch-only companion (no secrets, broadcasts for cold).
+enum WalletMode {
+  hot,
+  cold,
+  online,
+}
+
+extension WalletModeLabel on WalletMode {
+  String get label {
+    switch (this) {
+      case WalletMode.hot:
+        return 'Normal (hot wallet)';
+      case WalletMode.cold:
+        return 'Cold (offline signer)';
+      case WalletMode.online:
+        return 'Online (watch-only companion)';
+    }
+  }
+
+  String get shortLabel {
+    switch (this) {
+      case WalletMode.hot:
+        return 'Hot';
+      case WalletMode.cold:
+        return 'Cold';
+      case WalletMode.online:
+        return 'Online';
+    }
+  }
+}

@@ -1,0 +1,1134 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:web3dart/web3dart.dart';
+
+import 'encrypted_log_store.dart';
+import 'models.dart';
+import 'receipt_store.dart';
+import 'rpc_service.dart';
+import 'rpc_story.dart';
+import 'security.dart';
+import 'storage.dart';
+import 'wallet_core.dart';
+import 'workers.dart';
+
+/// Central application state. Secrets live only in memory and are cleared by
+/// [lock]. Public preferences are persisted through [AppStorage].
+class AppState extends ChangeNotifier {
+  AppState() {
+    rpc.addListener(_onRpcChanged);
+  }
+
+  final RpcService rpc = RpcService();
+  EthPrivateKey? _key;
+  String? _mnemonic;
+  List<WalletProfile> _profiles = [];
+  List<RpcNode> _nodes = [];
+  List<TokenInfo> _customTokens = [];
+  Set<String> _hiddenTokens = {};
+  bool _liteMode = false;
+  String? _bscscanKey;
+  String? _watchAddress;
+  bool _unlocked = false;
+  bool _initialised = false;
+  bool _usePin = false;
+  bool _appLocked = false;
+
+  // Theme and locale (R6)
+  int _themeModeIndex = 0; // 0=system, 1=light, 2=dark, 3=amoled
+  String _locale = 'en';
+
+  EthPrivateKey? get privateKey => _key;
+  String? get mnemonic => _mnemonic;
+  bool get unlocked => _unlocked;
+  bool get initialised => _initialised;
+  bool get usePin => _usePin;
+  bool get appLocked => _appLocked;
+  bool get liteMode => _liteMode;
+
+  // Theme and locale (R6)
+  int get themeModeIndex => _themeModeIndex;
+  ThemeMode get themeMode {
+    switch (_themeModeIndex) {
+      case 1: return ThemeMode.light;
+      case 2: return ThemeMode.dark;
+      case 3: return ThemeMode.dark; // AMOLED uses dark with custom colors
+      default: return ThemeMode.system;
+    }
+  }
+
+  bool get isAmoled => _themeModeIndex == 3;
+
+  String get locale => _locale;
+  Locale get localeObj => Locale(_locale);
+
+  String? get address => _watchAddress ?? _key?.address.eip55With0x;
+  bool get watchOnly => _watchAddress != null;
+  List<WalletProfile> get profiles => List.unmodifiable(_profiles);
+  List<RpcNode> get nodes => List.unmodifiable(_nodes);
+  List<TokenInfo> get customTokens => List.unmodifiable(_customTokens);
+  Set<String> get hiddenTokens => Set.unmodifiable(_hiddenTokens);
+  String _tokenKey(TokenInfo token) =>
+      '${token.network}:${token.address.toLowerCase()}';
+  bool isTokenHidden(TokenInfo token) =>
+      !token.native && _hiddenTokens.contains(_tokenKey(token));
+
+  /// Hides/unhides a token in every list (wallet + send asset picker). BNB
+  /// itself is never hideable: it pays fees.
+  Future<void> setTokenHidden(TokenInfo token, bool hidden) async {
+    if (token.native) return;
+    final key = _tokenKey(token);
+    final next = {..._hiddenTokens};
+    if (hidden) {
+      next.add(key);
+    } else {
+      next.remove(key);
+    }
+    _hiddenTokens = next;
+    await AppStorage.setHiddenTokens(_hiddenTokens);
+    notifyListeners();
+  }
+
+  Future<void> setLiteMode(bool value) async {
+    _liteMode = value;
+    await AppStorage.setLiteMode(value);
+    notifyListeners();
+  }
+
+  /// Theme mode (R6): 0=system, 1=light, 2=dark, 3=amoled
+  Future<void> setThemeMode(int value) async {
+    _themeModeIndex = value.clamp(0, 3);
+    await AppStorage.setThemeMode(_themeModeIndex);
+    notifyListeners();
+  }
+
+  /// Locale (R6): 'en', 'fa', 'ar', 'zh', 'ru', 'es'
+  Future<void> setLocale(String value) async {
+    const supported = {'en', 'fa', 'ar', 'zh', 'ru', 'es'};
+    _locale = supported.contains(value) ? value : 'en';
+    await AppStorage.setLocale(_locale);
+    notifyListeners();
+  }
+
+  String? get bscscanKey => _bscscanKey;
+  bool get hasVault => _vaultExists;
+  bool _vaultExists = false;
+
+  void _onRpcChanged() => notifyListeners();
+
+  /// Test-only crypto substitution. [kDebugMode] is false in release builds,
+  /// so these branches are compiled out of shipped binaries — production
+  /// always runs the real Argon2id + XChaCha20-Poly1305 cipher on the worker
+  /// isolates. Widget tests use this to exercise the full unlock wiring
+  /// without paying for (or destabilizing on) the 64 MB KDF.
+  @visibleForTesting
+  static Future<String> Function(
+    String password,
+    String plaintext,
+    String device,
+  )?
+  vaultEncryptOverride;
+  @visibleForTesting
+  static Future<String> Function(String password, String blob, String device)?
+  vaultDecryptOverride;
+
+  Future<void> init() async {
+    await AppStorage.init();
+    rpc.setNetwork(AppStorage.network);
+    rpc.setConfiguredRpc(AppStorage.rpc);
+    rpc.setCustomTokens(AppStorage.customTokens);
+    _bscscanKey = await AppStorage.getBscscanKey();
+    rpc.setBscscanKey(_bscscanKey);
+    _profiles = AppStorage.profiles;
+    _nodes = AppStorage.nodes;
+    _customTokens = AppStorage.customTokens;
+    _hiddenTokens = AppStorage.hiddenTokens;
+    _liteMode = AppStorage.liteMode;
+    _themeModeIndex = AppStorage.themeModeIndex;
+    _locale = AppStorage.locale;
+    _strictNode = AppStorage.strictNode;
+    rpc.setStrictFlag(_strictNode);
+    _syncNodePool();
+    _pending = _decodePending(AppStorage.getPendingTxsJson());
+    _vaultExists = await AppStorage.vaultExists();
+    _usePin = await AppSecurity.hasPin();
+    _appLocked = _usePin;
+    final savedWatch = AppStorage.watchAddress;
+    if (savedWatch != null && WalletCore.isValidAddress(savedWatch)) {
+      _watchAddress = WalletCore.checksumAddress(savedWatch);
+      _unlocked = true;
+    }
+    _initialised = true;
+    notifyListeners();
+    // Connection is attempted in the background so the UI can show status.
+    rpc.connect().catchError((_) => null);
+  }
+
+  Future<void> unlock(EthPrivateKey key, {String? mnemonic}) async {
+    _key = key;
+    _mnemonic = mnemonic;
+    _watchAddress = null;
+    _unlocked = true;
+    await AppStorage.setWatchAddress(null);
+    unawaited(
+      logEvent(
+        category: LogCategory.security,
+        level: LogLevel.info,
+        message: 'Wallet unlocked on this device.',
+        extra: {'simple': 'Wallet unlocked'},
+      ).catchError((_) {}),
+    );
+    notifyListeners();
+  }
+
+  /// Which shell tab is showing: 0 Home · 1 Wallet · 2 Send · 3 Inspect ·
+  /// 4 Settings. Kept here so a finished flow can hand the user to its
+  /// visible result — a completed import must land on a screen that plainly
+  /// shows the wallet, not only flash a message.
+  int tab = 0;
+
+  void focusTab(int index) {
+    if (tab == index) return;
+    tab = index;
+    notifyListeners();
+  }
+
+  /// §2: watch-only account — a public address with NO key material. Balances
+  /// and history are readable; signing, vault export and secret reveal are not
+  /// available while this profile is open.
+  Future<void> openWatchOnly(String address) async {
+    if (!WalletCore.isValidAddress(address.trim())) {
+      throw ArgumentError('That is not a valid 0x address.');
+    }
+    final normalized = WalletCore.checksumAddress(address.trim());
+    _key = null;
+    _mnemonic = null;
+    _watchAddress = normalized;
+    _unlocked = true;
+    await AppStorage.setWatchAddress(normalized);
+    unawaited(
+      logEvent(
+        category: LogCategory.security,
+        level: LogLevel.info,
+        message: 'Watch-only profile opened; this device holds no key for it.',
+        extra: {'simple': 'Watch-only'},
+      ).catchError((_) {}),
+    );
+    notifyListeners();
+  }
+
+  Future<void> closeWatchOnly() async {
+    if (_watchAddress == null) return;
+    _watchAddress = null;
+    _unlocked = false;
+    await AppStorage.setWatchAddress(null);
+    notifyListeners();
+  }
+
+  void lock() {
+    if (_key != null) {
+      // The append captures the key synchronously before the first await, so
+      // this line is readable even though the key is dropped right after.
+      unawaited(
+        logEvent(
+          category: LogCategory.security,
+          level: LogLevel.info,
+          message: 'Wallet locked; keys cleared from memory.',
+          extra: {'simple': 'Wallet locked'},
+        ).catchError((_) {}),
+      );
+    }
+    _key = null;
+    _mnemonic = null;
+    _watchAddress = null;
+    _unlocked = false;
+    notifyListeners();
+  }
+
+  Future<void> setNetwork(String network) async {
+    rpc.setNetwork(network); // notifies right away: UI flips immediately
+    await AppStorage.setNetwork(network);
+    await AppStorage.setRpc(rpc.configuredRpc);
+    notifyListeners();
+    try {
+      await rpc.connect();
+    } catch (_) {
+      // connect narrates the exact failure into the story log; do not
+      // surface an unhandled crash on top of it.
+    }
+  }
+
+  Future<void> setRpc(String url) async {
+    rpc.setConfiguredRpc(url);
+    await AppStorage.setRpc(url);
+    notifyListeners();
+    try {
+      await rpc.connect(allowFallback: false);
+    } catch (_) {
+      // Narrated in the story log by connect itself.
+    }
+  }
+
+  /// Nodes that belong to the side of the network we are on right now,
+  /// preserving insertion order.
+  List<RpcNode> get currentNetworkNodes => [
+    for (final node in _nodes)
+      if (node.network == rpc.network) node,
+  ];
+
+  bool isNodeActive(RpcNode node) => node.url == rpc.configuredRpc;
+
+  // ---------------------------------------------------- strict node mode ---
+  bool _strictNode = false;
+
+  /// §10d: "Use only my node". When on, no built-in candidate, no fallback,
+  /// no other door is ever contacted — if the chosen node is down, nothing
+  /// is sent and the story says so.
+  bool get strictNodeMode => _strictNode;
+
+  Future<void> setStrictNodeMode(bool value) async {
+    _strictNode = value;
+    rpc.setStrictFlag(value);
+    await AppStorage.setStrictNode(value);
+    rpc.note(
+      value
+          ? 'Strict node mode is ON: I will ask ONLY the node you picked — no '
+                'other door, ever. If it is down, nothing is sent.'
+          : 'Strict node mode is off: I may double-check fees and receipts '
+                'with other public doors again.',
+      kind: RpcStoryKind.info,
+    );
+    notifyListeners();
+  }
+
+  /// The fee and receipt-crosscheck pools must ALWAYS come from the phone
+  /// book (§10d "everything uses the node manager"). Enabled doors of the
+  /// current side, in book order, ahead of the built-in doors.
+  void _syncNodePool() {
+    rpc.setNodePool([
+      for (final node in _nodes)
+        if (node.enabled &&
+            node.network == rpc.network &&
+            nodeUrlAllowed(node.url))
+          node,
+    ]);
+  }
+
+  /// Switches one door off or on. A disabled door is never asked anything;
+  /// switching the ACTIVE door off falls back to the official door, out loud.
+  Future<void> setNodeEnabled(int index, bool enabled) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final node = _nodes[index];
+    if (node.enabled == enabled) return;
+    _nodes = [..._nodes]
+      ..[index] = RpcNode(
+        label: node.label,
+        url: node.url,
+        network: node.network,
+        enabled: enabled,
+      );
+    rpc.note(
+      'Door "${node.label}" is now ${enabled ? 'usable' : 'switched OFF — I will not ask it anything'}.',
+    );
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    if (!enabled && node.url.toLowerCase() == rpc.configuredRpc.toLowerCase()) {
+      await setRpc(BnbNetworks.defaultRpcs[rpc.network]!);
+      rpc.note(
+        'It was the door I was talking to, so I went back to the official one.',
+        kind: RpcStoryKind.info,
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Moves one door up/down within ITS side — book order is priority order.
+  Future<void> moveNode(int index, int delta) async {
+    final target = moveNodeIndex(_nodes, index, delta);
+    if (target == index) return;
+    final copy = [..._nodes];
+    final moved = copy.removeAt(index);
+    copy.insert(target, moved);
+    _nodes = copy;
+    rpc.note(
+      'Door "${moved.label}" moved to position ${target + 1} of ${copy.length}.',
+    );
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    notifyListeners();
+  }
+
+  /// Sets the per-node transport override (§10d, R2). If custom proxy,
+  /// also stores proxy host/port/user/pass.
+  Future<void> setNodeTransport(
+    int index,
+    NodeTransport transport, {
+    String? proxyHost,
+    int? proxyPort,
+    String? proxyUser,
+    String? proxyPass,
+  }) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final node = _nodes[index];
+    if (node.transport == transport &&
+        node.proxyHost == proxyHost &&
+        node.proxyPort == proxyPort &&
+        node.proxyUser == proxyUser &&
+        node.proxyPass == proxyPass) {
+      return;
+    }
+    _nodes = [..._nodes]
+      ..[index] = RpcNode(
+        label: node.label,
+        url: node.url,
+        network: node.network,
+        enabled: node.enabled,
+        transport: transport,
+        proxyHost: proxyHost,
+        proxyPort: proxyPort,
+        proxyUser: proxyUser,
+        proxyPass: proxyPass,
+      );
+    rpc.note(
+      'Transport for "${node.label}" changed to ${_transportLabelFromEnum(transport)}.',
+    );
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    notifyListeners();
+  }
+
+  /// Sets node authentication (Bearer/Basic) — R4.
+  Future<void> setNodeAuth(
+    int index,
+    NodeAuthType authType, {
+    String? authToken,
+    String? authUsername,
+    String? authPassword,
+  }) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final node = _nodes[index];
+    if (node.authType == authType &&
+        node.authToken == authToken &&
+        node.authUsername == authUsername &&
+        node.authPassword == authPassword) {
+      return;
+    }
+    _nodes = [..._nodes]
+      ..[index] = RpcNode(
+        label: node.label,
+        url: node.url,
+        network: node.network,
+        enabled: node.enabled,
+        transport: node.transport,
+        proxyHost: node.proxyHost,
+        proxyPort: node.proxyPort,
+        proxyUser: node.proxyUser,
+        proxyPass: node.proxyPass,
+        authType: authType,
+        authToken: authToken,
+        authUsername: authUsername,
+        authPassword: authPassword,
+        customHeaders: node.customHeaders,
+        pinnedSpkiHashes: node.pinnedSpkiHashes,
+        useForReads: node.useForReads,
+        useForBroadcast: node.useForBroadcast,
+      );
+    rpc.note('Auth for "${node.label}" changed to ${authType.name}.');
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    notifyListeners();
+  }
+
+  /// Sets certificate pinning (SPKI hashes) — R4.
+  Future<void> setNodePinning(int index, List<String> spkiHashes) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final node = _nodes[index];
+    if (listEquals(node.pinnedSpkiHashes, spkiHashes)) return;
+    _nodes = [..._nodes]
+      ..[index] = RpcNode(
+        label: node.label,
+        url: node.url,
+        network: node.network,
+        enabled: node.enabled,
+        transport: node.transport,
+        proxyHost: node.proxyHost,
+        proxyPort: node.proxyPort,
+        proxyUser: node.proxyUser,
+        proxyPass: node.proxyPass,
+        authType: node.authType,
+        authToken: node.authToken,
+        authUsername: node.authUsername,
+        authPassword: node.authPassword,
+        customHeaders: node.customHeaders,
+        pinnedSpkiHashes: spkiHashes,
+        useForReads: node.useForReads,
+        useForBroadcast: node.useForBroadcast,
+      );
+    rpc.note('Certificate pinning updated for "${node.label}".');
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    notifyListeners();
+  }
+
+  /// Sets node selection mode and use-for flags — R4/R10d.
+  Future<void> setNodeSelection(
+    int index, {
+    required bool useForReads,
+    required bool useForBroadcast,
+    required int selectionMode, // 0=manual, 1=auto-fastest, 2=round-robin, 3=quorum
+  }) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final node = _nodes[index];
+    if (node.useForReads == useForReads &&
+        node.useForBroadcast == useForBroadcast) {
+      return;
+    }
+    _nodes = [..._nodes]
+      ..[index] = RpcNode(
+        label: node.label,
+        url: node.url,
+        network: node.network,
+        enabled: node.enabled,
+        transport: node.transport,
+        proxyHost: node.proxyHost,
+        proxyPort: node.proxyPort,
+        proxyUser: node.proxyUser,
+        proxyPass: node.proxyPass,
+        authType: node.authType,
+        authToken: node.authToken,
+        authUsername: node.authUsername,
+        authPassword: node.authPassword,
+        customHeaders: node.customHeaders,
+        pinnedSpkiHashes: node.pinnedSpkiHashes,
+        useForReads: useForReads,
+        useForBroadcast: useForBroadcast,
+      );
+    rpc.note('Selection flags for "${node.label}" updated (reads: $useForReads, broadcast: $useForBroadcast).');
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    notifyListeners();
+  }
+
+  String _transportLabelFromEnum(NodeTransport t) {
+    switch (t) {
+      case NodeTransport.inherit:
+        return 'Inherit (global)';
+      case NodeTransport.direct:
+        return 'Direct HTTPS';
+      case NodeTransport.tor:
+        return 'Tor (SOCKS5)';
+      case NodeTransport.customProxy:
+        return 'Custom SOCKS5 proxy';
+      case NodeTransport.httpConnect:
+        return 'HTTP CONNECT proxy';
+    }
+  }
+
+  /// Exports the book as JSON. Nothing in the book is secret — names and
+  /// public addresses only — so the default export is safe to share.
+  String exportNodesJson() => jsonEncode([for (final n in _nodes) n.toJson()]);
+
+  /// Imports a node list (JSON array of {label,url,network,enabled}). Any
+  /// unusable address refuses the WHOLE import (fail closed), duplicates are
+  /// skipped, and the import is narrated. Returns how many doors were added.
+  Future<int> importNodes(String rawJson) async {
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(rawJson);
+    } catch (_) {
+      throw StateError('That text is not a JSON node list.');
+    }
+    if (decoded is! List) {
+      throw StateError('That text is not a JSON node list.');
+    }
+    for (final entry in decoded) {
+      if (entry is! Map<String, dynamic>) continue;
+      final node = RpcNode.fromJson(entry);
+      if (node.label.isEmpty) {
+        throw StateError(
+          'One imported door has no name — fix the file and try again.',
+        );
+      }
+      if (!nodeUrlAllowed(node.url)) {
+        throw StateError(
+          'Door "${node.label}" has an unusable address: HTTPS everywhere — '
+          'HTTP only for localhost/LAN or a .onion door over Tor.',
+        );
+      }
+    }
+    var added = 0;
+    for (final entry in decoded) {
+      if (entry is! Map<String, dynamic>) continue;
+      final node = RpcNode.fromJson(entry);
+      if (_nodes.any((n) => n.url.toLowerCase() == node.url.toLowerCase())) {
+        continue;
+      }
+      _nodes = [..._nodes, node];
+      added++;
+    }
+    if (added > 0) {
+      rpc.note('$added imported door(s) joined the phone book.');
+      await AppStorage.setNodes(_nodes);
+      _syncNodePool();
+      notifyListeners();
+    }
+    return added;
+  }
+
+  /// The one-time "what a node can see" warning is remembered per URL.
+  bool isNodeWarned(String url) => AppStorage.nodeWarnedUrls.any(
+    (u) => u.toLowerCase() == url.toLowerCase(),
+  );
+
+  Future<void> markNodeWarned(String url) async {
+    final kept = AppStorage.nodeWarnedUrls;
+    await AppStorage.setNodeWarnedUrls([
+      for (final u in kept)
+        if (u.toLowerCase() != url.toLowerCase()) u,
+      url,
+    ]);
+  }
+
+  Future<void> addNode(String label, String url, {String? network}) async {
+    final node = RpcNode(
+      label: label,
+      url: url,
+      network: network ?? rpc.network,
+    );
+    if (_nodes.any((n) => n.url.toLowerCase() == node.url.toLowerCase())) {
+      throw StateError('That node address is already saved.');
+    }
+    _nodes = [..._nodes, node];
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    rpc.note(
+      'Node "${node.label}" saved to my little phone book (${node.network}).',
+    );
+    notifyListeners();
+  }
+
+  Future<void> editNode(
+    int index,
+    String label,
+    String url, {
+    String? network,
+  }) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final old = _nodes[index];
+    final edited = RpcNode(
+      label: label.trim(),
+      url: url.trim(),
+      network: network ?? old.network,
+    );
+    if (_nodes.any(
+      (n) => n != old && n.url.toLowerCase() == edited.url.toLowerCase(),
+    )) {
+      throw StateError('That node address is already saved.');
+    }
+    _nodes = [..._nodes]..[index] = edited;
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    rpc.note('Node "${old.label}" updated to "${edited.label}".');
+    notifyListeners();
+  }
+
+  /// Points the whole wallet at this saved node (terminal-style "select").
+  /// The switch is narrated and verified by chain id like any other target.
+  Future<void> activateNode(RpcNode node) async {
+    if (!nodeUrlAllowed(node.url)) {
+      throw StateError(
+        'HTTPS everywhere — HTTP is only ever allowed for localhost/LAN '
+        'doors or a .onion address over Tor, and this address is neither.',
+      );
+    }
+    rpc.note(
+      'Everyone I will talk to is now "${node.label}" (${node.network}).',
+      kind: RpcStoryKind.wait,
+    );
+    await setRpc(node.url);
+  }
+
+  Future<void> deleteNode(int index) async {
+    if (index < 0 || index >= _nodes.length) return;
+    final gone = _nodes[index];
+    _nodes = [..._nodes]..removeAt(index);
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    rpc.note('Node "${gone.label}" was removed from the phone book.');
+    final wasActive = gone.url == rpc.configuredRpc;
+    if (wasActive) {
+      await setRpc(BnbNetworks.defaultRpcs[rpc.network]!);
+      rpc.note(
+        'It was the node I was talking to, so I went back to the official one.',
+        kind: RpcStoryKind.info,
+      );
+    }
+    notifyListeners();
+  }
+
+  /// Wipes the saved phone book back to the official public nodes,
+  /// labelled the way the terminal version labels them.
+  Future<void> resetNodesToDefaults() async {
+    const official = <String, List<String>>{
+      'mainnet': [
+        'BNB Chain official',
+        'BNB Chain public backup',
+        'Nariox public',
+        'PublicNode mainnet',
+      ],
+      'testnet': ['BNB Chain official testnet', 'PublicNode testnet'],
+    };
+    _nodes = [
+      for (final entry in BnbNetworks.defaultRpcs.entries)
+        RpcNode(
+          label: official[entry.key]!.first,
+          url: entry.value,
+          network: entry.key,
+        ),
+      ...[
+        for (var i = 1; i < BnbNetworks.mainnetFallbacks.length; i++)
+          RpcNode(
+            label: official['mainnet']![i],
+            url: BnbNetworks.mainnetFallbacks[i],
+            network: 'mainnet',
+          ),
+        for (var i = 1; i < BnbNetworks.testnetFallbacks.length; i++)
+          RpcNode(
+            label: official['testnet']![i],
+            url: BnbNetworks.testnetFallbacks[i],
+            network: 'testnet',
+          ),
+      ],
+    ];
+    await AppStorage.setNodes(_nodes);
+    _syncNodePool();
+    rpc.note('Node list reset to the official public list.');
+    notifyListeners();
+  }
+
+  Future<void> addToken(TokenInfo token) async {
+    if (_customTokens.any(
+      (t) => t.address.toLowerCase() == token.address.toLowerCase(),
+    )) {
+      return;
+    }
+    _customTokens = [..._customTokens, token];
+    await AppStorage.setCustomTokens(_customTokens);
+    rpc.setCustomTokens(_customTokens);
+    notifyListeners();
+  }
+
+  Future<void> removeToken(int index) async {
+    if (index < 0 || index >= _customTokens.length) return;
+    _customTokens = [..._customTokens]..removeAt(index);
+    await AppStorage.setCustomTokens(_customTokens);
+    rpc.setCustomTokens(_customTokens);
+    notifyListeners();
+  }
+
+  Future<void> addProfile(WalletProfile profile) async {
+    if (_profiles.any(
+      (p) => p.address.toLowerCase() == profile.address.toLowerCase(),
+    )) {
+      return;
+    }
+    _profiles = [..._profiles, profile];
+    await AppStorage.setProfiles(_profiles);
+    notifyListeners();
+  }
+
+  Future<void> renameProfile(int index, String label) async {
+    if (index < 0 || index >= _profiles.length) return;
+    final old = _profiles[index];
+    _profiles = [..._profiles]
+      ..[index] = WalletProfile(
+        label: label,
+        address: old.address,
+        source: old.source,
+        createdAt: old.createdAt,
+      );
+    await AppStorage.setProfiles(_profiles);
+    notifyListeners();
+  }
+
+  Future<void> deleteProfile(int index) async {
+    if (index < 0 || index >= _profiles.length) return;
+    _profiles = [..._profiles]..removeAt(index);
+    await AppStorage.setProfiles(_profiles);
+    notifyListeners();
+  }
+
+  Future<void> setBscscanKey(String? key) async {
+    if (key == null || key.trim().isEmpty) {
+      await AppStorage.clearBscscanKey();
+      _bscscanKey = null;
+    } else {
+      await AppStorage.setBscscanKey(key.trim());
+      _bscscanKey = key.trim();
+    }
+    rpc.setBscscanKey(_bscscanKey);
+    notifyListeners();
+  }
+
+  Future<void> setUsePin(bool value) async {
+    _usePin = value;
+    if (!value) {
+      await AppSecurity.clearPin();
+      _appLocked = false;
+    } else {
+      _appLocked = true;
+    }
+    unawaited(
+      logEvent(
+        category: LogCategory.security,
+        level: LogLevel.info,
+        message: value ? 'App lock enabled.' : 'App lock disabled.',
+        extra: {'simple': value ? 'Lock turned on' : 'Lock turned off'},
+      ).catchError((_) {}),
+    );
+    notifyListeners();
+  }
+
+  void lockApp() {
+    if (!_usePin) return;
+    _appLocked = true;
+    notifyListeners();
+  }
+
+  void unlockApp() {
+    _appLocked = false;
+    notifyListeners();
+  }
+
+  // ---- encrypted local vault ----
+
+  Future<List<VaultAccount>> loadVaultAccounts(String password) async {
+    final blob = await AppStorage.readVault();
+    if (blob == null) return [];
+    final device = await AppStorage.getOrGenerateDeviceSecret();
+    final json = await _runVaultDecrypt(password, blob, device);
+    final list = jsonDecode(json) as List;
+    return [
+      for (final item in list)
+        if (item is Map<String, dynamic>)
+          VaultAccount(
+            label: '${item['label'] ?? ''}',
+            address: '${item['address'] ?? ''}',
+            keystoreJson: '${item['privateKeyHex'] ?? ''}',
+            savedAt: item['savedAt']?.toString(),
+          ),
+    ];
+  }
+
+  Future<void> saveVaultAccount(
+    String password, {
+    required String label,
+    required EthPrivateKey key,
+    String? mnemonic,
+  }) async {
+    final existing = await _readVaultJson(password);
+    final list = existing == null
+        ? <Map<String, dynamic>>[]
+        : List<Map<String, dynamic>>.from(existing);
+    list.removeWhere((item) => '${item['address']}' == key.address.eip55With0x);
+    list.add({
+      'label': label,
+      'address': key.address.eip55With0x,
+      'privateKeyHex': bytesToHex(key.privateKey, include0x: true),
+      if (mnemonic != null) 'mnemonic': mnemonic,
+      'savedAt': DateTime.now().toIso8601String(),
+    });
+    final blob = await _runVaultEncrypt(
+      password,
+      jsonEncode(list),
+      await AppStorage.getOrGenerateDeviceSecret(),
+    );
+    await AppStorage.writeVaultAtomic(blob);
+    _vaultExists = true;
+    notifyListeners();
+  }
+
+  Future<void> deleteVaultAccount(String password, String address) async {
+    final existing = await _readVaultJson(password);
+    if (existing == null) return;
+    final list = List<Map<String, dynamic>>.from(existing)
+      ..removeWhere((item) => '${item['address']}' == address);
+    final blob = await _runVaultEncrypt(
+      password,
+      jsonEncode(list),
+      await AppStorage.getOrGenerateDeviceSecret(),
+    );
+    await AppStorage.writeVaultAtomic(blob);
+    notifyListeners();
+  }
+
+  Future<EthPrivateKey> unlockVaultAccount(String password, int index) async {
+    final accounts = await loadVaultAccounts(password);
+    if (index < 0 || index >= accounts.length) {
+      throw StateError('Vault account not found.');
+    }
+    return WalletCore.privateKeyFromHex(accounts[index].keystoreJson);
+  }
+
+  Future<List<Map<String, dynamic>>?> _readVaultJson(String password) async {
+    final blob = await AppStorage.readVault();
+    if (blob == null) return null;
+    final json = await _runVaultDecrypt(
+      password,
+      blob,
+      await AppStorage.getOrGenerateDeviceSecret(),
+    );
+    return List<Map<String, dynamic>>.from(jsonDecode(json) as List);
+  }
+
+  /// Told once per session, then never repeated: where the device key lives
+  /// right now, in plain words. Honest about the keyring being off the hot
+  /// path on desktops after the freeze reports.
+  void _noteDeviceHome() {
+    if (!AppStorage.lastDeviceSecretFromDrawer) return;
+    if (_drawerNoteShown) return;
+    _drawerNoteShown = true;
+    rpc.note(
+      'On this computer I keep the second key of your vault in my own '
+      'locked drawer (owner-only file, bound to this machine). The desktop '
+      'keyring is deliberately off the hot path — its calls froze weak '
+      'machines. Your vault stays inert on any other computer without '
+      'this device.',
+      kind: RpcStoryKind.info,
+    );
+  }
+
+  bool _drawerNoteShown = false;
+
+  /// The 64 MiB Argon2id work runs on a worker isolate so the window keeps
+  /// answering the desktop while it happens (the Ubuntu "Force Quit / Wait"
+  /// freeze the taste test caught). Narration keeps multi-second stretches
+  /// looking like work — not like a hang.
+  Future<String> _runVaultEncrypt(
+    String password,
+    String plaintext,
+    String device,
+  ) async {
+    if (kDebugMode && vaultEncryptOverride != null) {
+      return vaultEncryptOverride!(password, plaintext, device);
+    }
+    _noteDeviceHome();
+    rpc.note(
+      'I stretch 64 MB of memory into armor for your vault — one moment…',
+      kind: RpcStoryKind.wait,
+    );
+    final watch = Stopwatch()..start();
+    final blob = await compute(vaultEncryptJob, <String>[
+      password,
+      plaintext,
+      device,
+    ]);
+    watch.stop();
+    rpc.note(
+      'Vault locked in ${watch.elapsedMilliseconds} ms — the same armor as before, '
+      'stretched on a helper worker so this window never freezes.',
+      kind: RpcStoryKind.ok,
+    );
+    return blob;
+  }
+
+  Future<String> _runVaultDecrypt(
+    String password,
+    String blob,
+    String device,
+  ) async {
+    if (kDebugMode && vaultDecryptOverride != null) {
+      return vaultDecryptOverride!(password, blob, device);
+    }
+    _noteDeviceHome();
+    rpc.note(
+      'Opening the armor: stretching 64 MB of memory — one moment…',
+      kind: RpcStoryKind.wait,
+    );
+    final watch = Stopwatch()..start();
+    final json = await compute(vaultDecryptJob, <String>[
+      password,
+      blob,
+      device,
+    ]);
+    watch.stop();
+    rpc.note(
+      'Vault opened in ${watch.elapsedMilliseconds} ms. Keys stay in this device only.',
+      kind: RpcStoryKind.ok,
+    );
+    return json;
+  }
+
+  // ---- local receipts (encrypted) + pending transactions ----
+
+  List<PendingTx> _pending = [];
+
+  /// Outgoing transactions this device saw broadcast and not yet resolved.
+  /// Public chain facts only — no keys, no secrets.
+  List<PendingTx> get pendingTxs => List.unmodifiable(_pending);
+
+  static List<PendingTx> _decodePending(String? json) {
+    if (json == null || json.isEmpty) return [];
+    try {
+      final rows = jsonDecode(json) as List;
+      return [
+        for (final row in rows)
+          if (row is Map<String, dynamic>) PendingTx.fromJson(row),
+      ];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> addPendingTx(PendingTx tx) async {
+    _pending = [tx, ..._pending.where((t) => t.hash != tx.hash)];
+    await _persistPending();
+  }
+
+  Future<void> updatePendingTx(
+    String hash,
+    PendingTx Function(PendingTx) change,
+  ) async {
+    if (!_pending.any((t) => t.hash == hash)) return;
+    _pending = [
+      for (final t in _pending)
+        if (t.hash == hash) change(t) else t,
+    ];
+    await _persistPending();
+  }
+
+  Future<void> removePendingTx(String hash) async {
+    final before = _pending.length;
+    _pending = [
+      for (final t in _pending)
+        if (t.hash != hash) t,
+    ];
+    if (_pending.length != before) await _persistPending();
+  }
+
+  Future<void> _persistPending() async {
+    await AppStorage.setPendingTxsJson(
+      jsonEncode([for (final t in _pending) t.toJson()]),
+    );
+    notifyListeners();
+  }
+
+  /// The locally kept receipts, newest first. Empty when the wallet is
+  /// locked or when the file cannot be opened with this wallet's key.
+  Future<List<LocalReceipt>> loadLocalReceipts() async {
+    final key = _key;
+    if (key == null) return [];
+    try {
+      final encoded = await AppStorage.readReceipts();
+      if (encoded == null) return [];
+      final storeKey = await ReceiptStore.deriveKey(
+        key.privateKey,
+        await AppStorage.getOrGenerateDeviceSecret(),
+      );
+      return await ReceiptStore.decode(storeKey, encoded) ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> addLocalReceipt(LocalReceipt receipt) async {
+    final key = _key;
+    if (key == null) return;
+    final existing = await loadLocalReceipts();
+    final list = [receipt, ...existing.where((r) => r.hash != receipt.hash)];
+    await _saveReceipts(key, list);
+  }
+
+  Future<void> updateLocalReceipt(
+    String hash,
+    LocalReceipt Function(LocalReceipt) change,
+  ) async {
+    final key = _key;
+    if (key == null) return;
+    final existing = await loadLocalReceipts();
+    if (!existing.any((r) => r.hash == hash)) return;
+    final list = [
+      for (final r in existing)
+        if (r.hash == hash) change(r) else r,
+    ];
+    await _saveReceipts(key, list);
+  }
+
+  Future<void> _saveReceipts(EthPrivateKey key, List<LocalReceipt> list) async {
+    try {
+      final storeKey = await ReceiptStore.deriveKey(
+        key.privateKey,
+        await AppStorage.getOrGenerateDeviceSecret(),
+      );
+      await AppStorage.writeReceiptsAtomic(
+        await ReceiptStore.encode(storeKey, list),
+      );
+      notifyListeners();
+    } catch (_) {
+      // Best effort: storing a receipt must never break a finished send.
+      // The chain itself remains the source of truth.
+    }
+  }
+
+  // ---- auto lock + full erase ----
+
+  int get autoLockSeconds => AppStorage.autoLockSeconds;
+
+  Future<void> setAutoLockSeconds(int seconds) async {
+    await AppStorage.setAutoLockSeconds(seconds);
+    notifyListeners();
+  }
+
+  Future<void> setTorEnabled(bool value) async {
+    await AppStorage.setTorEnabled(value);
+    await rpc.privacyChanged();
+    notifyListeners();
+  }
+
+  bool get torEnabled => AppStorage.torEnabled;
+  String get torHost => AppStorage.torHost;
+  int get torPort => AppStorage.torPort;
+
+  Future<void> setTorHostPort(String host, int port) async {
+    await AppStorage.setTorHost(host.trim());
+    await AppStorage.setTorPort(port);
+    rpc.privacyChanged();
+    notifyListeners();
+  }
+
+  /// Erases every trace: vault (shredded after random overwrite), secrets in
+  /// secure storage, all preferences, the story. Memory copies are dropped;
+  /// the restored first-run state is clean. Funds recover only with the seed
+  /// phrase. Returns anything the wipe could NOT remove (empty = clean).
+  Future<List<String>> eraseAll() async {
+    final leftovers = await AppStorage.eraseAllData();
+    _key = null;
+    _mnemonic = null;
+    _profiles = [];
+    _nodes = [];
+    _customTokens = [];
+    _bscscanKey = null;
+    _pending = [];
+    _unlocked = false;
+    _vaultExists = false;
+    _usePin = false;
+    _appLocked = false;
+    _drawerNoteShown = false;
+    AppStorage.resetDeviceSecretMemo();
+    rpc.setBscscanKey(null);
+    rpc.clearStory();
+    await rpc.privacyChanged();
+    rpc.note(
+      'Everything stored on this device was erased. The wallet starts clean.',
+      kind: RpcStoryKind.info,
+    );
+    notifyListeners();
+    return leftovers;
+  }
+}
+
+/// Shared application state. Import this from any screen.
+final AppState appState = AppState();

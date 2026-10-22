@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Tether — official site",
+    "description": "Issuer of USDT. Confirm the token's name and that a contract exists for BNB Chain on the issuer's own pages.",
+    "url": "https://tether.to/en/supported-protocols/"
+  },
+  {
+    "name": "Circle — USDC contract addresses",
+    "description": "Circle publishes official USDC contract addresses per chain, including BNB Chain.",
+    "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses"
+  },
+  {
+    "name": "BscScan — token explorer",
+    "description": "Search a symbol, open the token page and read the contract marked with a blue verification check. NOTE: BscScan sits behind a bot-protection wall that refuses scripted probes (403) — the CI checker marks it SKIP, not FAIL; verify it once yourself in a real browser.",
+    "url": "https://bscscan.com/tokens",
+    "bot_protected": true
+  },
+  {
+    "name": "BscScan — contract lookup",
+    "description": "Paste the address you copied and confirm name, symbol and decimals before adding it here. Also bot-protected against scripted probes (see the note above).",
+    "url": "https://bscscan.com/address",
+    "bot_protected": true
+  },
+  {
+    "name": "CoinGecko",
+    "description": "Third-party listing: the coin page lists contract addresses per chain. Cross-check, never fully trust.",
+    "url": "https://www.coingecko.com/"
+  },
+  {
+    "name": "CoinMarketCap",
+    "description": "Third-party listing: the contracts tab lists community-verified addresses. Cross-check, never fully trust.",
+    "url": "https://coinmarketcap.com/"
+  },
+  {
+    "name": "DefiLlama",
+    "description": "Open-source aggregator of on-chain tokens — useful as a neutral cross-check point.",
+    "url": "https://defillama.com/"
+  },
+  {
+    "name": "Trust Wallet asset repository",
+    "description": "Public community asset files (logos and contract info) used by many wallets; review candidates here.",
+    "url": "https://github.com/trustwallet/assets"
+  },
+  {
+    "name": "PancakeSwap extended token list",
+    "description": "Plain-JSON extended list with on-chain-verified entries; the raw file shows contract addresses.",
+    "url": "https://tokens.pancakeswap.finance/pancakeswap-extended.json"
+  }
+]
