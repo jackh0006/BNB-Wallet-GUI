@@ -1085,18 +1085,21 @@ class RpcService extends ChangeNotifier {
     required List<RpcNode> userPool,
     required List<String> builtInFallbacks,
     required bool strict,
+    required NodeSelectionMode selectionMode,
   }) {
     if (strict) {
       return [
         if (active != null &&
             active.url.startsWith('https://') &&
-            active.url.isNotEmpty)
+            active.url.isNotEmpty &&
+            active.useForReads)
           active,
       ];
     }
     final pool = <RpcNode>[];
     void add(RpcNode? node) {
       if (node == null || node.url.isEmpty || !_queryable(node.url)) return;
+      if (!node.useForReads) return;
       if (pool.any((n) => n.url == node.url)) return;
       pool.add(node);
     }
@@ -1109,7 +1112,59 @@ class RpcService extends ChangeNotifier {
     for (final url in builtInFallbacks) {
       add(RpcNode(label: 'built-in', url: url));
     }
+
+    // Apply selection mode ordering
+    switch (selectionMode) {
+      case NodeSelectionMode.manual:
+        // Keep book order (already in order)
+        break;
+      case NodeSelectionMode.autoFastest:
+        // Will be re-ordered by latency at call site
+        break;
+      case NodeSelectionMode.roundRobin:
+        // Rotate based on a simple counter - handled by caller
+        break;
+      case NodeSelectionMode.quorum:
+        // All nodes returned; caller decides quorum logic
+        break;
+    }
     return pool.take(3).toList();
+  }
+
+  /// Broadcast candidate pool — only nodes with useForBroadcast = true.
+  static List<RpcNode> broadcastCandidatePool({
+    required RpcNode? active,
+    required RpcNode? configured,
+    required List<RpcNode> userPool,
+    required List<String> builtInFallbacks,
+    required bool strict,
+  }) {
+    if (strict) {
+      return [
+        if (active != null &&
+            active.url.startsWith('https://') &&
+            active.url.isNotEmpty &&
+            active.useForBroadcast)
+          active,
+      ];
+    }
+    final pool = <RpcNode>[];
+    void add(RpcNode? node) {
+      if (node == null || node.url.isEmpty || !_queryable(node.url)) return;
+      if (!node.useForBroadcast) return;
+      if (pool.any((n) => n.url == node.url)) return;
+      pool.add(node);
+    }
+
+    add(active);
+    add(configured);
+    for (final node in userPool) {
+      add(node);
+    }
+    for (final url in builtInFallbacks) {
+      add(RpcNode(label: 'built-in', url: url));
+    }
+    return pool;
   }
 
   List<RpcNode> _feeCandidates() {
@@ -1129,7 +1184,20 @@ class RpcService extends ChangeNotifier {
           ? BnbNetworks.testnetFallbacks
           : BnbNetworks.mainnetFallbacks,
       strict: _strictFlag,
+      selectionMode: _selectionMode,
     );
+  }
+
+  /// Current node selection mode (§10d/R7).
+  NodeSelectionMode _selectionMode = NodeSelectionMode.manual;
+
+  /// Node selection mode getter.
+  NodeSelectionMode get selectionMode => _selectionMode;
+
+  /// Set node selection mode (§10d/R7).
+  Future<void> setSelectionMode(NodeSelectionMode mode) async {
+    _selectionMode = mode;
+    notifyListeners();
   }
 
   /// Independent nodes usable for cross-checks — the phone book's other

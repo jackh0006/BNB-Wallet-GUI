@@ -41,6 +41,21 @@ class AppState extends ChangeNotifier {
   int _themeModeIndex = 0; // 0=system, 1=light, 2=dark, 3=amoled
   String _locale = 'en';
 
+  // §10f Wallet mode: 0=hot, 1=cold, 2=online
+  int _walletModeIndex = 0;
+
+  WalletMode get walletMode {
+    switch (_walletModeIndex) {
+      case 1: return WalletMode.cold;
+      case 2: return WalletMode.online;
+      default: return WalletMode.hot;
+    }
+  }
+  bool get coldMode => _walletModeIndex == 1;
+  bool get onlineMode => _walletModeIndex == 2;
+  bool get hotMode => _walletModeIndex == 0;
+  int get walletModeIndex => _walletModeIndex;
+
   EthPrivateKey? get privateKey => _key;
   String? get mnemonic => _mnemonic;
   bool get unlocked => _unlocked;
@@ -113,6 +128,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// §10f Wallet mode: 0=hot, 1=cold, 2=online
+  Future<void> setWalletMode(int value) async {
+    _walletModeIndex = value.clamp(0, 2);
+    await AppStorage.setWalletMode(_walletModeIndex);
+    rpc.note(
+      'Wallet mode switched to ${walletMode.label}.',
+      kind: RpcStoryKind.info,
+    );
+    notifyListeners();
+  }
+
+  /// Node selection mode (§10d/R7).
+  NodeSelectionMode get selectionMode => rpc.selectionMode;
+
+  /// Set node selection mode (§10d/R7).
+  Future<void> setSelectionMode(NodeSelectionMode mode) async {
+    await rpc.setSelectionMode(mode);
+    notifyListeners();
+  }
+
   String? get bscscanKey => _bscscanKey;
   bool get hasVault => _vaultExists;
   bool _vaultExists = false;
@@ -149,6 +184,7 @@ class AppState extends ChangeNotifier {
     _liteMode = AppStorage.liteMode;
     _themeModeIndex = AppStorage.themeModeIndex;
     _locale = AppStorage.locale;
+    _walletModeIndex = AppStorage.walletModeIndex;
     _strictNode = AppStorage.strictNode;
     rpc.setStrictFlag(_strictNode);
     _syncNodePool();

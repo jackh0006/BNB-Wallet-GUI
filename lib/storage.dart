@@ -714,6 +714,11 @@ class AppStorage {
   static Future<void> setStrictNode(bool value) =>
       prefs.setBool('strict_node', value);
 
+  /// §10f Wallet mode: 0=hot (normal), 1=cold (offline signer), 2=online (watch-only companion).
+  static int get walletModeIndex => prefs.getInt('wallet_mode') ?? 0;
+  static Future<void> setWalletMode(int value) =>
+      prefs.setInt('wallet_mode', value);
+
   /// URLs whose one-time "what a node sees" warning was already accepted.
   static List<String> get nodeWarnedUrls {
     final raw = prefs.getString('node_warned') ?? '';

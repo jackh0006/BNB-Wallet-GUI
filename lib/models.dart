@@ -106,6 +106,7 @@ class RpcNode {
     this.pinnedSpkiHashes = const [],
     this.useForReads = true,
     this.useForBroadcast = true,
+    this.selectionMode = NodeSelectionMode.manual,
   });
 
   final String label;
@@ -141,6 +142,9 @@ class RpcNode {
   final bool useForReads;
   final bool useForBroadcast;
 
+  // R4/R7: Node selection mode
+  final NodeSelectionMode selectionMode;
+
   Map<String, dynamic> toJson() => {
     'label': label,
     'url': url,
@@ -159,6 +163,7 @@ class RpcNode {
     if (pinnedSpkiHashes.isNotEmpty) 'pinnedSpkiHashes': pinnedSpkiHashes,
     'useForReads': useForReads,
     'useForBroadcast': useForBroadcast,
+    'selectionMode': selectionMode.index,
   };
 
   factory RpcNode.fromJson(Map<String, dynamic> json) => RpcNode(
@@ -190,6 +195,11 @@ class RpcNode {
         const [],
     useForReads: json['useForReads'] as bool? ?? true,
     useForBroadcast: json['useForBroadcast'] as bool? ?? true,
+    selectionMode:
+        NodeSelectionMode.values
+            .where((t) => t.index == (json['selectionMode'] as int? ?? 0))
+            .firstOrNull ??
+        NodeSelectionMode.manual,
   );
 }
 
@@ -239,6 +249,36 @@ enum NodeAuthType {
 
   /// HTTP Basic authentication.
   basic,
+}
+
+/// Node selection mode (§10d): how the wallet picks which node to talk to.
+enum NodeSelectionMode {
+  /// Always use the same node (manual pick or active).
+  manual,
+
+  /// Always pick the fastest-responding node (by measured latency).
+  autoFastest,
+
+  /// Rotate through enabled nodes in book order (privacy).
+  roundRobin,
+
+  /// Query N nodes and cross-check answers; mismatch → warning.
+  quorum,
+}
+
+extension NodeSelectionModeLabel on NodeSelectionMode {
+  String get label {
+    switch (this) {
+      case NodeSelectionMode.manual:
+        return 'Manual';
+      case NodeSelectionMode.autoFastest:
+        return 'Auto-fastest';
+      case NodeSelectionMode.roundRobin:
+        return 'Round-robin / random';
+      case NodeSelectionMode.quorum:
+        return 'Quorum';
+    }
+  }
 }
 
 /// Node-URL policy (spec §10d): HTTPS everywhere, with HTTP allowed only for

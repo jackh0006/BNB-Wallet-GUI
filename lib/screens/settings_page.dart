@@ -79,6 +79,10 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 18),
             _securitySection(),
             const SizedBox(height: 18),
+            _walletModeSection(),
+            const SizedBox(height: 18),
+            _selectionModeSection(),
+            const SizedBox(height: 18),
             _appearanceSection(),
             const SizedBox(height: 18),
             _privacySection(),
@@ -2154,6 +2158,161 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes')),
+        ],
+      ),
+    );
+  }
+
+  /// §10f Wallet mode selector: hot / cold / online.
+  Widget _walletModeSection() {
+    return InfoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle('Wallet mode (§10f)'),
+          const SizedBox(height: 4),
+          const Text(
+            'Hot wallet holds the seed and can sign. Cold (offline signer) holds '
+            'the seed but uses no network. Online companion holds no secrets — '
+            'it prepares and broadcasts for a cold device.',
+            style: TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+          const SizedBox(height: 10),
+          RadioListTile<int>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Normal (hot wallet)'),
+            subtitle: const Text('Default — holds seed, signs, broadcasts'),
+            value: 0,
+            groupValue: appState.walletModeIndex,
+            onChanged: appState.coldMode || appState.onlineMode
+                ? null
+                : (v) => appState.setWalletMode(v!),
+            secondary: Icon(Icons.wallet, color: appState.hotMode ? Colors.amber : Colors.white38),
+          ),
+          RadioListTile<int>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Cold (offline signer)'),
+            subtitle: const Text('Holds seed, no network — signs requests offline'),
+            value: 1,
+            groupValue: appState.walletModeIndex,
+            onChanged: (v) => appState.setWalletMode(v!),
+            secondary: Icon(Icons.smartphone, color: appState.coldMode ? Colors.amber : Colors.white38),
+          ),
+          RadioListTile<int>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Online (watch-only companion)'),
+            subtitle: const Text('No secrets — prepares & broadcasts for cold device'),
+            value: 2,
+            groupValue: appState.walletModeIndex,
+            onChanged: (v) => appState.setWalletMode(v!),
+            secondary: Icon(Icons.wifi_tethering, color: appState.onlineMode ? Colors.amber : Colors.white38),
+          ),
+          if (appState.coldMode) ...[
+            const Divider(height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code, color: Colors.amber),
+              title: const Text('Export for online device'),
+              subtitle: const Text('QR / file with public addresses only'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _exportColdPairing(context),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code_scanner, color: Colors.amber),
+              title: const Text('Import pairing data'),
+              subtitle: const Text('QR / file from online device'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _importColdPairing(context),
+            ),
+          ],
+          if (appState.onlineMode) ...[
+            const Divider(height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code_scanner, color: Colors.amber),
+              title: const Text('Scan cold device request'),
+              subtitle: const Text('QR / file from cold signer'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _scanColdRequest(context),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code, color: Colors.amber),
+              title: const Text('Show signed result'),
+              subtitle: const Text('QR / file to send back to cold device'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showColdSignature(context),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _exportColdPairing(BuildContext context) {
+    showInfo(context, 'Cold pairing export: QR / file UI comes next (R5 UI).');
+  }
+
+  void _importColdPairing(BuildContext context) {
+    showInfo(context, 'Cold pairing import: QR / file UI comes next (R5 UI).');
+  }
+
+  void _scanColdRequest(BuildContext context) {
+    showInfo(context, 'Cold request scan: QR / file UI comes next (R5 UI).');
+  }
+
+  void _showColdSignature(BuildContext context) {
+    showInfo(context, 'Cold signature display: QR / file UI comes next (R5 UI).');
+  }
+
+  /// Node selection mode (global) — R7.
+  Widget _selectionModeSection() {
+    return InfoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle('Node selection mode'),
+          const SizedBox(height: 4),
+          const Text(
+            'How the wallet picks which RPC node to talk to for reads and '
+            'broadcasts. Per-node "use for reads / broadcast" overrides are set '
+            'in the node list.',
+            style: TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+          const SizedBox(height: 10),
+          RadioListTile<NodeSelectionMode>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Manual'),
+            subtitle: const Text('Always use the selected node'),
+            value: NodeSelectionMode.manual,
+            groupValue: appState.selectionMode,
+            onChanged: (v) => appState.setSelectionMode(v!),
+          ),
+          RadioListTile<NodeSelectionMode>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Auto-fastest'),
+            subtitle: const Text('Always pick the fastest-responding node'),
+            value: NodeSelectionMode.autoFastest,
+            groupValue: appState.selectionMode,
+            onChanged: (v) => appState.setSelectionMode(v!),
+          ),
+          RadioListTile<NodeSelectionMode>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Round-robin / random'),
+            subtitle: const Text('Rotate through enabled nodes for privacy'),
+            value: NodeSelectionMode.roundRobin,
+            groupValue: appState.selectionMode,
+            onChanged: (v) => appState.setSelectionMode(v!),
+          ),
+          RadioListTile<NodeSelectionMode>(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Quorum'),
+            subtitle: const Text('Query N nodes and cross-check answers'),
+            value: NodeSelectionMode.quorum,
+            groupValue: appState.selectionMode,
+            onChanged: (v) => appState.setSelectionMode(v!),
+          ),
         ],
       ),
     );
