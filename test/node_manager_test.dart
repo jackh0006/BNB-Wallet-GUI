@@ -47,6 +47,7 @@ void main() {
     test('normal mode: active → configured → user book → built-ins, capped 3',
         () {
       final pool = RpcService.feeCandidatePool(
+      selectionMode: NodeSelectionMode.manual,
         active: n('https://active'),
         configured: n('https://configured'),
         userPool: [n('https://book-1'), n('https://book-2')],
@@ -59,6 +60,7 @@ void main() {
 
     test('strict mode: EXACTLY the chosen door, nothing else', () {
       final pool = RpcService.feeCandidatePool(
+      selectionMode: NodeSelectionMode.manual,
         active: n('https://active'),
         configured: n('https://configured'),
         userPool: [n('https://book-1')],
@@ -70,6 +72,7 @@ void main() {
 
     test('strict mode with no active door = nothing to ask', () {
       final pool = RpcService.feeCandidatePool(
+      selectionMode: NodeSelectionMode.manual,
         active: null,
         configured: n('https://configured'),
         userPool: [n('https://book-1')],
@@ -81,6 +84,7 @@ void main() {
 
     test('strict mode never degrades to plain http', () {
       final pool = RpcService.feeCandidatePool(
+      selectionMode: NodeSelectionMode.manual,
         active: null,
         configured: n('http://localhost'),
         userPool: const [],
@@ -92,6 +96,7 @@ void main() {
 
     test('deduplicates and ignores unsafe urls in the book pool', () {
       final pool = RpcService.feeCandidatePool(
+      selectionMode: NodeSelectionMode.manual,
         active: n('https://active'),
         configured: n('https://active'),
         userPool: [n('http://evil.example'), n('https://book-1')],
