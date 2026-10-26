@@ -107,6 +107,7 @@ class RpcNode {
     this.useForReads = true,
     this.useForBroadcast = true,
     this.selectionMode = NodeSelectionMode.manual,
+    this.latencyMs,
   });
 
   final String label;
@@ -145,6 +146,9 @@ class RpcNode {
   // R4/R7: Node selection mode
   final NodeSelectionMode selectionMode;
 
+  // R7: Latency tracking for auto-fastest selection mode
+  final int? latencyMs;
+
   Map<String, dynamic> toJson() => {
     'label': label,
     'url': url,
@@ -164,6 +168,7 @@ class RpcNode {
     'useForReads': useForReads,
     'useForBroadcast': useForBroadcast,
     'selectionMode': selectionMode.index,
+    if (latencyMs != null) 'latencyMs': latencyMs,
   };
 
   factory RpcNode.fromJson(Map<String, dynamic> json) => RpcNode(
@@ -200,6 +205,7 @@ class RpcNode {
             .where((t) => t.index == (json['selectionMode'] as int? ?? 0))
             .firstOrNull ??
         NodeSelectionMode.manual,
+    latencyMs: (json['latencyMs'] as num?)?.toInt(),
   );
 }
 

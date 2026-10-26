@@ -2184,9 +2184,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: const Text('Default — holds seed, signs, broadcasts'),
             value: 0,
             groupValue: appState.walletModeIndex,
-            onChanged: appState.coldMode || appState.onlineMode
-                ? null
-                : (v) => appState.setWalletMode(v!),
+            onChanged: (v) => appState.setWalletMode(v!),
             secondary: Icon(Icons.wallet, color: appState.hotMode ? Colors.amber : Colors.white38),
           ),
           RadioListTile<int>(
