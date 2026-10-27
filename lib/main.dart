@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_state.dart';
 import 'screens/screens.dart';
 import 'security.dart';
+import 'tor_manager.dart';
 import 'l10n/app_localizations.dart';
 
 /// Global state shared by every screen is declared in app_state.dart.
@@ -29,19 +31,31 @@ class BnbWalletApp extends StatefulWidget {
   State<BnbWalletApp> createState() => _BnbWalletAppState();
 }
 
-class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver {
+class _BnbWalletAppState extends State<BnbWalletApp>
+    with WidgetsBindingObserver {
   DateTime _lastActivity = DateTime.now();
   Timer? _idleTimer;
+  AppLifecycleListener? _lifecycle;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _idleTimer = Timer.periodic(const Duration(seconds: 1), (_) => _checkIdle());
+    _lifecycle = AppLifecycleListener(
+      onExitRequested: () async {
+        await TorManager.instance.stop();
+        return AppExitResponse.exit;
+      },
+    );
+    _idleTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkIdle(),
+    );
   }
 
   @override
   void dispose() {
+    _lifecycle?.dispose();
     _idleTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -62,6 +76,11 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      // Best effort: the window is gone, so do not leave our private Tor
+      // daemon running in the background. Only the captured child is killed.
+      unawaited(TorManager.instance.stop());
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.inactive) {
@@ -112,15 +131,16 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
     const goldLight = Color(0xFFFCD535);
     const bg = Color(0xFFF5F5F5);
     const surface = Color(0xFFFFFFFF);
-    final scheme = ColorScheme.fromSeed(
-      seedColor: gold,
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: gold,
-      secondary: goldLight,
-      surface: surface,
-      onSurface: Colors.black87,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: gold,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: gold,
+          secondary: goldLight,
+          surface: surface,
+          onSurface: Colors.black87,
+        );
     return _baseTheme(scheme, Brightness.light, bg, surface);
   }
 
@@ -129,15 +149,16 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
     const goldLight = Color(0xFFFCD535);
     const bg = Color(0xFF0B0E11);
     const surface = Color(0xFF161A1E);
-    final scheme = ColorScheme.fromSeed(
-      seedColor: gold,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: gold,
-      secondary: goldLight,
-      surface: surface,
-      onSurface: Colors.white,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: gold,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: gold,
+          secondary: goldLight,
+          surface: surface,
+          onSurface: Colors.white,
+        );
     return _baseTheme(scheme, Brightness.dark, bg, surface);
   }
 
@@ -146,21 +167,28 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
     const goldLight = Color(0xFFFCD535);
     const bg = Color(0xFF000000); // True black for AMOLED
     const surface = Color(0xFF121212);
-    final scheme = ColorScheme.fromSeed(
-      seedColor: gold,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: gold,
-      secondary: goldLight,
-      surface: surface,
-      onSurface: Colors.white,
-      background: bg,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: gold,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: gold,
+          secondary: goldLight,
+          surface: surface,
+          onSurface: Colors.white,
+          background: bg,
+        );
     return _baseTheme(scheme, Brightness.dark, bg, surface);
   }
 
-  ThemeData _baseTheme(ColorScheme scheme, Brightness brightness, Color bg, Color surface) {
-    final isAmoled = brightness == Brightness.dark && bg == const Color(0xFF000000);
+  ThemeData _baseTheme(
+    ColorScheme scheme,
+    Brightness brightness,
+    Color bg,
+    Color surface,
+  ) {
+    final isAmoled =
+        brightness == Brightness.dark && bg == const Color(0xFF000000);
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -168,7 +196,9 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
       scaffoldBackgroundColor: bg,
       appBarTheme: AppBarTheme(
         backgroundColor: isAmoled ? Colors.transparent : bg,
-        foregroundColor: brightness == Brightness.light ? Colors.black87 : Colors.white,
+        foregroundColor: brightness == Brightness.light
+            ? Colors.black87
+            : Colors.white,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
@@ -178,20 +208,34 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: brightness == Brightness.light ? const Color(0xFFE0E0E0) : const Color(0xFF2B3139)),
+          side: BorderSide(
+            color: brightness == Brightness.light
+                ? const Color(0xFFE0E0E0)
+                : const Color(0xFF2B3139),
+          ),
         ),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: brightness == Brightness.light ? const Color(0xFFFAFAFA) : const Color(0xFF1E2329),
+        fillColor: brightness == Brightness.light
+            ? const Color(0xFFFAFAFA)
+            : const Color(0xFF1E2329),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: brightness == Brightness.light ? const Color(0xFFE0E0E0) : const Color(0xFF2B3139)),
+          borderSide: BorderSide(
+            color: brightness == Brightness.light
+                ? const Color(0xFFE0E0E0)
+                : const Color(0xFF2B3139),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: brightness == Brightness.light ? const Color(0xFFE0E0E0) : const Color(0xFF2B3139)),
+          borderSide: BorderSide(
+            color: brightness == Brightness.light
+                ? const Color(0xFFE0E0E0)
+                : const Color(0xFF2B3139),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -199,15 +243,21 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: brightness == Brightness.light ? const Color(0xFFF5F5F5) : (isAmoled ? const Color(0xFF000000) : const Color(0xFF12161B)),
+        backgroundColor: brightness == Brightness.light
+            ? const Color(0xFFF5F5F5)
+            : (isAmoled ? const Color(0xFF000000) : const Color(0xFF12161B)),
         indicatorColor: scheme.primary.withValues(alpha: 0.18),
         labelTextStyle: const WidgetStatePropertyAll(
           TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: brightness == Brightness.light ? const Color(0xFF333333) : (isAmoled ? const Color(0xFF1A1A1A) : const Color(0xFF2B3139)),
-        contentTextStyle: TextStyle(color: brightness == Brightness.light ? Colors.white : Colors.white),
+        backgroundColor: brightness == Brightness.light
+            ? const Color(0xFF333333)
+            : (isAmoled ? const Color(0xFF1A1A1A) : const Color(0xFF2B3139)),
+        contentTextStyle: TextStyle(
+          color: brightness == Brightness.light ? Colors.white : Colors.white,
+        ),
         behavior: SnackBarBehavior.floating,
       ),
       dialogTheme: DialogThemeData(
@@ -217,8 +267,12 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
-          foregroundColor: brightness == Brightness.light ? Colors.white : Colors.black,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          foregroundColor: brightness == Brightness.light
+              ? Colors.white
+              : Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
       ),
@@ -226,18 +280,30 @@ class _BnbWalletAppState extends State<BnbWalletApp> with WidgetsBindingObserver
         style: OutlinedButton.styleFrom(
           foregroundColor: scheme.primary,
           side: BorderSide(color: scheme.primary),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: scheme.primary),
       ),
-      dividerColor: brightness == Brightness.light ? const Color(0xFFE0E0E0) : const Color(0xFF2B3139),
-      iconTheme: IconThemeData(color: brightness == Brightness.light ? Colors.black87 : Colors.white),
+      dividerColor: brightness == Brightness.light
+          ? const Color(0xFFE0E0E0)
+          : const Color(0xFF2B3139),
+      iconTheme: IconThemeData(
+        color: brightness == Brightness.light ? Colors.black87 : Colors.white,
+      ),
       textTheme: TextTheme(
-        bodyLarge: TextStyle(color: brightness == Brightness.light ? Colors.black87 : Colors.white),
-        bodyMedium: TextStyle(color: brightness == Brightness.light ? Colors.black54 : Colors.white70),
+        bodyLarge: TextStyle(
+          color: brightness == Brightness.light ? Colors.black87 : Colors.white,
+        ),
+        bodyMedium: TextStyle(
+          color: brightness == Brightness.light
+              ? Colors.black54
+              : Colors.white70,
+        ),
       ),
     );
   }
@@ -284,7 +350,9 @@ class _AppLockScreenState extends State<AppLockScreen> {
     if (!mounted) return;
     if (wait != _wait) setState(() => _wait = wait);
     if (_wait != Duration.zero) {
-      setState(() => _error = 'Too many attempts. Locked for ${_wait.inSeconds}s.');
+      setState(
+        () => _error = 'Too many attempts. Locked for ${_wait.inSeconds}s.',
+      );
       _dismissibleBackoffDone = false;
     } else if (!_dismissibleBackoffDone) {
       setState(() => _error = null);
@@ -350,15 +418,24 @@ class _AppLockScreenState extends State<AppLockScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/icon/bnb-wallet-1024.png', width: 84, height: 84),
+                Image.asset(
+                  'assets/icon/bnb-wallet-1024.png',
+                  width: 84,
+                  height: 84,
+                ),
                 const SizedBox(height: 18),
-                const Text('BNB Wallet', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                const Text(
+                  'BNB Wallet',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   lockedOut
                       ? 'Too many failed attempts. Try again in ${_wait.inSeconds} s.'
                       : 'Enter your PIN to continue',
-                  style: TextStyle(color: lockedOut ? Colors.orange : Colors.white70),
+                  style: TextStyle(
+                    color: lockedOut ? Colors.orange : Colors.white70,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 TextField(
@@ -429,11 +506,31 @@ class _ShellState extends State<Shell> {
         selectedIndex: appState.tab,
         onDestinationSelected: (i) => appState.focusTab(i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
-          NavigationDestination(icon: Icon(Icons.send_outlined), selectedIcon: Icon(Icons.send), label: 'Send'),
-          NavigationDestination(icon: Icon(Icons.travel_explore_outlined), selectedIcon: Icon(Icons.travel_explore), label: 'Inspect'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Wallet',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.send_outlined),
+            selectedIcon: Icon(Icons.send),
+            label: 'Send',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.travel_explore_outlined),
+            selectedIcon: Icon(Icons.travel_explore),
+            label: 'Inspect',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );

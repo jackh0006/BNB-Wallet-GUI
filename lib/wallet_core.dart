@@ -20,29 +20,21 @@ class WalletCore {
       '0x0000000000000000000000000000000000000000';
   static const String defaultPath = "m/44'/60'/0'/0/0";
 
-  /// Standard BIP-44 derivation paths for different wallets
+  /// Popular derivation paths, each listed exactly once. Most EVM wallets
+  /// (MetaMask, Trust Wallet, SafePal, Ledger Live, Trezor) use the same first
+  /// account path; the dialog explains that instead of repeating the path
+  /// under every brand name. Account indexes are generated separately.
   static const Map<String, String> standardPaths = {
-    'BIP-44 (BSC/ETH)': "m/44'/60'/0'/0/0",
-    'SafePal': "m/44'/60'/0'/0/0",
-    'Trust Wallet': "m/44'/60'/0'/0/0",
-    'MetaMask': "m/44'/60'/0'/0/0",
-    'Ledger Live': "m/44'/60'/0'/0/0",
-    'Trezor': "m/44'/60'/0'/0/0",
-    'BIP-44 Account 0': "m/44'/60'/0'/0/0",
-    'BIP-44 Account 1': "m/44'/60'/1'/0/0",
-    'BIP-44 Account 2': "m/44'/60'/2'/0/0",
-    'BIP-44 Account 3': "m/44'/60'/2'/0/0",
-    'BIP-44 Account 4': "m/44'/60'/3'/0/0",
-    'BIP-44 Account 5': "m/44'/60'/4'/0/0",
-    'BIP-44 Account 6': "m/44'/60'/5'/0/0",
-    'BIP-44 Account 7': "m/44'/60'/6'/0/0",
-    'BIP-44 Account 8': "m/44'/60'/7'/0/0",
-    'BIP-44 Account 9': "m/44'/60'/8'/0/0",
-    'BIP-44 Account 10': "m/44'/60'/10'/0/0",
-    'BIP-32 Root': "m/44'/60'/0'",
-    'BIP-32 Account': "m/44'/60'/0'/0",
+    'Standard EVM': "m/44'/60'/0'/0/0",
+    'Ledger Legacy (MEW)': "m/44'/60'/0'/0",
     'Custom': '',
   };
+
+  /// Builds the standard BIP-44 path for an account index (0 = first account).
+  static String standardPathForAccount(int index) {
+    if (index < 0) throw ArgumentError('Account index cannot be negative.');
+    return "m/44'/60'/$index'/0/0";
+  }
 
   /// Generates a BIP-39 mnemonic using a secure random source.
   /// [wordCount] can be 12 or 24 (BIP-39 standard).
@@ -55,6 +47,14 @@ class WalletCore {
       length: wordCount == 12 ? MnemonicLength.words12 : MnemonicLength.words24,
     );
     return mnemonic.sentence;
+  }
+
+  /// Generates a brand-new secp256k1 private key using a secure RNG.
+  ///
+  /// A raw private key has no checksum or recovery phrase. The caller must
+  /// show it exactly once and require the user to back it up offline.
+  static EthPrivateKey generatePrivateKey() {
+    return EthPrivateKey.createRandom(Random.secure());
   }
 
   /// Validates a BIP-39 mnemonic. Returns true when the checksum is valid.
@@ -73,8 +73,11 @@ class WalletCore {
     String passphrase = '',
     String path = defaultPath,
   }) {
-    final mnemonic = Mnemonic.fromSentence(phrase.trim(), Language.english,
-        passphrase: passphrase);
+    final mnemonic = Mnemonic.fromSentence(
+      phrase.trim(),
+      Language.english,
+      passphrase: passphrase,
+    );
     final seed = Uint8List.fromList(mnemonic.seed);
     final root = BIP32.fromSeed(seed);
     final child = root.derivePath(path);
@@ -129,13 +132,18 @@ class WalletCore {
 
   /// Decodes a base58check encoded string.
   static Uint8List _decodeBase58Check(String input) {
-    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    final alphabetMap = {for (var i = 0; i < alphabet.length; i++) alphabet[i]: i};
+    const alphabet =
+        '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    final alphabetMap = {
+      for (var i = 0; i < alphabet.length; i++) alphabet[i]: i,
+    };
 
     int leadingOnes = 0;
     for (final c in input.codeUnits) {
-      if (c == '1'.codeUnitAt(0)) leadingOnes++;
-      else break;
+      if (c == '1'.codeUnitAt(0))
+        leadingOnes++;
+      else
+        break;
     }
 
     BigInt num = BigInt.zero;
@@ -294,7 +302,9 @@ class WalletCore {
   }
 
   static String _strip0x(String value) =>
-      value.startsWith('0x') || value.startsWith('0X') ? value.substring(2) : value;
+      value.startsWith('0x') || value.startsWith('0X')
+      ? value.substring(2)
+      : value;
 
   /// Encodes a non-negative BigInt as big-endian unsigned bytes.
   static Uint8List _encodeBigIntAsUnsigned(BigInt value) {
@@ -320,12 +330,12 @@ class WalletCore {
   /// companion to derive addresses, but WARNING: anyone with the xpub can
   /// link ALL future addresses of this account. Default pairing uses
   /// address list instead (see [deriveAddressList]).
-  static String deriveXpub({
-    required String phrase,
-    String passphrase = '',
-  }) {
-    final mnemonic = Mnemonic.fromSentence(phrase.trim(), Language.english,
-        passphrase: passphrase);
+  static String deriveXpub({required String phrase, String passphrase = ''}) {
+    final mnemonic = Mnemonic.fromSentence(
+      phrase.trim(),
+      Language.english,
+      passphrase: passphrase,
+    );
     final seed = Uint8List.fromList(mnemonic.seed);
     final root = BIP32.fromSeed(seed);
     // Account level: m/44'/60'/0'
@@ -342,8 +352,11 @@ class WalletCore {
     int count = 20,
     int startIndex = 0,
   }) {
-    final mnemonic = Mnemonic.fromSentence(phrase.trim(), Language.english,
-        passphrase: passphrase);
+    final mnemonic = Mnemonic.fromSentence(
+      phrase.trim(),
+      Language.english,
+      passphrase: passphrase,
+    );
     final seed = Uint8List.fromList(mnemonic.seed);
     final root = BIP32.fromSeed(seed);
     final account = root.derivePath("m/44'/60'/0'");
@@ -368,8 +381,11 @@ class WalletCore {
     int count = 20,
     int startIndex = 0,
   }) {
-    final mnemonic = Mnemonic.fromSentence(phrase.trim(), Language.english,
-        passphrase: passphrase);
+    final mnemonic = Mnemonic.fromSentence(
+      phrase.trim(),
+      Language.english,
+      passphrase: passphrase,
+    );
     final seed = Uint8List.fromList(mnemonic.seed);
     final root = BIP32.fromSeed(seed);
     final account = root.derivePath(pathPattern);
@@ -439,16 +455,19 @@ class WalletCore {
         }
       } else if (data.startsWith('095ea7b3')) {
         functionName = 'approve';
-        warning = 'This is an APPROVE transaction — unlimited approvals are risky';
+        warning =
+            'This is an APPROVE transaction — unlimited approvals are risky';
       } else if (!allowUnknownData) {
         throw ArgumentError(
-            'Unknown calldata (function 0x${data.substring(0, 8)}). '
-            'Enable "Advanced: sign unknown data" in settings to proceed.');
+          'Unknown calldata (function 0x${data.substring(0, 8)}). '
+          'Enable "Advanced: sign unknown data" in settings to proceed.',
+        );
       }
     }
 
     ColdTxAssetInfo assetInfo = request.assetInfo;
-    if (!request.assetInfo.isNative && request.assetInfo.contractAddress != null) {
+    if (!request.assetInfo.isNative &&
+        request.assetInfo.contractAddress != null) {
       final addr = request.assetInfo.contractAddress!.toLowerCase();
       if (knownTokens.containsKey(addr)) {
         assetInfo = knownTokens[addr]!;
@@ -457,7 +476,8 @@ class WalletCore {
           isNative: false,
           contractAddress: request.assetInfo.contractAddress,
           isUnknown: true,
-          warning: 'Token not recognized on this device. Verify contract address.',
+          warning:
+              'Token not recognized on this device. Verify contract address.',
         );
       }
     }
@@ -465,7 +485,8 @@ class WalletCore {
     if (functionName == 'approve' && decodedValue != null) {
       final maxUint256 = BigInt.from(2).pow(256) - BigInt.one;
       if (decodedValue == maxUint256) {
-        warning = (warning != null ? '$warning; ' : '') +
+        warning =
+            (warning != null ? '$warning; ' : '') +
             'UNLIMITED approval — token can spend all your balance';
       }
     }
@@ -481,7 +502,9 @@ class WalletCore {
       value: BigInt.parse(_strip0x(request.value)),
       gasLimit: gasLimit,
       maxFeePerGas: maxFee,
-      maxPriorityFeePerGas: BigInt.parse(_strip0x(request.maxPriorityFeePerGas)),
+      maxPriorityFeePerGas: BigInt.parse(
+        _strip0x(request.maxPriorityFeePerGas),
+      ),
       nonce: request.nonce,
       data: request.data,
       functionName: functionName,
@@ -514,22 +537,36 @@ class WalletCore {
       value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value))),
       nonce: request.nonce,
       maxGas: int.parse(_strip0x(request.gasLimit)),
-      maxFeePerGas: EtherAmount.inWei(BigInt.parse(_strip0x(request.maxFeePerGas))),
-      maxPriorityFeePerGas:
-          EtherAmount.inWei(BigInt.parse(_strip0x(request.maxPriorityFeePerGas))),
+      maxFeePerGas: EtherAmount.inWei(
+        BigInt.parse(_strip0x(request.maxFeePerGas)),
+      ),
+      maxPriorityFeePerGas: EtherAmount.inWei(
+        BigInt.parse(_strip0x(request.maxPriorityFeePerGas)),
+      ),
       data: hexToBytes(_strip0x(request.data)),
     );
 
     final txPayload = _encodeTransactionForSigning(tx, request.chainId);
-    final signature = privateKey.signToEcSignature(txPayload, chainId: request.chainId, isEIP1559: true);
+    final signature = privateKey.signToEcSignature(
+      txPayload,
+      chainId: request.chainId,
+      isEIP1559: true,
+    );
 
     // EIP-1559 transaction encoding (simplified - in production use rlp package)
     // 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList])
     final rawBytes = <int>[0x02];
     // Simplified - in production use proper RLP encoding
     // For now, we'll use a placeholder
-    final rawHex = bytesToHex(Uint8List.fromList(rawBytes), include0x: true, padToEvenLength: true);
-    final hash = bytesToHex(keccak256(hexToBytes(_strip0x(rawHex))), include0x: true);
+    final rawHex = bytesToHex(
+      Uint8List.fromList(rawBytes),
+      include0x: true,
+      padToEvenLength: true,
+    );
+    final hash = bytesToHex(
+      keccak256(hexToBytes(_strip0x(rawHex))),
+      include0x: true,
+    );
 
     // Extract signature from signed transaction (RLP decoding)
     // For now, use placeholder - in production decode the RLP
@@ -568,9 +605,12 @@ class WalletCore {
         value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value))),
         nonce: request.nonce,
         maxGas: int.parse(_strip0x(request.gasLimit)),
-        maxFeePerGas: EtherAmount.inWei(BigInt.parse(_strip0x(request.maxFeePerGas))),
-        maxPriorityFeePerGas:
-            EtherAmount.inWei(BigInt.parse(_strip0x(request.maxPriorityFeePerGas))),
+        maxFeePerGas: EtherAmount.inWei(
+          BigInt.parse(_strip0x(request.maxFeePerGas)),
+        ),
+        maxPriorityFeePerGas: EtherAmount.inWei(
+          BigInt.parse(_strip0x(request.maxPriorityFeePerGas)),
+        ),
         data: hexToBytes(_strip0x(request.data)),
       );
 
@@ -587,8 +627,7 @@ class WalletCore {
     }
   }
 
-  static EthereumAddress _recoverSigner(
-      Transaction tx, ColdTxSignature sig) {
+  static EthereumAddress _recoverSigner(Transaction tx, ColdTxSignature sig) {
     return EthereumAddress.fromHex(sig.from);
   }
 
@@ -618,7 +657,10 @@ class WalletCore {
   }
 
   static Uint8List _signTransactionSync(
-      EthPrivateKey key, Transaction tx, int chainId) {
+    EthPrivateKey key,
+    Transaction tx,
+    int chainId,
+  ) {
     return Uint8List.fromList([]);
   }
 

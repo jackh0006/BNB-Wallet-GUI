@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:web3dart/web3dart.dart';
 
 import '../app_state.dart';
 import '../models.dart';
@@ -9,6 +11,113 @@ import '../widgets/seed_picker.dart';
 import 'backup_quiz_dialog.dart';
 import 'common.dart';
 import 'receipt_page.dart';
+
+enum _CreateKind { phrase, newPrivateKey, existingPrivateKey }
+
+/// Configuration chosen in the create-wallet dialog.
+class _CreateWalletConfig {
+  final _CreateKind kind;
+  final int wordCount;
+  final String passphrase;
+  final String derivationPath;
+  final String pathLabel;
+  final String? existingPrivateKey;
+
+  const _CreateWalletConfig({
+    required this.kind,
+    this.wordCount = 24,
+    this.passphrase = '',
+    this.derivationPath = '',
+    this.pathLabel = '',
+    this.existingPrivateKey,
+  });
+}
+
+/// Numbered phrase grid. Every word is visible at once, in order, so the
+/// screen can never be mistaken for the three-word backup check that follows.
+class _MnemonicGrid extends StatelessWidget {
+  const _MnemonicGrid({required this.words});
+
+  final List<String> words;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: words.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisExtent: 38,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemBuilder: (context, index) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).dividerColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              child: Text(
+                '${index + 1}.',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                words[index],
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -598,51 +707,689 @@ class _WalletPageState extends State<WalletPage>
 }
 
 Future<void> showCreateWalletDialog(BuildContext context) async {
-  final mnemonic = WalletCore.generateMnemonic();
-  final accepted = await showDialog<bool>(
+  var kind = _CreateKind.phrase;
+  var wordCount = 24;
+  var pathLabel = WalletCore.standardPaths.keys.first;
+  var passphrase = '';
+  var obscurePassphrase = true;
+  var obscureExistingKey = true;
+  var saved = false;
+  String? validationError;
+  final customPathController = TextEditingController();
+  final accountIndexController = TextEditingController(text: '0');
+  final existingKeyController = TextEditingController();
+
+  final config = await showDialog<_CreateWalletConfig>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: const Text('Write this recovery phrase offline'),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SelectableText(
-              'This phrase controls the wallet. Anyone who sees it can take the funds.',
-              style: TextStyle(color: Colors.redAccent),
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) {
+        final accountIndex = int.tryParse(accountIndexController.text.trim());
+        final resolvedPath = pathLabel == 'Standard EVM'
+            ? (accountIndex != null && accountIndex >= 0
+                  ? WalletCore.standardPathForAccount(accountIndex)
+                  : '')
+            : pathLabel == 'Custom'
+            ? customPathController.text.trim()
+            : WalletCore.standardPaths[pathLabel]!;
+        return AlertDialog(
+          title: const Text('Create wallet'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Wallet type',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<_CreateKind>(
+                        isExpanded: true,
+                        value: kind,
+                        items: const [
+                          DropdownMenuItem(
+                            value: _CreateKind.phrase,
+                            child: Text('Recovery phrase (12 / 24 words)'),
+                          ),
+                          DropdownMenuItem(
+                            value: _CreateKind.newPrivateKey,
+                            child: Text('New private key (generated)'),
+                          ),
+                          DropdownMenuItem(
+                            value: _CreateKind.existingPrivateKey,
+                            child: Text('Existing private key (paste)'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() {
+                            kind = value;
+                            validationError = null;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (kind == _CreateKind.phrase) ...[
+                    const Text(
+                      'Recovery phrase length',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<int>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment<int>(value: 12, label: Text('12 words')),
+                        ButtonSegment<int>(value: 24, label: Text('24 words')),
+                      ],
+                      selected: {wordCount},
+                      onSelectionChanged: (selection) =>
+                          setState(() => wordCount = selection.first),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      wordCount == 12
+                          ? '12 words is standard BIP-39 security.'
+                          : '24 words adds 256-bit entropy to the backup.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(dialogContext)
+                            .colorScheme
+                            .onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Derivation path',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: pathLabel,
+                          items: WalletCore.standardPaths.keys
+                              .map(
+                                (label) => DropdownMenuItem<String>(
+                                  value: label,
+                                  child: Text(
+                                    label,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() {
+                              pathLabel = value;
+                              validationError = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      pathLabel == 'Standard EVM'
+                          ? "m/44'/60'/0'/0/0 — the same first-account path "
+                                'used by MetaMask, Trust Wallet, SafePal, Ledger '
+                                'Live and Trezor. Change the account index for '
+                                'additional accounts.'
+                          : pathLabel == 'Ledger Legacy (MEW)'
+                          ? "m/44'/60'/0'/0 — older MEW and Ledger setups."
+                          : 'Enter any BIP-32 path, for example '
+                                "m/44'/60'/0'/0/0.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(dialogContext)
+                            .colorScheme
+                            .onSurfaceVariant,
+                      ),
+                    ),
+                    if (pathLabel == 'Standard EVM') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: accountIndexController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Account index',
+                          helperText: '0 = first account, 1 = second account',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) =>
+                            setState(() => validationError = null),
+                      ),
+                    ],
+                    if (pathLabel == 'Custom') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: customPathController,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom BIP-32 path',
+                          hintText: "m/44'/60'/0'/0/0",
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) =>
+                            setState(() => validationError = null),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      resolvedPath.isEmpty
+                          ? 'Enter a valid path.'
+                          : resolvedPath,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'BIP-39 passphrase (25th word) — optional',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'If you set one, the exact same passphrase is required '
+                      'every time you restore. There is no way to recover it.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(dialogContext)
+                            .colorScheme
+                            .onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      obscureText: obscurePassphrase,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: InputDecoration(
+                        labelText: 'Passphrase (optional)',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          tooltip: obscurePassphrase
+                              ? 'Show passphrase'
+                              : 'Hide passphrase',
+                          icon: Icon(
+                            obscurePassphrase
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => obscurePassphrase = !obscurePassphrase,
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) => setState(() {
+                        passphrase = value;
+                        validationError = null;
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    const _CreateWarning(
+                      text:
+                          'The phrase is shown only on this screen. Write '
+                          'it on paper; never store it digitally or send it '
+                          'to anyone.',
+                    ),
+                  ] else if (kind == _CreateKind.newPrivateKey) ...[
+                    const _CreateWarning(
+                      text:
+                          'A brand-new random private key will be generated '
+                          'on this device. There is no recovery phrase. You '
+                          'must write down the 0x… key: lose it and the funds '
+                          'are gone.',
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'The key is shown once after you press Generate. The app '
+                      'does not keep a plain-text copy.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(dialogContext)
+                            .colorScheme
+                            .onSurfaceVariant,
+                      ),
+                    ),
+                  ] else ...[
+                    const Text(
+                      'Paste or type an existing 0x + 64 hex private key. This '
+                      'derives the address and creates the wallet immediately.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: existingKeyController,
+                      obscureText: obscureExistingKey,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: InputDecoration(
+                        labelText: 'Private key (hidden)',
+                        hintText: '0x…',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Paste from clipboard',
+                              icon: const Icon(Icons.content_paste),
+                              onPressed: () async {
+                                final data = await Clipboard.getData(
+                                  'text/plain',
+                                );
+                                final text = data?.text?.trim();
+                                if (text == null || text.isEmpty) return;
+                                setState(() {
+                                  existingKeyController.text = text;
+                                  validationError = null;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              tooltip: obscureExistingKey
+                                  ? 'Show private key'
+                                  : 'Hide private key',
+                              icon: Icon(
+                                obscureExistingKey
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => obscureExistingKey = !obscureExistingKey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      onChanged: (_) => setState(() => validationError = null),
+                    ),
+                    const SizedBox(height: 16),
+                    const _CreateWarning(
+                      text:
+                          'Anyone with this key can take the funds. Never '
+                          'send it to a website, support agent or anyone else.',
+                    ),
+                  ],
+                  if (validationError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      validationError!,
+                      style: TextStyle(
+                        color: Theme.of(dialogContext).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            SelectableText(
-              mnemonic,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (kind == _CreateKind.phrase) {
+                  final index = int.tryParse(
+                    accountIndexController.text.trim(),
+                  );
+                  final path = pathLabel == 'Standard EVM'
+                      ? (index != null && index >= 0
+                            ? WalletCore.standardPathForAccount(index)
+                            : '')
+                      : pathLabel == 'Custom'
+                      ? customPathController.text.trim()
+                      : WalletCore.standardPaths[pathLabel]!;
+                  if (!RegExp(r"^m(/\d+'?)+$").hasMatch(path)) {
+                    setState(
+                      () => validationError =
+                          "Enter a valid BIP-32 path, for example "
+                          "m/44'/60'/0'/0/0.",
+                    );
+                    return;
+                  }
+                  Navigator.pop(
+                    dialogContext,
+                    _CreateWalletConfig(
+                      kind: _CreateKind.phrase,
+                      wordCount: wordCount,
+                      passphrase: passphrase,
+                      derivationPath: path,
+                      pathLabel: pathLabel,
+                    ),
+                  );
+                  return;
+                }
+                if (kind == _CreateKind.newPrivateKey) {
+                  Navigator.pop(
+                    dialogContext,
+                    const _CreateWalletConfig(kind: _CreateKind.newPrivateKey),
+                  );
+                  return;
+                }
+                final text = existingKeyController.text.trim();
+                try {
+                  WalletCore.privateKeyFromHex(text);
+                } catch (_) {
+                  setState(
+                    () => validationError =
+                        'Enter a valid 0x + 64 hex private key.',
+                  );
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  _CreateWalletConfig(
+                    kind: _CreateKind.existingPrivateKey,
+                    existingPrivateKey: text,
+                  ),
+                );
+              },
+              child: Text(
+                kind == _CreateKind.phrase
+                    ? 'Generate $wordCount words'
+                    : kind == _CreateKind.newPrivateKey
+                    ? 'Generate private key'
+                    : 'Create wallet',
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  // The dialog's exit animation can still rebuild its fields for a few
+  // frames. Disposing controllers before that finishes throws in debug.
+  await Future<void>.delayed(const Duration(milliseconds: 350));
+  customPathController.dispose();
+  accountIndexController.dispose();
+  existingKeyController.dispose();
+
+  if (config == null || !context.mounted) return;
+
+  if (config.kind == _CreateKind.phrase) {
+    final mnemonic = WalletCore.generateMnemonic(wordCount: config.wordCount);
+    saved = false;
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
+          title: Text('Your ${config.wordCount}-word recovery phrase'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Write every word on paper, in this order. This phrase '
+                    'controls the wallet; anyone who sees it can take the funds.',
+                    style: TextStyle(
+                      color: Theme.of(dialogContext).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _MnemonicGrid(words: mnemonic.split(' ')),
+                  const SizedBox(height: 14),
+                  _SummaryRow(
+                    label: 'Path',
+                    value: '${config.pathLabel} · ${config.derivationPath}',
+                  ),
+                  _SummaryRow(
+                    label: 'Passphrase',
+                    value: config.passphrase.isEmpty
+                        ? 'None'
+                        : 'Enabled (25th word)',
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    value: saved,
+                    onChanged: (value) => setState(() => saved = value == true),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(
+                      'I wrote down all ${config.wordCount} words in order.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saved
+                  ? () => Navigator.pop(dialogContext, true)
+                  : null,
+              child: const Text('Continue to verification'),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+    );
+    if (accepted != true || !context.mounted) return;
+
+    final verified = await runBackupQuiz(context, mnemonic);
+    if (!verified || !context.mounted) return;
+
+    try {
+      final key = WalletCore.derivePrivateKey(
+        phrase: mnemonic,
+        passphrase: config.passphrase,
+        path: config.derivationPath,
+      );
+      await _finishCreatedWallet(
+        context,
+        key,
+        mnemonic: mnemonic,
+        summary: config.passphrase.isEmpty
+            ? '${config.wordCount} words'
+            : '${config.wordCount} words + passphrase',
+        path: '${config.pathLabel} · ${config.derivationPath}',
+      );
+    } catch (error) {
+      if (context.mounted) showError(context, error);
+    }
+    return;
+  }
+
+  if (config.kind == _CreateKind.newPrivateKey) {
+    final key = WalletCore.generatePrivateKey();
+    final backedUp = await _confirmNewPrivateKey(context, key);
+    if (backedUp != true || !context.mounted) return;
+    await _finishCreatedWallet(
+      context,
+      key,
+      summary: 'Generated private key (no recovery phrase)',
+      path: 'No derivation path — raw private key',
+    );
+    return;
+  }
+
+  try {
+    final key = WalletCore.privateKeyFromHex(config.existingPrivateKey!);
+    await _finishCreatedWallet(
+      context,
+      key,
+      summary: 'Existing private key',
+      path: 'No derivation path — raw private key',
+    );
+  } catch (error) {
+    if (context.mounted) showError(context, error);
+  }
+}
+
+Future<bool> _confirmNewPrivateKey(
+  BuildContext context,
+  EthPrivateKey key,
+) async {
+  var saved = false;
+  final keyHex = WalletCore.privateKeyHex(key);
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) => AlertDialog(
+        title: const Text('Back up your new private key'),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 480,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This is the ONLY way to restore this wallet. Write the '
+                  'whole key on paper now. It is not stored anywhere else.',
+                  style: TextStyle(
+                    color: Theme.of(dialogContext).colorScheme.error,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(dialogContext).dividerColor,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    keyHex,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'It starts with 0x and has 64 hexadecimal characters after '
+                  'it. Do not photograph it or save it in a notes app.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  value: saved,
+                  onChanged: (value) => setState(() => saved = value == true),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('I wrote down the whole private key.'),
+                ),
+              ],
+            ),
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: saved ? () => Navigator.pop(dialogContext, true) : null,
+            child: const Text('Create wallet'),
+          ),
+        ],
+      ),
+    ),
+  );
+  return result == true;
+}
+
+Future<void> _finishCreatedWallet(
+  BuildContext context,
+  EthPrivateKey key, {
+  String? mnemonic,
+  required String summary,
+  required String path,
+}) async {
+  await appState.unlock(key, mnemonic: mnemonic);
+  appState.focusTab(1);
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Wallet created'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'The wallet is unlocked. Compare this address with your other '
+            'wallet before sending funds.',
+          ),
+          const SizedBox(height: 12),
+          SelectableText(
+            key.address.eip55With0x,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _SummaryRow(label: 'Path', value: path),
+          _SummaryRow(label: 'Backup', value: summary),
+        ],
+      ),
+      actions: [
         FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('I stored it'),
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Done'),
         ),
       ],
     ),
   );
-  if (accepted != true || !context.mounted) return;
-  // §2: typing "I stored it" is not proof. Three random words must match the
-  // phrase on paper before the wallet is created and unlocked.
-  final verified = await runBackupQuiz(context, mnemonic);
-  if (!verified || !context.mounted) return;
-  final key = WalletCore.derivePrivateKey(phrase: mnemonic);
-  await appState.unlock(key, mnemonic: mnemonic);
-  appState.focusTab(1); // land on the wallet that just became visible
   if (!context.mounted) return;
-  showInfo(context, 'Wallet created and unlocked.');
   await showOfferProfileAndVault(context);
+}
+
+class _CreateWarning extends StatelessWidget {
+  const _CreateWarning({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer
+            .withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).colorScheme.error),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
+        ],
+      ),
+    );
+  }
 }
 
 Future<void> showImportWalletDialog(BuildContext context) async {

@@ -13,28 +13,96 @@ void main() {
         passphrase: '',
         path: WalletCore.defaultPath,
       );
-      expect(key.address.eip55With0x, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+      expect(
+        key.address.eip55With0x,
+        '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      );
+    });
+
+    test('generates 12- and 24-word phrases and rejects other lengths', () {
+      final twelve = WalletCore.generateMnemonic(wordCount: 12);
+      final twentyFour = WalletCore.generateMnemonic(wordCount: 24);
+      expect(twelve.trim().split(RegExp(r'\s+')), hasLength(12));
+      expect(twentyFour.trim().split(RegExp(r'\s+')), hasLength(24));
+      expect(WalletCore.validateMnemonic(twelve), isTrue);
+      expect(WalletCore.validateMnemonic(twentyFour), isTrue);
+      expect(
+        () => WalletCore.generateMnemonic(wordCount: 15),
+        throwsArgumentError,
+      );
+    });
+
+    test('popular paths are listed once and account indexes are generated', () {
+      expect(WalletCore.standardPaths['Standard EVM'], WalletCore.defaultPath);
+      expect(WalletCore.standardPaths['Ledger Legacy (MEW)'], "m/44'/60'/0'/0");
+      expect(WalletCore.standardPathForAccount(1), "m/44'/60'/1'/0/0");
+      expect(WalletCore.standardPathForAccount(9), "m/44'/60'/9'/0/0");
+      expect(WalletCore.standardPaths, hasLength(3));
+      for (final entry in WalletCore.standardPaths.entries) {
+        if (entry.key == 'Custom') {
+          expect(entry.value, isEmpty);
+        } else {
+          expect(entry.value, startsWith("m/44'/60'"));
+        }
+      }
+    });
+
+    test('different account path derives a different address', () {
+      const phrase =
+          'test test test test test test test test test test test junk';
+      final account0 = WalletCore.derivePrivateKey(
+        phrase: phrase,
+        path: "m/44'/60'/0'/0/0",
+      );
+      final account1 = WalletCore.derivePrivateKey(
+        phrase: phrase,
+        path: "m/44'/60'/1'/0/0",
+      );
+      expect(account1.address, isNot(account0.address));
+    });
+
+    test('private-key import uses the same known vector', () {
+      final key = WalletCore.privateKeyFromHex(
+        '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      );
+      expect(
+        key.address.eip55With0x,
+        '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      );
     });
 
     test('derivation is deterministic and passphrase-sensitive', () {
       const phrase =
           'test test test test test test test test test test test junk';
-      final a = WalletCore.derivePrivateKey(phrase: phrase, passphrase: '', path: WalletCore.defaultPath);
-      final b = WalletCore.derivePrivateKey(phrase: phrase, passphrase: '', path: WalletCore.defaultPath);
+      final a = WalletCore.derivePrivateKey(
+        phrase: phrase,
+        passphrase: '',
+        path: WalletCore.defaultPath,
+      );
+      final b = WalletCore.derivePrivateKey(
+        phrase: phrase,
+        passphrase: '',
+        path: WalletCore.defaultPath,
+      );
       final alt = WalletCore.derivePrivateKey(
-          phrase: phrase, passphrase: 'sh', path: WalletCore.defaultPath);
+        phrase: phrase,
+        passphrase: 'sh',
+        path: WalletCore.defaultPath,
+      );
       expect(a.privateKey, b.privateKey);
       expect(a.address, b.address);
       expect(alt.address, isNot(a.address));
     });
 
     test('validateMnemonic checks checksum and wordlist', () {
-      const junk = 'test test test test test test test test test test test junk';
+      const junk =
+          'test test test test test test test test test test test junk';
       expect(WalletCore.validateMnemonic(junk), isTrue);
       expect(WalletCore.validateMnemonic('not real words at all'), isFalse);
       expect(
         WalletCore.validateMnemonic(
-            'test test test test test test test test test test test'),
+          'test test test test test test test test test test test',
+        ),
         isFalse,
       );
     });
@@ -43,11 +111,16 @@ void main() {
   group('EIP-55 checksum vectors', () {
     // Mixed-case checksum addresses from the EIP-55 test cases.
     const vectors = <String, String>{
-      '5aaeb6053f3e94c9b9a09f33669435e7ef1beaed': '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
-      'fb6916095ca1df60bb79ce92ce3ea74c37c5d359': '0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359',
-      '52908400098527886e0f7030069857d2e4169ee7': '0x52908400098527886E0F7030069857D2E4169EE7',
-      'de709f2102306220921060314725629080e2fb77': '0xde709f2102306220921060314725629080E2Fb77',
-      '0000000000000000000000000000000000000001': '0x0000000000000000000000000000000000000001',
+      '5aaeb6053f3e94c9b9a09f33669435e7ef1beaed':
+          '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+      'fb6916095ca1df60bb79ce92ce3ea74c37c5d359':
+          '0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359',
+      '52908400098527886e0f7030069857d2e4169ee7':
+          '0x52908400098527886E0F7030069857D2E4169EE7',
+      'de709f2102306220921060314725629080e2fb77':
+          '0xde709f2102306220921060314725629080E2Fb77',
+      '0000000000000000000000000000000000000001':
+          '0x0000000000000000000000000000000000000001',
     };
     for (final entry in vectors.entries) {
       test('checksums ${entry.key}', () {

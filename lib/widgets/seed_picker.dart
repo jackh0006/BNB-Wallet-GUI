@@ -1,5 +1,6 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Place-based BIP-39 word picker for seed ENTRY.
 ///
@@ -37,6 +38,7 @@ class _SeedPickerDialogState extends State<_SeedPickerDialog> {
   String _query = '';
   List<String> _picked = [];
   late List<String> _filtered;
+  String? _pasteError;
 
   @override
   void initState() {
@@ -81,7 +83,40 @@ void _add(String word) {
         _picked = [];
         _search.clear();
         _filtered = const [];
+        _pasteError = null;
       });
+
+  /// Paste-in is explicit and user-triggered: the clipboard is read only when
+  /// this button is tapped, validated against the BIP-39 wordlist/checksum,
+  /// and never written to a log.
+  Future<void> _pastePhrase() async {
+    final data = await Clipboard.getData('text/plain');
+    final words = (data?.text ?? '')
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.length != widget.wordCount) {
+      setState(
+        () => _pasteError =
+            'The clipboard holds ${words.length} words; this dialog needs '
+            '${widget.wordCount}.',
+      );
+      return;
+    }
+    try {
+      Mnemonic.fromSentence(words.join(' '), Language.english);
+    } catch (_) {
+      setState(
+        () => _pasteError =
+            'That is not a valid BIP-39 phrase (wrong word or checksum).',
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, words.join(' '));
+  }
 
   bool get _complete => _picked.length == widget.wordCount;
 
@@ -101,6 +136,13 @@ void _add(String word) {
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
             const SizedBox(height: 10),
+            if (_pasteError != null) ...[
+              Text(
+                _pasteError!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+            ],
             TextField(
               controller: _search,
               autocorrect: false,
@@ -152,6 +194,10 @@ void _add(String word) {
         ),
       ),
       actions: [
+        TextButton(
+          onPressed: _pastePhrase,
+          child: const Text('Paste phrase'),
+        ),
         TextButton(onPressed: _clearAll, child: const Text('Clear')),
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(

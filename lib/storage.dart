@@ -24,6 +24,14 @@ class AppStorage {
 
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+    // Proxy passwords never go to SharedPreferences. Reading the secure store
+    // is best-effort here so widget tests and keyring-less systems still boot;
+    // a missing password simply means the proxy will fail auth, not fall back.
+    try {
+      _proxyPasswordCache = await _secure.read(key: 'proxy_password');
+    } catch (_) {
+      _proxyPasswordCache = null;
+    }
   }
 
   static SharedPreferences get prefs {
@@ -376,6 +384,12 @@ class AppStorage {
       'tor_enabled',
       'tor_host',
       'tor_port',
+      'proxy_type',
+      'proxy_host',
+      'proxy_port',
+      'proxy_user',
+      'tor_bridge_type',
+      'tor_bridge_lines',
       'strict_node',
       'node_warned',
       'token_user_sources',
@@ -387,11 +401,13 @@ class AppStorage {
         if (prefs.containsKey(key)) leftovers.add('preference "$key"');
       } catch (_) {}
     }
+    _proxyPasswordCache = null;
     for (final task in [
       clearBscscanKey,
       clearPinHash,
       clearDeviceSecret,
       clearBackoffState,
+      () => _secure.delete(key: 'proxy_password'),
     ]) {
       try {
         await task();
@@ -707,6 +723,92 @@ class AppStorage {
       prefs.setString('tor_host', value);
   static int get torPort => prefs.getInt('tor_port') ?? 9050;
   static Future<void> setTorPort(int value) => prefs.setInt('tor_port', value);
+
+  // ---- global custom proxy (SOCKS5/SOCKS5h/HTTP CONNECT) ----
+
+  static String? _proxyPasswordCache;
+
+  static ProxyType get proxyType {
+    final raw = prefs.getString('proxy_type') ?? ProxyType.none.name;
+    return ProxyType.values.firstWhere(
+      (type) => type.name == raw,
+      orElse: () => ProxyType.none,
+    );
+  }
+
+  static String get proxyHost => prefs.getString('proxy_host') ?? '';
+  static int get proxyPort => prefs.getInt('proxy_port') ?? 1080;
+  static String? get proxyUser {
+    final value = prefs.getString('proxy_user');
+    return (value == null || value.isEmpty) ? null : value;
+  }
+
+  static String? get proxyPassword => _proxyPasswordCache;
+
+  static GlobalProxyConfig get globalProxy => GlobalProxyConfig(
+    type: proxyType,
+    host: proxyHost,
+    port: proxyPort,
+    username: proxyUser,
+    password: _proxyPasswordCache,
+  );
+
+  static Future<void> setGlobalProxy(GlobalProxyConfig config) async {
+    await prefs.setString('proxy_type', config.type.name);
+    await prefs.setString('proxy_host', config.host.trim());
+    await prefs.setInt('proxy_port', config.port);
+    final user = config.username?.trim() ?? '';
+    if (user.isEmpty) {
+      await prefs.remove('proxy_user');
+    } else {
+      await prefs.setString('proxy_user', user);
+    }
+    final pass = config.password ?? '';
+    _proxyPasswordCache = pass.isEmpty ? null : pass;
+    try {
+      if (pass.isEmpty) {
+        await _secure.delete(key: 'proxy_password');
+      } else {
+        await _secure.write(key: 'proxy_password', value: pass);
+      }
+    } catch (_) {
+      // Session-only fallback: the password still works until this process
+      // exits, and the UI warns that it was not stored persistently.
+    }
+  }
+
+  static Future<void> clearProxy() =>
+      setGlobalProxy(const GlobalProxyConfig.disabled());
+
+  // ---- managed Tor bridge preferences (not secrets) ----
+
+  static TorBridgeType get torBridgeType {
+    final raw = prefs.getString('tor_bridge_type') ?? TorBridgeType.none.name;
+    return TorBridgeType.values.firstWhere(
+      (type) => type.name == raw,
+      orElse: () => TorBridgeType.none,
+    );
+  }
+
+  static List<String> get torBridgeLines {
+    final raw = prefs.getString('tor_bridge_lines');
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return [for (final line in decoded) '$line'];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<void> setTorBridge(
+    TorBridgeType type,
+    List<String> lines,
+  ) async {
+    await prefs.setString('tor_bridge_type', type.name);
+    await prefs.setString('tor_bridge_lines', jsonEncode(lines));
+  }
 
   /// "Use only my node" (§10d strict mode): the wallet talks to the selected
   /// door ONLY — no built-in fallbacks, no other candidate, nothing else.

@@ -12,6 +12,7 @@ import '../wallet_core.dart';
 import 'backup_quiz_dialog.dart';
 import 'common.dart';
 import 'logs_page.dart';
+import 'privacy_dialogs.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -101,94 +102,91 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _privacySection() {
+    final proxy = appState.globalProxy;
+    final route = appState.torEnabled
+        ? 'Tor via ${appState.torHost}:${appState.torPort}'
+        : (proxy.type != ProxyType.none
+              ? proxy.description
+              : 'Direct HTTPS (no proxy)');
+
     return InfoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle('Privacy — route RPC through Tor'),
+          SectionTitle('Privacy route'),
           const SizedBox(height: 8),
           const Text(
-            'When enabled, every RPC and explorer request is sent through a local SOCKS5 '
-            'connector — normally the Tor SocksPort. Nothing ever falls back to a direct '
-            'connection: if the proxy is not running, network calls simply fail.\n'
-            'Ubuntu: sudo apt install tor (SocksPort 9050). Android: install Orbot and '
-            'start it in SOCKS mode (default 127.0.0.1:9050). Bridges (obfs4/WebTunnel) '
-            'are configured inside Orbot/tor itself — the wallet only needs the local '
-            'SOCKS port, so bridges work without any app changes.',
+            'Exactly one route is active for every RPC and explorer request. '
+            'There is no direct fallback: if the selected route is down, '
+            'requests fail instead of revealing your IP address.',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 10),
-          SwitchListTile.adaptive(
-            title: const Text('Route traffic through Tor (SOCKS5)'),
-            subtitle: appState.torEnabled
-                ? Text('Proxy ${appState.torHost}:${appState.torPort}')
-                : const Text(
-                    'Direct HTTPS connection (default)',
-                    style: TextStyle(fontSize: 12),
-                  ),
-            value: appState.torEnabled,
-            onChanged: (value) async {
-              setState(() {});
-              await appState.setTorEnabled(value);
-              try {
-                await appState.rpc.connect();
-                if (context.mounted) {
-                  showInfo(
-                    context,
-                    'Connected via ${value ? 'Tor' : 'direct route'}.',
-                  );
-                }
-              } catch (error) {
-                if (context.mounted)
-                  showError(context, 'Proxy route failed: $error');
-              }
-            },
-            secondary: const Icon(Icons.vpn_key, color: Color(0xFFF0B90B)),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              appState.torEnabled || appState.proxyEnabled
+                  ? Icons.vpn_lock
+                  : Icons.public,
+              color: appState.torEnabled || appState.proxyEnabled
+                  ? const Color(0xFFF0B90B)
+                  : Colors.white54,
+            ),
+            title: const Text('Active route'),
+            subtitle: Text(route, style: const TextStyle(fontSize: 12)),
           ),
-          const SizedBox(height: 4),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: Text(
-                  '${appState.torHost}:${appState.torPort}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ),
-              TextButton(
+              FilledButton.tonalIcon(
                 onPressed: () async {
-                  final host = await promptText(
-                    context,
-                    title: 'SOCKS5 host',
-                    label: 'Host (e.g. 127.0.0.1)',
-                    initialValue: appState.torHost,
-                    validator: (v) =>
-                        v.trim().isEmpty ? 'Host is required.' : null,
-                  );
-                  if (host == null) return;
-                  final port = await promptText(
-                    context,
-                    title: 'SOCKS5 port',
-                    label: 'Port (e.g. 9050)',
-                    initialValue: '${appState.torPort}',
-                    keyboardType: TextInputType.number,
-                    validator: (v) {
-                      final p = int.tryParse(v);
-                      return (p != null && p > 0 && p < 65536)
-                          ? null
-                          : 'Valid port required.';
-                    },
-                  );
-                  if (port == null) return;
-                  await appState.setTorHostPort(
-                    host.trim(),
-                    int.parse(port.trim()),
-                  );
-                  if (context.mounted)
-                    showInfo(context, 'SOCKS5 target updated.');
+                  final changed = await showProxySettingsDialog(context);
+                  if (changed && mounted) setState(() {});
                 },
-                child: const Text('Change proxy…'),
+                icon: const Icon(Icons.route),
+                label: const Text('Custom proxy…'),
               ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final changed = await showTorSettingsDialog(context);
+                  if (changed && mounted) setState(() {});
+                },
+                icon: const Icon(Icons.travel_explore),
+                label: const Text('Tor & bridges…'),
+              ),
+              if (proxy.type != ProxyType.none)
+                TextButton(
+                  onPressed: () async {
+                    await appState.disableProxy();
+                    try {
+                      await appState.rpc.connect();
+                    } catch (_) {}
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('Disable proxy'),
+                ),
+              if (appState.torEnabled)
+                TextButton(
+                  onPressed: () async {
+                    await appState.setTorEnabled(false);
+                    try {
+                      await appState.rpc.connect();
+                    } catch (_) {}
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('Disable Tor'),
+                ),
             ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Custom proxy: SOCKS5, SOCKS5h, or HTTP CONNECT, with domain/IP '
+            'hosts, custom ports and optional authentication. Tor: use an '
+            'existing Tor/Orbot SOCKS port or let the app start a managed '
+            'Tor daemon with obfs4, Snowflake, WebTunnel, meek or custom '
+            'bridge lines.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -202,6 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
         .rpc
         .routeDescription; // e.g. "Direct HTTPS" / "Tor via 127.0.0.1:9050"
     final isTor = appState.torEnabled;
+    final isPrivate = isTor || appState.proxyEnabled;
 
     return InfoCard(
       child: Column(
@@ -220,7 +219,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 14),
           _PrivacyCard(
             title: 'Your ISP / DPI (internet provider, firewalls)',
-            canSee: isTor
+            canSee: isPrivate
                 ? [
                     'You connect to a Tor guard relay (public IP).',
                     'Tor TLS-like handshake (DPI often recognises Tor).',
@@ -232,7 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Traffic volume and timing.',
                     'DNS queries for the RPC hostname (unless DoH).',
                   ],
-            cannotSee: isTor
+            cannotSee: isPrivate
                 ? [
                     'Which RPC you talk to (hidden inside Tor).',
                     'RPC payload (addresses, amounts, signed tx).',
@@ -275,7 +274,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 14),
-          if (!isTor) ...[
+          if (!isPrivate) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -290,7 +289,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Expanded(
                     child: Text(
                       'Direct mode: your ISP sees the RPC hostname and your IP. '
-                      'Enable Tor to hide both.',
+                      'Enable Tor or a proxy to hide both.',
                       style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ),
@@ -945,7 +944,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   .toList(),
               onChanged: (value) async {
                 if (value == null) return;
-                await appState.setNodeTransport(index, value);
+                if (value == NodeTransport.customProxy ||
+                    value == NodeTransport.httpConnect) {
+                  // These routes are unusable without an endpoint. Ask for it
+                  // now instead of leaving a fail-closed node behind.
+                  await _editNodeTransport(index, node, preset: value);
+                } else {
+                  await appState.setNodeTransport(index, value);
+                }
                 if (context.mounted) setState(() {});
               },
             ),
@@ -1034,6 +1040,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 case 'transport':
                   await _editNodeTransport(index, node);
                   break;
+                case 'proxy':
+                  await _editNodeTransport(
+                    index,
+                    node,
+                    preset:
+                        node.transport == NodeTransport.customProxy ||
+                            node.transport == NodeTransport.httpConnect
+                        ? node.transport
+                        : NodeTransport.customProxy,
+                  );
+                  break;
                 case 'auth':
                   await _editNodeAuth(index, node);
                   break;
@@ -1110,6 +1127,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   dense: true,
                   leading: Icon(Icons.router),
                   title: Text('Change transport…'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'proxy',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.route),
+                  title: Text('Proxy settings…'),
                 ),
               ),
               PopupMenuItem(
@@ -1588,21 +1613,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _themeLabel(int index) {
     switch (index) {
-      case 1: return 'Light';
-      case 2: return 'Dark';
-      case 3: return 'AMOLED black';
-      default: return 'System default';
+      case 1:
+        return 'Light';
+      case 2:
+        return 'Dark';
+      case 3:
+        return 'AMOLED black';
+      default:
+        return 'System default';
     }
   }
 
   String _languageLabel(String locale) {
     switch (locale) {
-      case 'fa': return 'فارسی (Persian)';
-      case 'ar': return 'العربية (Arabic)';
-      case 'zh': return '中文 (Chinese)';
-      case 'ru': return 'Русский (Russian)';
-      case 'es': return 'Español (Spanish)';
-      default: return 'English';
+      case 'fa':
+        return 'فارسی (Persian)';
+      case 'ar':
+        return 'العربية (Arabic)';
+      case 'zh':
+        return '中文 (Chinese)';
+      case 'ru':
+        return 'Русский (Russian)';
+      case 'es':
+        return 'Español (Spanish)';
+      default:
+        return 'English';
     }
   }
 
@@ -1958,35 +1993,82 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _editNodeTransport(int index, RpcNode node) async {
-    final choice = await showDialog<NodeTransport>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text('Transport for "${node.label}"'),
-        children: [
-          for (final t in NodeTransport.values)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(ctx, t),
-              child: Text(_transportLabelFromEnum(t)),
-            ),
-        ],
-      ),
-    );
+  Future<void> _editNodeTransport(
+    int index,
+    RpcNode node, {
+    NodeTransport? preset,
+  }) async {
+    final choice =
+        preset ??
+        await showDialog<NodeTransport>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: Text('Transport for "${node.label}"'),
+            children: [
+              for (final t in NodeTransport.values)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, t),
+                  child: Text(_transportLabelFromEnum(t)),
+                ),
+            ],
+          ),
+        );
     if (choice == null) return;
-    if (choice == NodeTransport.customProxy) {
+    if (choice == NodeTransport.customProxy ||
+        choice == NodeTransport.httpConnect) {
+      final current = node.proxyHost == null
+          ? ''
+          : '${choice == NodeTransport.httpConnect ? 'http' : 'socks5h'}://'
+                '${node.proxyHost}:${node.proxyPort ?? ''}';
+      final url = await promptText(
+        context,
+        title: _transportLabelFromEnum(choice),
+        label: 'Paste proxy URL (optional)',
+        hintText: 'socks5h://user:pass@host:1080 or https://host:8080',
+        initialValue: current,
+        validator: (v) {
+          final text = v.trim();
+          if (text.isEmpty) return null;
+          return GlobalProxyConfig.fromUrl(text) == null
+              ? 'Not a supported proxy URL.'
+              : null;
+        },
+      );
+      if (url == null || !context.mounted) return;
+      if (url.trim().isNotEmpty) {
+        final parsed = GlobalProxyConfig.fromUrl(url);
+        if (parsed == null) {
+          if (context.mounted) showError(context, 'Unsupported proxy URL.');
+          return;
+        }
+        final effective = parsed.type == ProxyType.httpConnect
+            ? NodeTransport.httpConnect
+            : NodeTransport.customProxy;
+        await appState.setNodeTransport(
+          index,
+          effective,
+          proxyHost: parsed.host,
+          proxyPort: parsed.port,
+          proxyUser: parsed.username,
+          proxyPass: parsed.password,
+        );
+        if (mounted) showInfo(context, 'Proxy updated for ${node.label}.');
+        return;
+      }
       final host = await promptText(
         context,
-        title: 'Custom SOCKS5 proxy',
-        label: 'Host (e.g. 127.0.0.1)',
+        title: _transportLabelFromEnum(choice),
+        label: 'Proxy host (domain or IP)',
         initialValue: node.proxyHost ?? '',
         validator: (v) => v.trim().isEmpty ? 'Host required' : null,
       );
       if (host == null || !context.mounted) return;
       final port = await promptText(
         context,
-        title: 'Custom SOCKS5 proxy',
-        label: 'Port (e.g. 9050)',
-        initialValue: '${node.proxyPort ?? 9050}',
+        title: _transportLabelFromEnum(choice),
+        label: 'Proxy port',
+        initialValue:
+            '${node.proxyPort ?? (choice == NodeTransport.httpConnect ? 8080 : 1080)}',
         keyboardType: TextInputType.number,
         validator: (v) {
           final p = int.tryParse(v);
@@ -1998,7 +2080,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (port == null || !context.mounted) return;
       final user = await promptText(
         context,
-        title: 'Custom SOCKS5 proxy (optional)',
+        title: '${_transportLabelFromEnum(choice)} (optional)',
         label: 'Username (empty for none)',
         initialValue: node.proxyUser ?? '',
       );
@@ -2007,7 +2089,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (user.isNotEmpty) {
         pass = await promptText(
           context,
-          title: 'Custom SOCKS5 proxy',
+          title: _transportLabelFromEnum(choice),
           label: 'Password',
           obscure: true,
         );
@@ -2075,7 +2157,13 @@ class _SettingsPageState extends State<SettingsPage> {
       if (password == null || !context.mounted) return;
     }
 
-    await appState.setNodeAuth(index, choice, authToken: token, authUsername: username, authPassword: password);
+    await appState.setNodeAuth(
+      index,
+      choice,
+      authToken: token,
+      authUsername: username,
+      authPassword: password,
+    );
     if (mounted) showInfo(context, 'Authentication updated for ${node.label}.');
   }
 
@@ -2090,9 +2178,15 @@ class _SettingsPageState extends State<SettingsPage> {
       hintText: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=',
     );
     if (pins == null || !context.mounted) return;
-    final pinList = pins.trim().split('\n').where((s) => s.trim().isNotEmpty).map((s) => s.trim()).toList();
+    final pinList = pins
+        .trim()
+        .split('\n')
+        .where((s) => s.trim().isNotEmpty)
+        .map((s) => s.trim())
+        .toList();
     await appState.setNodePinning(index, pinList);
-    if (mounted) showInfo(context, 'Certificate pinning updated for ${node.label}.');
+    if (mounted)
+      showInfo(context, 'Certificate pinning updated for ${node.label}.');
   }
 
   Future<void> _editNodeSelection(int index, RpcNode node) async {
@@ -2131,11 +2225,14 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (selectionMode == null || !context.mounted) return;
 
-    await appState.setNodeSelection(index,
-        useForReads: useForReads,
-        useForBroadcast: useForBroadcast,
-        selectionMode: selectionMode);
-    if (mounted) showInfo(context, 'Selection settings updated for ${node.label}.');
+    await appState.setNodeSelection(
+      index,
+      useForReads: useForReads,
+      useForBroadcast: useForBroadcast,
+      selectionMode: selectionMode,
+    );
+    if (mounted)
+      showInfo(context, 'Selection settings updated for ${node.label}.');
   }
 
   String _authTypeLabel(NodeAuthType t) {
@@ -2149,15 +2246,26 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<bool?> _askBool(BuildContext context, String title, String message, {bool initialValue = true}) {
+  Future<bool?> _askBool(
+    BuildContext context,
+    String title,
+    String message, {
+    bool initialValue = true,
+  }) {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Yes'),
+          ),
         ],
       ),
     );
@@ -2185,25 +2293,38 @@ class _SettingsPageState extends State<SettingsPage> {
             value: 0,
             groupValue: appState.walletModeIndex,
             onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(Icons.wallet, color: appState.hotMode ? Colors.amber : Colors.white38),
+            secondary: Icon(
+              Icons.wallet,
+              color: appState.hotMode ? Colors.amber : Colors.white38,
+            ),
           ),
           RadioListTile<int>(
             contentPadding: EdgeInsets.zero,
             title: const Text('Cold (offline signer)'),
-            subtitle: const Text('Holds seed, no network — signs requests offline'),
+            subtitle: const Text(
+              'Holds seed, no network — signs requests offline',
+            ),
             value: 1,
             groupValue: appState.walletModeIndex,
             onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(Icons.smartphone, color: appState.coldMode ? Colors.amber : Colors.white38),
+            secondary: Icon(
+              Icons.smartphone,
+              color: appState.coldMode ? Colors.amber : Colors.white38,
+            ),
           ),
           RadioListTile<int>(
             contentPadding: EdgeInsets.zero,
             title: const Text('Online (watch-only companion)'),
-            subtitle: const Text('No secrets — prepares & broadcasts for cold device'),
+            subtitle: const Text(
+              'No secrets — prepares & broadcasts for cold device',
+            ),
             value: 2,
             groupValue: appState.walletModeIndex,
             onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(Icons.wifi_tethering, color: appState.onlineMode ? Colors.amber : Colors.white38),
+            secondary: Icon(
+              Icons.wifi_tethering,
+              color: appState.onlineMode ? Colors.amber : Colors.white38,
+            ),
           ),
           if (appState.coldMode) ...[
             const Divider(height: 24),
@@ -2261,7 +2382,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showColdSignature(BuildContext context) {
-    showInfo(context, 'Cold signature display: QR / file UI comes next (R5 UI).');
+    showInfo(
+      context,
+      'Cold signature display: QR / file UI comes next (R5 UI).',
+    );
   }
 
   /// Node selection mode (global) — R7.

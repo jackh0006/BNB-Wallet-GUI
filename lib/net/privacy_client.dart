@@ -26,117 +26,249 @@ import '../storage.dart';
 /// Fail closed: if the SOCKS port is dead, the standard client surfaces the
 /// connection error — calls NEVER fall back to a direct connection.
 http.Client createRpcClient() {
-  // Only the "storage not initialized yet" guard may default to direct mode
-  // (widget tests / very early bootstrap). On a real device, main() awaits
-  // AppStorage.init() before constructing the app, and any later read error
-  // still propagates instead of silently downgrading the route.
-  var torOn = false;
-  try {
-    torOn = AppStorage.torEnabled;
-  } on StateError {
-    torOn = false;
-  }
   // Fingerprint reduction (round 6): dart:io otherwise announces
   // "Dart/<version> (dart:io)" on every request — a software/runtime
   // fingerprint that DPI and RPC operators can read and correlate. A null
   // user agent sends no User-Agent header at all, revealing nothing about
   // the device, OS or runtime.
-  final inner = HttpClient()..userAgent = null;
-  if (torOn) {
-    socks.SocksTCPClient.assignToHttpClient(inner, [
-      socks.ProxySettings(
-        InternetAddress(AppStorage.torHost),
-        AppStorage.torPort,
-      ),
-    ]);
-  }
+  final inner = HttpClient()
+    ..userAgent = null
+    ..idleTimeout = const Duration(seconds: 30);
+  _applyGlobalRoute(inner);
   return http_io.IOClient(inner);
+}
+
+/// Applies the configured global privacy route to [inner]: custom proxy first,
+/// then Tor, then direct. A configured proxy that cannot be applied throws —
+/// it never silently falls back to a direct connection.
+void _applyGlobalRoute(HttpClient inner) {
+  GlobalProxyConfig proxy;
+  bool torOn;
+  try {
+    proxy = AppStorage.globalProxy;
+    torOn = AppStorage.torEnabled;
+  } on StateError {
+    // Storage not initialized yet: tests and very early bootstrap only.
+    return;
+  }
+  if (proxy.type != ProxyType.none) {
+    // A selected proxy type with no usable host must not silently become a
+    // direct connection: that would leak the real IP exactly when the user
+    // asked for privacy.
+    if (!proxy.enabled) {
+      throw StateError(
+        'A proxy type is selected but its host/port is incomplete. '
+        'Open Settings and fix it, or choose Direct.',
+      );
+    }
+    _applyGlobalProxy(inner, proxy);
+    return;
+  }
+  if (torOn) {
+    _applySocks5(
+      inner,
+      host: AppStorage.torHost,
+      port: AppStorage.torPort,
+      remoteDns: true,
+    );
+  }
+}
+
+void _applyGlobalProxy(HttpClient inner, GlobalProxyConfig proxy) {
+  switch (proxy.type) {
+    case ProxyType.none:
+      return;
+    case ProxyType.socks5:
+      _applySocks5(
+        inner,
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username,
+        password: proxy.password,
+        remoteDns: false,
+      );
+    case ProxyType.socks5h:
+      _applySocks5(
+        inner,
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username,
+        password: proxy.password,
+        remoteDns: true,
+      );
+    case ProxyType.httpConnect:
+      _applyHttpConnect(
+        inner,
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username,
+        password: proxy.password,
+      );
+  }
+}
+
+void _applySocks5(
+  HttpClient inner, {
+  required String host,
+  required int port,
+  String? username,
+  String? password,
+  required bool remoteDns,
+}) {
+  if (host.trim().isEmpty || port <= 0 || port > 65535) {
+    throw StateError('SOCKS5 proxy host/port is incomplete.');
+  }
+  final proxyHost = host.trim();
+  final user = (username?.isEmpty ?? true) ? null : username;
+  final pass = (password?.isEmpty ?? true) ? null : password;
+
+  // A custom connection factory is used instead of assignToHttpClient for two
+  // reasons: the proxy host may be a domain name (resolved locally only), and
+  // SOCKS5 vs SOCKS5h must actually differ. SOCKS5 resolves the RPC hostname
+  // on this device; SOCKS5h sends the hostname to the proxy so DNS happens
+  // inside the tunnel.
+  inner.connectionFactory = (uri, ignoredProxyHost, ignoredProxyPort) async {
+    final proxyAddresses = await InternetAddress.lookup(proxyHost);
+    if (proxyAddresses.isEmpty) {
+      throw SocketException('Proxy host did not resolve: $proxyHost');
+    }
+    final settings = socks.ProxySettings(
+      proxyAddresses.first,
+      port,
+      username: user,
+      password: pass,
+    );
+    final target = remoteDns
+        ? InternetAddress(uri.host, type: InternetAddressType.unix)
+        : await _resolveTarget(uri.host);
+    final client = await socks.SocksTCPClient.connect(
+      [settings],
+      target,
+      uri.port,
+    );
+    if (uri.scheme == 'https') {
+      // TLS is negotiated end-to-end after the SOCKS tunnel exists, with the
+      // destination hostname used for SNI and certificate validation.
+      final secure = client.secure(uri.host);
+      return ConnectionTask.fromSocket(
+        secure,
+        () => secure.then((socket) => socket.close()).ignore(),
+      );
+    }
+    return ConnectionTask.fromSocket(
+      Future<Socket>.value(client),
+      () => client.close().ignore(),
+    );
+  };
+}
+
+Future<InternetAddress> _resolveTarget(String hostname) async {
+  final addresses = await InternetAddress.lookup(hostname);
+  if (addresses.isEmpty) {
+    throw SocketException('Destination host did not resolve: $hostname');
+  }
+  return addresses.first;
+}
+
+void _applyHttpConnect(
+  HttpClient inner, {
+  required String host,
+  required int port,
+  String? username,
+  String? password,
+}) {
+  if (host.trim().isEmpty || port <= 0 || port > 65535) {
+    throw StateError('HTTP CONNECT proxy host/port is incomplete.');
+  }
+  inner.findProxy = (uri) => 'PROXY ${host.trim()}:$port';
+  if (username != null && username.isNotEmpty) {
+    inner.authenticateProxy =
+        (String proxyHost, int proxyPort, String scheme, String? realm) async {
+          final uri = Uri.parse('http://$proxyHost:$proxyPort');
+          inner.addCredentials(
+            uri,
+            realm ?? '',
+            HttpClientBasicCredentials(username, password ?? ''),
+          );
+          return true;
+        };
+  }
 }
 
 /// Creates an HTTP client for a specific node with its transport settings.
 /// Used by RpcService when querying individual nodes (fee engine, test, etc.).
 /// Supports R4: HTTP CONNECT proxy, cert pinning (SPKI), HTTP auth, custom headers.
 http.Client createClientForNode(RpcNode node) {
-  // Determine effective transport for this node
-  final effectiveTransport = node.transport == NodeTransport.inherit
-      ? _getGlobalTransport()
-      : node.transport;
-
   final inner = HttpClient()
     ..userAgent = null
-    // R4: Connection reuse within a session is fine; we'll add idle timeout
     ..idleTimeout = const Duration(seconds: 30);
 
   // R4: Certificate pinning (SPKI)
   if (node.pinnedSpkiHashes.isNotEmpty) {
-    inner.badCertificateCallback = (X509Certificate cert, String host, int port) {
-      return _verifySpkiPin(cert, node.pinnedSpkiHashes);
-    };
+    inner.badCertificateCallback =
+        (X509Certificate cert, String host, int port) {
+          return _verifySpkiPin(cert, node.pinnedSpkiHashes);
+        };
   }
 
-  switch (effectiveTransport) {
+  switch (node.transport) {
+    case NodeTransport.inherit:
+      // The global setting is resolved for every node that inherits it, so a
+      // newly enabled proxy/Tor route applies to the whole node book.
+      _applyGlobalRoute(inner);
+      break;
     case NodeTransport.direct:
-      // Direct HTTPS, no proxy
       break;
     case NodeTransport.tor:
-      socks.SocksTCPClient.assignToHttpClient(inner, [
-        socks.ProxySettings(
-          InternetAddress(AppStorage.torHost),
-          AppStorage.torPort,
-        ),
-      ]);
+      _applySocks5(
+        inner,
+        host: AppStorage.torHost,
+        port: AppStorage.torPort,
+        remoteDns: true,
+      );
       break;
     case NodeTransport.customProxy:
-      if (node.proxyHost != null && node.proxyPort != null) {
-        // SOCKS5 proxy with optional auth
-        socks.SocksTCPClient.assignToHttpClient(inner, [
-          socks.ProxySettings(
-            InternetAddress(node.proxyHost!),
-            node.proxyPort!,
-            username: node.proxyUser,
-            password: node.proxyPass,
-          ),
-        ]);
+      if (node.proxyHost == null ||
+          node.proxyHost!.trim().isEmpty ||
+          node.proxyPort == null ||
+          node.proxyPort! <= 0 ||
+          node.proxyPort! > 65535) {
+        throw StateError(
+          'Node "${node.label}" is set to a custom SOCKS5 proxy but its '
+          'host/port is incomplete.',
+        );
       }
+      _applySocks5(
+        inner,
+        host: node.proxyHost!,
+        port: node.proxyPort!,
+        username: node.proxyUser,
+        password: node.proxyPass,
+        remoteDns: true,
+      );
       break;
     case NodeTransport.httpConnect:
-      // R4: HTTP CONNECT proxy (RFC 7231 §4.3.6)
-      // The CONNECT method establishes a tunnel through the proxy.
-      // DNS resolution happens at the proxy, so no DNS leaks.
-      if (node.proxyHost != null && node.proxyPort != null) {
-        final proxyUri = 'http://${node.proxyHost!}:${node.proxyPort}';
-        inner.findProxy = (Uri uri) => 'PROXY $proxyUri';
-        // Add proxy authentication if provided
-        if (node.proxyUser != null && node.proxyUser!.isNotEmpty) {
-          inner.authenticateProxy = (String host, int port, String scheme, String? realm) async {
-            final uri = Uri.parse('http://$host:$port');
-            inner.addCredentials(
-              uri,
-              realm ?? '',
-              HttpClientBasicCredentials(node.proxyUser!, node.proxyPass ?? ''),
-            );
-            return true;
-          };
-        }
+      if (node.proxyHost == null ||
+          node.proxyHost!.trim().isEmpty ||
+          node.proxyPort == null ||
+          node.proxyPort! <= 0 ||
+          node.proxyPort! > 65535) {
+        throw StateError(
+          'Node "${node.label}" is set to HTTP CONNECT but its proxy '
+          'host/port is incomplete.',
+        );
       }
-      break;
-    case NodeTransport.inherit:
-      // Should not reach here (resolved above), but fallback to direct
+      _applyHttpConnect(
+        inner,
+        host: node.proxyHost!,
+        port: node.proxyPort!,
+        username: node.proxyUser,
+        password: node.proxyPass,
+      );
       break;
   }
 
-  return _AuthenticatingHttpClient(
-    inner: http_io.IOClient(inner),
-    node: node,
-  );
-}
-
-NodeTransport _getGlobalTransport() {
-  try {
-    return AppStorage.torEnabled ? NodeTransport.tor : NodeTransport.direct;
-  } on StateError {
-    return NodeTransport.direct;
-  }
+  return _AuthenticatingHttpClient(inner: http_io.IOClient(inner), node: node);
 }
 
 /// R4: Verify SPKI pin against the certificate chain.
@@ -220,5 +352,55 @@ class _AuthenticatingHttpClient extends http.BaseClient {
       }
       request.headers[entry.key] = entry.value;
     }
+  }
+}
+
+/// Verifies a draft proxy configuration before it is saved. The temporary
+/// client is closed even on failure; the saved route is never touched.
+Future<String> probeProxyRoute(
+  GlobalProxyConfig config,
+  String rpcUrl, {
+  Duration timeout = const Duration(seconds: 20),
+}) async {
+  if (!config.enabled) {
+    throw StateError('Enter a proxy host and port first.');
+  }
+  final inner = HttpClient()
+    ..userAgent = null
+    ..idleTimeout = const Duration(seconds: 10);
+  _applyGlobalProxy(inner, config);
+  final client = http_io.IOClient(inner);
+  try {
+    final response = await client
+        .post(
+          Uri.parse(rpcUrl),
+          headers: const {'content-type': 'application/json'},
+          body: jsonEncode({
+            'jsonrpc': '2.0',
+            'id': 1,
+            'method': 'eth_chainId',
+            'params': <Object>[],
+          }),
+        )
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Proxy reached the endpoint but it returned HTTP ${response.statusCode}.',
+      );
+    }
+    final decoded = jsonDecode(response.body);
+    final result = decoded is Map ? decoded['result'] : null;
+    if (result is! String || !result.startsWith('0x')) {
+      throw StateError(
+        'The endpoint did not return a chain ID. Check the proxy and node URL.',
+      );
+    }
+    final chainId = int.tryParse(result.substring(2), radix: 16);
+    if (chainId == null) {
+      throw StateError('The endpoint returned an invalid chain ID.');
+    }
+    return 'Route works — ${config.type.shortLabel} reached the node; chain ID $chainId.';
+  } finally {
+    client.close();
   }
 }

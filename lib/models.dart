@@ -129,9 +129,9 @@ class RpcNode {
 
   // R4: HTTP authentication (Bearer/Basic)
   final NodeAuthType authType;
-  final String? authToken;        // for Bearer
-  final String? authUsername;     // for Basic
-  final String? authPassword;     // for Basic
+  final String? authToken; // for Bearer
+  final String? authUsername; // for Basic
+  final String? authPassword; // for Basic
 
   // R4: Custom headers (with validation to prevent identifying headers)
   final Map<String, String> customHeaders;
@@ -193,11 +193,10 @@ class RpcNode {
     authToken: json['authToken']?.toString(),
     authUsername: json['authUsername']?.toString(),
     authPassword: json['authPassword']?.toString(),
-    customHeaders: (json['customHeaders'] as Map?)?.cast<String, String>() ??
-        const {},
-    pinnedSpkiHashes: (json['pinnedSpkiHashes'] as List?)
-            ?.cast<String>() ??
-        const [],
+    customHeaders:
+        (json['customHeaders'] as Map?)?.cast<String, String>() ?? const {},
+    pinnedSpkiHashes:
+        (json['pinnedSpkiHashes'] as List?)?.cast<String>() ?? const [],
     useForReads: json['useForReads'] as bool? ?? true,
     useForBroadcast: json['useForBroadcast'] as bool? ?? true,
     selectionMode:
@@ -775,11 +774,7 @@ class PendingTx {
 /// The wallet's operating mode. Default is [WalletMode.hot] (normal hot wallet).
 /// [WalletMode.cold] = offline signer (holds seed, no network).
 /// [WalletMode.online] = watch-only companion (no secrets, broadcasts for cold).
-enum WalletMode {
-  hot,
-  cold,
-  online,
-}
+enum WalletMode { hot, cold, online }
 
 extension WalletModeLabel on WalletMode {
   String get label {
@@ -801,6 +796,201 @@ extension WalletModeLabel on WalletMode {
         return 'Cold';
       case WalletMode.online:
         return 'Online';
+    }
+  }
+}
+
+/// Global proxy type for RPC/BscScan traffic. Tor is a separate mode and uses
+/// the same SOCKS5 engine, but it is not listed here because it carries its
+/// own bridge/bootstrap UI.
+enum ProxyType { none, socks5, socks5h, httpConnect }
+
+extension ProxyTypeLabel on ProxyType {
+  String get label {
+    switch (this) {
+      case ProxyType.none:
+        return 'Direct (no proxy)';
+      case ProxyType.socks5:
+        return 'SOCKS5';
+      case ProxyType.socks5h:
+        return 'SOCKS5h (remote DNS)';
+      case ProxyType.httpConnect:
+        return 'HTTP CONNECT';
+    }
+  }
+
+  String get shortLabel {
+    switch (this) {
+      case ProxyType.none:
+        return 'Direct';
+      case ProxyType.socks5:
+        return 'SOCKS5';
+      case ProxyType.socks5h:
+        return 'SOCKS5h';
+      case ProxyType.httpConnect:
+        return 'HTTP CONNECT';
+    }
+  }
+}
+
+/// A validated global proxy configuration. Password is kept out of
+/// SharedPreferences; [AppStorage] stores it in the platform secure store.
+class GlobalProxyConfig {
+  const GlobalProxyConfig({
+    required this.type,
+    required this.host,
+    required this.port,
+    this.username,
+    this.password,
+  });
+
+  const GlobalProxyConfig.disabled()
+    : type = ProxyType.none,
+      host = '',
+      port = 1080,
+      username = null,
+      password = null;
+
+  final ProxyType type;
+  final String host;
+  final int port;
+  final String? username;
+  final String? password;
+
+  bool get enabled => type != ProxyType.none && host.trim().isNotEmpty;
+
+  String get endpoint => '$host:$port';
+
+  String get description {
+    if (!enabled) return 'Direct HTTPS';
+    final auth = (username != null && username!.isNotEmpty) ? ' (auth)' : '';
+    return '${type.label} $endpoint$auth';
+  }
+
+  GlobalProxyConfig copyWith({
+    ProxyType? type,
+    String? host,
+    int? port,
+    String? username,
+    String? password,
+    bool clearPassword = false,
+  }) {
+    return GlobalProxyConfig(
+      type: type ?? this.type,
+      host: host ?? this.host,
+      port: port ?? this.port,
+      username: username ?? this.username,
+      password: clearPassword ? null : (password ?? this.password),
+    );
+  }
+
+  /// Parses `socks5://user:pass@host:1080`, `socks5h://...`,
+  /// `http://...`, `https://...`, or a bare `host:port` (SOCKS5).
+  /// Returns null for an unsupported or malformed value.
+  static GlobalProxyConfig? fromUrl(String raw) {
+    var text = raw.trim();
+    if (text.isEmpty) return null;
+    // Uri normalizes an explicit :0 away, which would silently turn an
+    // invalid port into the default. Reject it before parsing.
+    if (RegExp(r':0(?:/|$)').hasMatch(text)) return null;
+    if (!text.contains('://')) text = 'socks5://$text';
+    final uri = Uri.tryParse(text);
+    if (uri == null || uri.host.isEmpty) return null;
+
+    ProxyType type;
+    switch (uri.scheme.toLowerCase()) {
+      case 'socks5':
+        type = ProxyType.socks5;
+        break;
+      case 'socks5h':
+        type = ProxyType.socks5h;
+        break;
+      case 'http':
+      case 'https':
+        // Both mean "reach HTTPS destinations through an HTTP CONNECT
+        // proxy". The hop to the proxy itself is not TLS.
+        type = ProxyType.httpConnect;
+        break;
+      default:
+        return null;
+    }
+    final port = uri.hasPort
+        ? uri.port
+        : (type == ProxyType.httpConnect ? 8080 : 1080);
+    if (port <= 0 || port > 65535) return null;
+
+    String? username;
+    String? password;
+    if (uri.userInfo.isNotEmpty) {
+      final split = uri.userInfo.indexOf(':');
+      if (split >= 0) {
+        username = Uri.decodeComponent(uri.userInfo.substring(0, split));
+        password = Uri.decodeComponent(uri.userInfo.substring(split + 1));
+      } else {
+        username = Uri.decodeComponent(uri.userInfo);
+      }
+    }
+    return GlobalProxyConfig(
+      type: type,
+      host: uri.host,
+      port: port,
+      username: (username?.isEmpty ?? true) ? null : username,
+      password: (password?.isEmpty ?? true) ? null : password,
+    );
+  }
+}
+
+/// Tor bridge families supported by the managed-Tor UI. The app can only run
+/// a transport when its client binary is installed; the UI says so plainly.
+enum TorBridgeType { none, obfs4, snowflake, webtunnel, meek, custom }
+
+extension TorBridgeTypeLabel on TorBridgeType {
+  String get label {
+    switch (this) {
+      case TorBridgeType.none:
+        return 'No bridge (direct Tor)';
+      case TorBridgeType.obfs4:
+        return 'obfs4';
+      case TorBridgeType.snowflake:
+        return 'Snowflake';
+      case TorBridgeType.webtunnel:
+        return 'WebTunnel';
+      case TorBridgeType.meek:
+        return 'meek';
+      case TorBridgeType.custom:
+        return 'Custom bridge line';
+    }
+  }
+
+  String get binaryName {
+    switch (this) {
+      case TorBridgeType.obfs4:
+        return 'obfs4proxy';
+      case TorBridgeType.snowflake:
+        return 'snowflake-client';
+      case TorBridgeType.webtunnel:
+        return 'webtunnel-client';
+      case TorBridgeType.meek:
+        return 'meek-client';
+      case TorBridgeType.none:
+      case TorBridgeType.custom:
+        return '';
+    }
+  }
+
+  String get bridgePrefix {
+    switch (this) {
+      case TorBridgeType.obfs4:
+        return 'obfs4 ';
+      case TorBridgeType.snowflake:
+        return 'snowflake ';
+      case TorBridgeType.webtunnel:
+        return 'webtunnel ';
+      case TorBridgeType.meek:
+        return 'meek ';
+      case TorBridgeType.none:
+      case TorBridgeType.custom:
+        return '';
     }
   }
 }

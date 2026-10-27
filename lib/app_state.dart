@@ -46,11 +46,15 @@ class AppState extends ChangeNotifier {
 
   WalletMode get walletMode {
     switch (_walletModeIndex) {
-      case 1: return WalletMode.cold;
-      case 2: return WalletMode.online;
-      default: return WalletMode.hot;
+      case 1:
+        return WalletMode.cold;
+      case 2:
+        return WalletMode.online;
+      default:
+        return WalletMode.hot;
     }
   }
+
   bool get coldMode => _walletModeIndex == 1;
   bool get onlineMode => _walletModeIndex == 2;
   bool get hotMode => _walletModeIndex == 0;
@@ -68,10 +72,14 @@ class AppState extends ChangeNotifier {
   int get themeModeIndex => _themeModeIndex;
   ThemeMode get themeMode {
     switch (_themeModeIndex) {
-      case 1: return ThemeMode.light;
-      case 2: return ThemeMode.dark;
-      case 3: return ThemeMode.dark; // AMOLED uses dark with custom colors
-      default: return ThemeMode.system;
+      case 1:
+        return ThemeMode.light;
+      case 2:
+        return ThemeMode.dark;
+      case 3:
+        return ThemeMode.dark; // AMOLED uses dark with custom colors
+      default:
+        return ThemeMode.system;
     }
   }
 
@@ -427,6 +435,18 @@ class AppState extends ChangeNotifier {
         proxyPort: proxyPort,
         proxyUser: proxyUser,
         proxyPass: proxyPass,
+        // Changing the route must never wipe HTTP auth, custom headers,
+        // certificate pins, selection flags or measured latency.
+        authType: node.authType,
+        authToken: node.authToken,
+        authUsername: node.authUsername,
+        authPassword: node.authPassword,
+        customHeaders: node.customHeaders,
+        pinnedSpkiHashes: node.pinnedSpkiHashes,
+        useForReads: node.useForReads,
+        useForBroadcast: node.useForBroadcast,
+        selectionMode: node.selectionMode,
+        latencyMs: node.latencyMs,
       );
     rpc.note(
       'Transport for "${node.label}" changed to ${_transportLabelFromEnum(transport)}.',
@@ -514,7 +534,8 @@ class AppState extends ChangeNotifier {
     int index, {
     required bool useForReads,
     required bool useForBroadcast,
-    required int selectionMode, // 0=manual, 1=auto-fastest, 2=round-robin, 3=quorum
+    required int
+    selectionMode, // 0=manual, 1=auto-fastest, 2=round-robin, 3=quorum
   }) async {
     if (index < 0 || index >= _nodes.length) return;
     final node = _nodes[index];
@@ -542,7 +563,9 @@ class AppState extends ChangeNotifier {
         useForReads: useForReads,
         useForBroadcast: useForBroadcast,
       );
-    rpc.note('Selection flags for "${node.label}" updated (reads: $useForReads, broadcast: $useForBroadcast).');
+    rpc.note(
+      'Selection flags for "${node.label}" updated (reads: $useForReads, broadcast: $useForBroadcast).',
+    );
     await AppStorage.setNodes(_nodes);
     _syncNodePool();
     notifyListeners();
@@ -1119,6 +1142,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setTorEnabled(bool value) async {
+    if (value) {
+      // Tor and a custom proxy are mutually exclusive. Keeping both selected
+      // would make the effective route depend on an internal priority order.
+      await AppStorage.clearProxy();
+    }
     await AppStorage.setTorEnabled(value);
     await rpc.privacyChanged();
     notifyListeners();
@@ -1127,6 +1155,27 @@ class AppState extends ChangeNotifier {
   bool get torEnabled => AppStorage.torEnabled;
   String get torHost => AppStorage.torHost;
   int get torPort => AppStorage.torPort;
+
+  GlobalProxyConfig get globalProxy => AppStorage.globalProxy;
+
+  bool get proxyEnabled => AppStorage.globalProxy.enabled;
+
+  /// Saves and activates a custom proxy. Selecting a usable proxy turns Tor
+  /// off, so exactly one privacy route is active at a time.
+  Future<void> setGlobalProxy(GlobalProxyConfig config) async {
+    if (config.type != ProxyType.none && !config.enabled) {
+      throw ArgumentError('Proxy host and port are required.');
+    }
+    if (config.type != ProxyType.none) {
+      await AppStorage.setTorEnabled(false);
+    }
+    await AppStorage.setGlobalProxy(config);
+    await rpc.privacyChanged();
+    notifyListeners();
+  }
+
+  Future<void> disableProxy() =>
+      setGlobalProxy(const GlobalProxyConfig.disabled());
 
   Future<void> setTorHostPort(String host, int port) async {
     await AppStorage.setTorHost(host.trim());

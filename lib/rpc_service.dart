@@ -1211,7 +1211,9 @@ class RpcService extends ChangeNotifier {
     final candidates = forBroadcast
         ? broadcastCandidatePool(
             active: _poolNode(_activeRpc),
-            configured: _poolNode(_configuredRpc) ?? RpcNode(label: 'configured', url: _configuredRpc),
+            configured:
+                _poolNode(_configuredRpc) ??
+                RpcNode(label: 'configured', url: _configuredRpc),
             userPool: _userNodePool,
             builtInFallbacks: _network == 'testnet'
                 ? BnbNetworks.testnetFallbacks
@@ -1225,7 +1227,9 @@ class RpcService extends ChangeNotifier {
     }
 
     RpcNode? selected;
-    final fallbacks = candidates.where((n) => n.url != (candidates.first).url).toList();
+    final fallbacks = candidates
+        .where((n) => n.url != (candidates.first).url)
+        .toList();
 
     switch (_selectionMode) {
       case NodeSelectionMode.manual:
@@ -1238,7 +1242,9 @@ class RpcService extends ChangeNotifier {
             .where((n) => n.latencyMs != null)
             .toList();
         if (withLatency.isNotEmpty) {
-          withLatency.sort((a, b) => (a.latencyMs ?? 9999).compareTo(b.latencyMs ?? 9999));
+          withLatency.sort(
+            (a, b) => (a.latencyMs ?? 9999).compareTo(b.latencyMs ?? 9999),
+          );
           selected = withLatency.first;
         } else {
           selected = candidates.first;
@@ -1410,7 +1416,9 @@ class RpcService extends ChangeNotifier {
     List<Object?> params, {
     required bool forBroadcast,
   }) async {
-    final (selectedNode, fallbacks) = _selectNodeForRequest(forBroadcast: forBroadcast);
+    final (selectedNode, fallbacks) = _selectNodeForRequest(
+      forBroadcast: forBroadcast,
+    );
     if (selectedNode == null) {
       throw StateError('No available node for this request.');
     }
@@ -1454,6 +1462,11 @@ class RpcService extends ChangeNotifier {
           case NodeTransport.inherit:
             break;
         }
+      }
+      final proxy = AppStorage.globalProxy;
+      if (proxy.type != ProxyType.none && proxy.enabled) {
+        return '${proxy.type.label} ${proxy.host}:${proxy.port} — '
+            'end-to-end encrypted';
       }
       if (AppStorage.torEnabled) {
         return 'Tor (SOCKS5 ${AppStorage.torHost}:${AppStorage.torPort}) — '
@@ -1754,7 +1767,11 @@ class RpcService extends ChangeNotifier {
         final transport = createClientForNode(node);
         final wc = Web3Client(node.url, transport);
         final hash = await wc
-            .sendRawTransaction(hexToBytes(rawHex.startsWith('0x') ? rawHex.substring(2) : rawHex))
+            .sendRawTransaction(
+              hexToBytes(
+                rawHex.startsWith('0x') ? rawHex.substring(2) : rawHex,
+              ),
+            )
             .timeout(_rpcCallTimeout);
         await wc.dispose();
         transport.close();
@@ -1796,20 +1813,14 @@ class RpcService extends ChangeNotifier {
     var paddingAdded = 0;
     for (var i = 0; i < calls.length; i++) {
       if (padding && paddingAdded < paddingCount && random.nextBool()) {
-        allCalls.add({
-          'method': 'eth_blockNumber',
-          'params': const [],
-        });
+        allCalls.add({'method': 'eth_blockNumber', 'params': const []});
         paddingAdded++;
       }
       allCalls.add(calls[i]);
     }
     // Add remaining padding at the end
     while (paddingAdded < paddingCount) {
-      allCalls.add({
-        'method': 'eth_blockNumber',
-        'params': const [],
-      });
+      allCalls.add({'method': 'eth_blockNumber', 'params': const []});
       paddingAdded++;
     }
 
@@ -1881,10 +1892,7 @@ class RpcService extends ChangeNotifier {
       );
       return hash;
     } catch (e) {
-      _tell(
-        'Dust transaction failed: $e',
-        kind: RpcStoryKind.fail,
-      );
+      _tell('Dust transaction failed: $e', kind: RpcStoryKind.fail);
       return null;
     }
   }
@@ -1896,7 +1904,10 @@ class RpcService extends ChangeNotifier {
       {'method': 'eth_blockNumber', 'params': <Object>[]},
       {'method': 'eth_gasPrice', 'params': <Object>[]},
       {'method': 'eth_chainId', 'params': <Object>[]},
-      {'method': 'eth_getBlockByNumber', 'params': ['latest', false]},
+      {
+        'method': 'eth_getBlockByNumber',
+        'params': ['latest', false],
+      },
     ];
     return methods[Random().nextInt(methods.length)];
   }
