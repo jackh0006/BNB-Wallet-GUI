@@ -1640,6 +1640,7 @@ Future<void> showCreateWalletDialog(BuildContext context) async {
       key,
       summary: 'Existing private key',
       path: 'No derivation path — raw private key',
+      offerVaultSave: false,
     );
   } catch (error) {
     if (context.mounted) showError(context, error);
@@ -1731,6 +1732,7 @@ Future<void> _finishCreatedWallet(
   String? mnemonic,
   required String summary,
   required String path,
+  bool offerVaultSave = true,
 }) async {
   await appState.unlock(key, mnemonic: mnemonic);
   appState.focusTab(1);
@@ -1769,7 +1771,42 @@ Future<void> _finishCreatedWallet(
     ),
   );
   if (!context.mounted) return;
-  await showOfferProfileAndVault(context);
+  // For generated/imported private keys (no mnemonic), skip the vault offer
+  // since the raw key is the only backup. User can save to vault later from
+  // the wallet manager if desired.
+  if (offerVaultSave && mnemonic != null) {
+    await showOfferProfileAndVault(context);
+  } else if (offerVaultSave) {
+    // For private key imports, just offer profile save
+    await _offerProfileOnly(context);
+  }
+}
+
+Future<void> _offerProfileOnly(BuildContext context) async {
+  final saveProfile = await confirmDialog(
+    context,
+    title: 'Save public profile?',
+    message: 'Store the label and public address only. No secret is saved.',
+    confirmLabel: 'Save',
+  );
+  if (saveProfile && context.mounted) {
+    final label = await promptText(
+      context,
+      title: 'Profile label',
+      label: 'Label',
+      initialValue: 'Wallet ${appState.profiles.length + 1}',
+    );
+    if (label != null && label.isNotEmpty && context.mounted) {
+      await appState.addProfile(
+        WalletProfile(
+          label: label,
+          address: appState.address!,
+          source: appState.mnemonic != null ? 'phrase' : 'key',
+          createdAt: DateTime.now().toIso8601String(),
+        ),
+      );
+    }
+  }
 }
 
 class _CreateWarning extends StatelessWidget {
