@@ -924,6 +924,40 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Renames a vault account at [index] to [newLabel]. Requires the vault password.
+  Future<void> renameVaultAccount(
+    String password,
+    int index,
+    String newLabel,
+  ) async {
+    final accounts = await loadVaultAccounts(password);
+    if (index < 0 || index >= accounts.length) {
+      throw StateError('Vault account not found.');
+    }
+    final updated = [...accounts];
+    updated[index] = VaultAccount(
+      label: newLabel,
+      address: accounts[index].address,
+      keystoreJson: accounts[index].keystoreJson,
+      savedAt: accounts[index].savedAt,
+    );
+    final blob = await _runVaultEncrypt(
+      password,
+      jsonEncode([
+        for (final a in updated)
+          {
+            'label': a.label,
+            'address': a.address,
+            'privateKeyHex': a.keystoreJson,
+            'savedAt': a.savedAt,
+          },
+      ]),
+      await AppStorage.getOrGenerateDeviceSecret(),
+    );
+    await AppStorage.writeVaultAtomic(blob);
+    notifyListeners();
+  }
+
   Future<EthPrivateKey> unlockVaultAccount(String password, int index) async {
     final accounts = await loadVaultAccounts(password);
     if (index < 0 || index >= accounts.length) {

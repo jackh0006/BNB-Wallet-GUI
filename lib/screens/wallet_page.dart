@@ -12,6 +12,95 @@ import 'backup_quiz_dialog.dart';
 import 'common.dart';
 import 'receipt_page.dart';
 
+/// Tile for a single vault account with unlock/delete/rename actions.
+class _VaultAccountTile extends StatelessWidget {
+  const _VaultAccountTile({
+    required this.index,
+    required this.account,
+    required this.isCurrent,
+    required this.onUnlock,
+    required this.onDelete,
+    required this.onRename,
+  });
+
+  final int index;
+  final VaultAccount account;
+  final bool isCurrent;
+  final VoidCallback onUnlock;
+  final VoidCallback onDelete;
+  final VoidCallback onRename;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: isCurrent
+          ? const Color(0x224CAF50)
+          : color.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isCurrent
+              ? Colors.greenAccent.withValues(alpha: 0.5)
+              : Colors.white12,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: Icon(
+          isCurrent ? Icons.check_circle : Icons.lock_outline,
+          color: isCurrent ? Colors.greenAccent : Colors.white38,
+        ),
+        title: Text(
+          account.label,
+          style: TextStyle(
+            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Text(
+          '${shortAddress(account.address)}  •  ${account.savedAt != null ? 'saved ${_formatDate(account.savedAt!)}' : ''}',
+          style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isCurrent)
+              IconButton(
+                icon: const Icon(Icons.lock_open, size: 18),
+                tooltip: 'Unlock this account',
+                onPressed: onUnlock,
+              ),
+            IconButton(
+              icon: const Icon(Icons.edit, size: 18),
+              tooltip: 'Rename',
+              onPressed: onRename,
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: Colors.redAccent,
+              ),
+              tooltip: 'Delete from vault',
+              onPressed: onDelete,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String iso) {
+    try {
+      final dt = DateTime.parse(iso);
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
+      return iso;
+    }
+  }
+}
+
 enum _CreateKind { phrase, newPrivateKey, existingPrivateKey }
 
 /// Configuration chosen in the create-wallet dialog.
@@ -243,7 +332,7 @@ class _WalletPageState extends State<WalletPage>
             ] else ...[
               _unlockedCard(),
               const SizedBox(height: 14),
-              _profilesCard(),
+              _walletsCard(),
               const SizedBox(height: 14),
               _historyCard(),
             ],
@@ -445,32 +534,234 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  Widget _profilesCard() {
+  /// Comprehensive wallet management: current wallet, vault accounts, profiles.
+  /// Each wallet entry manages its own secrets independently.
+
+  Widget _walletsCard() {
     final profiles = appState.profiles;
+    final hasVault = appState.hasVault;
+    final currentAddress = appState.address;
+    final currentSource = appState.mnemonic != null ? 'phrase' : 'key';
+
     return InfoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Public profiles',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Wallet manager',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (currentAddress != null)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: const Text('Lock'),
+                  onPressed: () async {
+                    appState.lock();
+                    if (mounted) setState(() {});
+                  },
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Labels and public addresses only. Never secrets.',
+            'Each wallet keeps its own secrets. Lock to switch, or manage vault accounts below.',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const SizedBox(height: 8),
-          if (profiles.isEmpty)
+          const SizedBox(height: 10),
+
+          // Currently unlocked wallet
+          if (currentAddress != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0x224CAF50),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.greenAccent.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet,
+                    color: Colors.greenAccent,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Unlocked: ${_currentWalletLabel(profiles, currentAddress)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          '$currentAddress  •  source: $currentSource',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.key, size: 18),
+                    label: const Text('Show secrets'),
+                    onPressed: () => _revealSecrets(context),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.save, size: 18),
+                    label: const Text('Save to vault'),
+                    onPressed: () => _saveVault(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0x22FF6B6B),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_open, color: Colors.redAccent),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'No wallet unlocked. Create, import, or unlock from vault below.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Vault accounts section
+          if (hasVault) ...[
             const Text(
-              'No profiles saved yet.',
-              style: TextStyle(color: Colors.white54),
-            )
-          else
+              'Encrypted vault accounts',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Each vault account has its own private key and optional recovery phrase. Unlock any account to switch to it.',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<VaultAccount>>(
+              future: _loadVaultAccounts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                final accounts = snapshot.data ?? [];
+                if (accounts.isEmpty) {
+                  return const Text(
+                    'Vault exists but has no accounts.',
+                    style: TextStyle(color: Colors.white54),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (var i = 0; i < accounts.length; i++)
+                      _VaultAccountTile(
+                        index: i,
+                        account: accounts[i],
+                        isCurrent:
+                            currentAddress != null &&
+                            currentAddress.toLowerCase() ==
+                                accounts[i].address.toLowerCase(),
+                        onUnlock: () => _unlockVaultAccount(i),
+                        onDelete: () => _deleteVaultAccount(i, accounts[i]),
+                        onRename: () => _renameVaultAccount(i, accounts[i]),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0x11FFFFFF),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_outline, color: Colors.white38),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'No encrypted vault yet',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const Text(
+                          'Create a wallet first, then save it to the vault from the unlocked wallet actions.',
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create vault'),
+                    onPressed: () => _createVault(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Public profiles section (read-only labels)
+          if (profiles.isNotEmpty) ...[
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Public profiles (labels only)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'These are just labels + addresses for quick reference. No secrets stored.',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
             for (var i = 0; i < profiles.length; i++)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.bookmark_outline),
+                leading: const Icon(
+                  Icons.bookmark_outline,
+                  color: Colors.white38,
+                ),
                 title: Text(profiles[i].label),
                 subtitle: Text(shortAddress(profiles[i].address)),
                 trailing: Row(
@@ -487,6 +778,7 @@ class _WalletPageState extends State<WalletPage>
                         );
                         if (label != null && label.isNotEmpty) {
                           await appState.renameProfile(i, label);
+                          if (mounted) setState(() {});
                         }
                       },
                     ),
@@ -497,9 +789,124 @@ class _WalletPageState extends State<WalletPage>
                   ],
                 ),
               ),
+          ],
         ],
       ),
     );
+  }
+
+  String _currentWalletLabel(List<WalletProfile> profiles, String address) {
+    final match = profiles.firstWhere(
+      (p) => p.address.toLowerCase() == address.toLowerCase(),
+      orElse: () => WalletProfile(
+        label: 'Unnamed wallet',
+        address: address,
+        source: 'unknown',
+      ),
+    );
+    return match.label;
+  }
+
+  Future<List<VaultAccount>> _loadVaultAccounts() async {
+    if (!appState.hasVault) return [];
+    // Prompt for password to list accounts
+    final password = await promptText(
+      context,
+      title: 'Vault password',
+      label: 'Enter vault password to list accounts',
+      obscure: true,
+    );
+    if (password == null || password.isEmpty) return [];
+    try {
+      return await appState.loadVaultAccounts(password);
+    } catch (_) {
+      if (mounted) showError(context, 'Wrong vault password.');
+      return [];
+    }
+  }
+
+  Future<void> _unlockVaultAccount(int index) async {
+    final password = await promptText(
+      context,
+      title: 'Unlock vault account',
+      label: 'Vault password',
+      obscure: true,
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+    try {
+      final key = await appState.unlockVaultAccount(password, index);
+      await appState.unlock(key);
+      appState.focusTab(1);
+      if (mounted) {
+        showInfo(context, 'Vault account unlocked.');
+        setState(() {});
+      }
+    } catch (error) {
+      if (mounted) showError(context, error);
+    }
+  }
+
+  Future<void> _deleteVaultAccount(int index, VaultAccount account) async {
+    final password = await promptText(
+      context,
+      title: 'Delete vault account',
+      label: 'Vault password to confirm deletion',
+      obscure: true,
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+    final confirm = await confirmDialog(
+      context,
+      title: 'Delete "${account.label}"?',
+      message: 'This permanently removes the account from the encrypted vault. The secret cannot be recovered.',
+      confirmLabel: 'Delete',
+    );
+    if (!confirm || !mounted) return;
+    try {
+      await appState.deleteVaultAccount(password, account.address);
+      if (mounted) {
+        showInfo(context, 'Vault account deleted.');
+        setState(() {});
+      }
+    } catch (error) {
+      if (mounted) showError(context, error);
+    }
+  }
+
+  Future<void> _renameVaultAccount(int index, VaultAccount account) async {
+    final password = await promptText(
+      context,
+      title: 'Rename vault account',
+      label: 'Vault password',
+      obscure: true,
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+    final newLabel = await promptText(
+      context,
+      title: 'Rename vault account',
+      label: 'New label',
+      initialValue: account.label,
+    );
+    if (newLabel == null || newLabel.isEmpty || !mounted) return;
+    try {
+      await appState.renameVaultAccount(password, index, newLabel);
+      if (mounted) {
+        showInfo(context, 'Vault account renamed.');
+        setState(() {});
+      }
+    } catch (error) {
+      if (mounted) showError(context, error);
+    }
+  }
+
+  Future<void> _createVault(BuildContext context) async {
+    if (!appState.unlocked) {
+      showError(
+        context,
+        'Unlock or create a wallet first, then save it to create the vault.',
+      );
+      return;
+    }
+    await _saveVault(context);
   }
 
   Widget _historyCard() {
