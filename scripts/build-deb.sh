@@ -9,14 +9,18 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTDIR="/home/mhh06/Downloads/BNB Wallet"
-VERSION="1.0.5"
+VERSION="1.0.7"
 DEB="$OUTDIR/bnb-wallet-${VERSION}-amd64.deb"
 
 mkdir -p "$OUTDIR"
 
 echo "[1/5] Building Linux release bundle ..."
 cd "$ROOT"
-flutter build linux --release
+if [ "${SKIP_FLUTTER_BUILD:-0}" != "1" ]; then
+  flutter build linux --release
+else
+  echo "Using existing release bundle (SKIP_FLUTTER_BUILD=1)."
+fi
 
 BUNDLE="$ROOT/build/linux/x64/release/bundle"
 if [ ! -x "$BUNDLE/bnb_wallet_gui" ]; then

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:flutter/material.dart';
 import 'package:wallet/wallet.dart';
 import 'package:web3dart/web3dart.dart';
@@ -1477,6 +1479,9 @@ class _SendPageState extends State<SendPage>
             ? (isFinalized ? TxStage.finalized : TxStage.included)
             : TxStage.included,
       );
+      final explorerUrl = rpc.network == 'testnet'
+          ? 'https://testnet.bscscan.com/tx/$hash'
+          : 'https://bscscan.com/tx/$hash';
       final summary = StringBuffer()
         ..writeln(
           '${WalletCore.formatUnits(amount, assetDecimals)} ${_asset.symbol} → ${shortAddress(checksummed)}',
@@ -1487,19 +1492,68 @@ class _SendPageState extends State<SendPage>
         ..writeln(
           'Charged fee: ${WalletCore.formatEther(feeWei)} BNB'
           '${feeFromNode ? '' : ' (the node did not report the effective price; this is the fee you approved)'}',
-        );
+        )
+        ..writeln('Tx hash: $hash')
+        ..writeln('Explorer: $explorerUrl');
       if (note != null) summary.writeln(note);
       if (!mounted) return;
       final action = await showDialog<String>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(success ? 'Transfer confirmed' : 'Mined but reverted'),
-          content: Text(summary.toString()),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(summary.toString()),
+                const SizedBox(height: 12),
+                if (success) ...[
+                  const Text(
+                    'Copy the hash or open in explorer:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    hash,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    explorerUrl,
+                    style: const TextStyle(
+                      color: Color(0xFFF0B90B),
+                      fontSize: 12,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Close'),
             ),
+            if (success) ...[
+              OutlinedButton.icon(
+                onPressed: () => copyText(context, hash, 'Transaction hash'),
+                icon: const Icon(Icons.copy, size: 16),
+                label: const Text('Copy hash'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  await launchUrl(Uri.parse(explorerUrl));
+                },
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Open in explorer'),
+              ),
+            ],
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, 'receipt'),
               child: const Text('View receipt'),

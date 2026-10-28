@@ -105,7 +105,7 @@ class FeeEngine {
   FeeEngine._();
 
   static const int _percentiles = 3;
-  static const List<String> _tierLabels = ['Low', 'Medium', 'High'];
+  static const List<String> _tierLabels = ['Slow', 'Standard', 'Fast'];
   static const List<int> _legacyBps = [9000, 10000, 12500];
 
   /// Roughly 5000 gwei in wei: above this, even a consistent quote is worth
@@ -117,8 +117,7 @@ class FeeEngine {
         .where((s) => s.baseFees.length >= 2 && s.rewards.isNotEmpty)
         .toList();
     if (modern.isNotEmpty) return _mergeEip1559(modern, tried, sources.length);
-    final legacy =
-        sources.where((s) => s.legacyGasPrice != null).toList();
+    final legacy = sources.where((s) => s.legacyGasPrice != null).toList();
     if (legacy.isNotEmpty) return _mergeLegacy(legacy, tried, sources.length);
     throw StateError('No node could quote a network fee right now.');
   }
@@ -132,7 +131,9 @@ class FeeEngine {
   ) {
     final merged = <BigInt>[
       for (var p = 0; p < _percentiles; p++)
-        _median(_dropOutliers([for (final s in sources) _sourcePercentile(s, p)])),
+        _median(
+          _dropOutliers([for (final s in sources) _sourcePercentile(s, p)]),
+        ),
     ];
     final baseFee = _median(
       _dropOutliers([for (final s in sources) s.baseFees.last]),
@@ -142,14 +143,11 @@ class FeeEngine {
         _medianD(s.gasUsedRatios.isEmpty ? const [0.5] : s.gasUsedRatios),
     ];
     final ratio = _medianD(ratios).clamp(0.0, 1.0);
-    final seconds = _medianNullable([
-      for (final s in sources) s.blockSeconds,
-    ]);
-    final jitter = _medianNullable([
-      for (final s in sources) s.blockJitter,
-    ]);
+    final seconds = _medianNullable([for (final s in sources) s.blockSeconds]);
+    final jitter = _medianNullable([for (final s in sources) s.blockJitter]);
     final rising =
-        sources.where((s) => _isRising(s.baseFees)).length * 2 >= sources.length;
+        sources.where((s) => _isRising(s.baseFees)).length * 2 >=
+        sources.length;
     final floor = _observedFloor(sources);
 
     final blocks = _tierBlocks(ratio);
@@ -158,30 +156,33 @@ class FeeEngine {
       var price = merged[i];
       String? warning;
       if (price < floor) {
-        warning = 'Raised to the live floor of ${formatGwei(floor)} gwei — the '
+        warning =
+            'Raised to the live floor of ${formatGwei(floor)} gwei — the '
             'lowest fee that was recently accepted by the network.';
         price = floor;
       }
       if (i == 0 && ratio > 0.85) {
         warning = warning == null
-            ? 'Blocks are ~${(ratio * 100).round()}% full — this tier may wait a long time.'
+            ? 'Blocks are ~${(ratio * 100).round()}% full — this tier may take longer to confirm.'
             : '$warning Blocks are ~${(ratio * 100).round()}% full.';
       }
       final eta = _eta(blocks[i], seconds);
       final maxFee = baseFee * BigInt.two + price;
-      presets.add(FeePreset(
-        label: _tierLabels[i],
-        target: eta,
-        priorityFeePerGas: price,
-        maxFeePerGas: maxFee,
-        expectedFeePerGas: baseFee + price,
-        mode: 'eip1559',
-        source: _sourceLine(answered),
-        warning: warning,
-        etaSecondsLow: _etaLow(blocks[i], seconds),
-        etaSecondsHigh: _etaHigh(blocks[i], seconds),
-        expectedBlocks: seconds == null ? null : blocks[i],
-      ));
+      presets.add(
+        FeePreset(
+          label: _tierLabels[i],
+          target: eta,
+          priorityFeePerGas: price,
+          maxFeePerGas: maxFee,
+          expectedFeePerGas: baseFee + price,
+          mode: 'eip1559',
+          source: _sourceLine(answered),
+          warning: warning,
+          etaSecondsLow: _etaLow(blocks[i], seconds),
+          etaSecondsHigh: _etaHigh(blocks[i], seconds),
+          expectedBlocks: seconds == null ? null : blocks[i],
+        ),
+      );
     }
     final recommended = _recommend(ratio, rising);
     presets[recommended] = presets[recommended].copyWith(
@@ -192,11 +193,13 @@ class FeeEngine {
     final abnormal = presets[2].maxFeePerGas > _abnormalCap;
     var reason = _reason(recommended, ratio, rising);
     if (answered < 2) {
-      reason = '$reason Only one fee source answered, so treat this as a '
+      reason =
+          '$reason Only one fee source answered, so treat this as a '
           'single point of view.';
     }
     if (abnormal) {
-      reason = '$reason Warning: the quoted fees are abnormally high — check '
+      reason =
+          '$reason Warning: the quoted fees are abnormally high — check '
           'the node before confirming.';
     }
     return FeeQuote(
@@ -224,9 +227,7 @@ class FeeEngine {
     final gasPrice = _median(
       _dropOutliers([for (final s in sources) s.legacyGasPrice!]),
     );
-    final seconds = _medianNullable([
-      for (final s in sources) s.blockSeconds,
-    ]);
+    final seconds = _medianNullable([for (final s in sources) s.blockSeconds]);
     final floor = _observedFloor(sources);
     final presets = <FeePreset>[];
     for (var i = 0; i < _percentiles; i++) {
@@ -236,20 +237,23 @@ class FeeEngine {
         warning = 'Raised to the live floor of ${formatGwei(floor)} gwei.';
         price = floor;
       }
-      presets.add(FeePreset(
-        label: _tierLabels[i],
-        target: _eta(_tierBlocks(0.5)[i], seconds),
-        priorityFeePerGas: BigInt.zero,
-        maxFeePerGas: price,
-        expectedFeePerGas: price,
-        gasPrice: price,
-        mode: 'legacy',
-        source: 'gas-price quote from ${answered == 1 ? 'one node' : '$answered nodes'} · legacy fallback',
-        warning: warning,
-        etaSecondsLow: _etaLow(_tierBlocks(0.5)[i], seconds),
-        etaSecondsHigh: _etaHigh(_tierBlocks(0.5)[i], seconds),
-        expectedBlocks: seconds == null ? null : _tierBlocks(0.5)[i],
-      ));
+      presets.add(
+        FeePreset(
+          label: _tierLabels[i],
+          target: _eta(_tierBlocks(0.5)[i], seconds),
+          priorityFeePerGas: BigInt.zero,
+          maxFeePerGas: price,
+          expectedFeePerGas: price,
+          gasPrice: price,
+          mode: 'legacy',
+          source:
+              'gas-price quote from ${answered == 1 ? 'one node' : '$answered nodes'} · legacy fallback',
+          warning: warning,
+          etaSecondsLow: _etaLow(_tierBlocks(0.5)[i], seconds),
+          etaSecondsHigh: _etaHigh(_tierBlocks(0.5)[i], seconds),
+          expectedBlocks: seconds == null ? null : _tierBlocks(0.5)[i],
+        ),
+      );
     }
     const recommended = 1;
     presets[recommended] = presets[recommended].copyWith(
@@ -259,10 +263,12 @@ class FeeEngine {
     return FeeQuote(
       presets: presets,
       recommendedIndex: recommended,
-      reason: 'The node did not provide fee history, so these multipliers of '
+      reason:
+          'The node did not provide fee history, so these multipliers of '
           'its live gas-price quote are shown. The middle one is the neutral '
           'choice.',
-      sourceLabel: 'legacy gas-price quote (${answered == 1 ? 'one node' : '$answered nodes'})',
+      sourceLabel:
+          'legacy gas-price quote (${answered == 1 ? 'one node' : '$answered nodes'})',
       floorWei: floor,
       blockSeconds: seconds,
       confidence: answered < 2 ? 'low' : 'medium',
@@ -274,9 +280,8 @@ class FeeEngine {
   // ------------------------------------------------------------- helpers ---
 
   static BigInt _sourcePercentile(FeeSourceSnapshot s, int p) => _median([
-        for (final block in s.rewards)
-          block.length > p ? block[p] : BigInt.zero,
-      ]);
+    for (final block in s.rewards) block.length > p ? block[p] : BigInt.zero,
+  ]);
 
   /// The empirical floor: the lowest tip that was actually included in any
   /// of the sampled recent blocks (10th-percentile sample, minimum over
@@ -305,7 +310,9 @@ class FeeEngine {
   static bool _isRising(List<BigInt> baseFees) {
     if (baseFees.length < 6) return false;
     final last = _median(baseFees.sublist(baseFees.length - 3));
-    final before = _median(baseFees.sublist(baseFees.length - 6, baseFees.length - 3));
+    final before = _median(
+      baseFees.sublist(baseFees.length - 6, baseFees.length - 3),
+    );
     if (before <= BigInt.zero) return false;
     return last * BigInt.from(100) > before * BigInt.from(105);
   }
@@ -319,12 +326,15 @@ class FeeEngine {
   static String _reason(int index, double ratio, bool rising) {
     final pct = (ratio * 100).round();
     return switch (index) {
-      2 => 'Blocks are about $pct% full${rising ? ' and fees are rising' : ''}'
-          ' — the top tier gives the best chance of the next block.',
-      0 => 'Blocks are mostly empty (~$pct% full) and fees are flat — the '
-          'cheap tier should still land soon.',
-      _ => 'Normal conditions (~$pct% full, fees ${rising ? 'rising' : 'stable'})'
-          ' — the middle tier usually confirms in a block or two.',
+      2 =>
+        'Blocks are about $pct% full${rising ? ' and fees are rising' : ''}'
+            ' — the top tier gives the best chance of the next block.',
+      0 =>
+        'Blocks are mostly empty (~$pct% full) and fees are flat — the '
+            'cheap tier should still land soon.',
+      _ =>
+        'Normal conditions (~$pct% full, fees ${rising ? 'rising' : 'stable'})'
+            ' — the middle tier usually confirms in a block or two.',
     };
   }
 
@@ -351,7 +361,10 @@ class FeeEngine {
 
   static int? _etaHigh(int blocks, double? seconds) => seconds == null
       ? null
-      : math.max((blocks * seconds * 1.8).round(), _etaLow(blocks, seconds)! + 1);
+      : math.max(
+          (blocks * seconds * 1.8).round(),
+          _etaLow(blocks, seconds)! + 1,
+        );
 
   static BigInt _median(List<BigInt> values) {
     if (values.isEmpty) throw StateError('No fee samples.');
@@ -383,7 +396,10 @@ class FeeEngine {
     final min = values.reduce((a, b) => a < b ? a : b);
     if (min <= BigInt.zero) return values;
     final cap = min * BigInt.from(3);
-    final kept = [for (final v in values) if (v <= cap) v];
+    final kept = [
+      for (final v in values)
+        if (v <= cap) v,
+    ];
     return kept.isEmpty ? [min] : kept;
   }
 

@@ -865,20 +865,39 @@ class AppState extends ChangeNotifier {
   // ---- encrypted local vault ----
 
   Future<List<VaultAccount>> loadVaultAccounts(String password) async {
-    final blob = await AppStorage.readVault();
-    if (blob == null) return [];
-    final device = await AppStorage.getOrGenerateDeviceSecret();
-    final json = await _runVaultDecrypt(password, blob, device);
-    final list = jsonDecode(json) as List;
+    final list = await _readVaultJson(password);
+    if (list == null) return [];
+    final addresses = <String>{};
     return [
       for (final item in list)
-        if (item is Map<String, dynamic>)
-          VaultAccount(
-            label: '${item['label'] ?? ''}',
-            address: '${item['address'] ?? ''}',
-            keystoreJson: '${item['privateKeyHex'] ?? ''}',
+        () {
+          final label = '${item['label'] ?? ''}'.trim();
+          final storedAddress = '${item['address'] ?? ''}';
+          final key = WalletCore.privateKeyFromHex(
+            '${item['privateKeyHex'] ?? ''}',
+          );
+          final address = key.address.eip55With0x;
+          if (label.isEmpty || !WalletCore.isValidAddress(storedAddress)) {
+            throw const FormatException(
+              'Vault contains an invalid account record.',
+            );
+          }
+          if (address.toLowerCase() != storedAddress.toLowerCase()) {
+            throw const FormatException(
+              'Vault account address does not match its private key.',
+            );
+          }
+          if (!addresses.add(address.toLowerCase())) {
+            throw const FormatException('Vault contains duplicate accounts.');
+          }
+          return VaultAccount(
+            label: label,
+            address: address,
+            keystoreJson: WalletCore.privateKeyHex(key),
+            mnemonic: item['mnemonic']?.toString(),
             savedAt: item['savedAt']?.toString(),
-          ),
+          );
+        }(),
     ];
   }
 
@@ -892,10 +911,19 @@ class AppState extends ChangeNotifier {
     final list = existing == null
         ? <Map<String, dynamic>>[]
         : List<Map<String, dynamic>>.from(existing);
-    list.removeWhere((item) => '${item['address']}' == key.address.eip55With0x);
+    final normalizedLabel = label.trim();
+    if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
+      throw ArgumentError(
+        'Vault account label must contain 1 to 100 characters.',
+      );
+    }
+    final address = key.address.eip55With0x;
+    list.removeWhere(
+      (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
+    );
     list.add({
-      'label': label,
-      'address': key.address.eip55With0x,
+      'label': normalizedLabel,
+      'address': address,
       'privateKeyHex': bytesToHex(key.privateKey, include0x: true),
       if (mnemonic != null) 'mnemonic': mnemonic,
       'savedAt': DateTime.now().toIso8601String(),
@@ -914,7 +942,9 @@ class AppState extends ChangeNotifier {
     final existing = await _readVaultJson(password);
     if (existing == null) return;
     final list = List<Map<String, dynamic>>.from(existing)
-      ..removeWhere((item) => '${item['address']}' == address);
+      ..removeWhere(
+        (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
+      );
     final blob = await _runVaultEncrypt(
       password,
       jsonEncode(list),
@@ -930,40 +960,36 @@ class AppState extends ChangeNotifier {
     int index,
     String newLabel,
   ) async {
-    final accounts = await loadVaultAccounts(password);
-    if (index < 0 || index >= accounts.length) {
+    final existing = await _readVaultJson(password);
+    if (existing == null || index < 0 || index >= existing.length) {
       throw StateError('Vault account not found.');
     }
-    final updated = [...accounts];
-    updated[index] = VaultAccount(
-      label: newLabel,
-      address: accounts[index].address,
-      keystoreJson: accounts[index].keystoreJson,
-      savedAt: accounts[index].savedAt,
-    );
+    final normalizedLabel = newLabel.trim();
+    if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
+      throw ArgumentError(
+        'Vault account label must contain 1 to 100 characters.',
+      );
+    }
+    // Mutate the decrypted record itself rather than rebuilding it from the
+    // display model. This preserves mnemonic and future schema fields.
+    final updated = List<Map<String, dynamic>>.from(existing);
+    updated[index] = Map<String, dynamic>.from(updated[index])
+      ..['label'] = normalizedLabel;
     final blob = await _runVaultEncrypt(
       password,
-      jsonEncode([
-        for (final a in updated)
-          {
-            'label': a.label,
-            'address': a.address,
-            'privateKeyHex': a.keystoreJson,
-            'savedAt': a.savedAt,
-          },
-      ]),
+      jsonEncode(updated),
       await AppStorage.getOrGenerateDeviceSecret(),
     );
     await AppStorage.writeVaultAtomic(blob);
     notifyListeners();
   }
 
-  Future<EthPrivateKey> unlockVaultAccount(String password, int index) async {
+  Future<VaultAccount> unlockVaultAccount(String password, int index) async {
     final accounts = await loadVaultAccounts(password);
     if (index < 0 || index >= accounts.length) {
       throw StateError('Vault account not found.');
     }
-    return WalletCore.privateKeyFromHex(accounts[index].keystoreJson);
+    return accounts[index];
   }
 
   Future<List<Map<String, dynamic>>?> _readVaultJson(String password) async {

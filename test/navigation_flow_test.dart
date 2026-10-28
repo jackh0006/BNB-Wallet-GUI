@@ -31,8 +31,11 @@ const _testPassword = 'test-password-123456';
 /// Cheap, deterministic stand-in for the vault KDF, injected through the
 /// debug-only seam in AppState (release builds always run the real cipher).
 /// A wrong password still fails, so the unlock error path stays honest.
-Future<String> _testEncrypt(String password, String plaintext, String device) async =>
-    base64.encode(utf8.encode('vtest:$password:$plaintext'));
+Future<String> _testEncrypt(
+  String password,
+  String plaintext,
+  String device,
+) async => base64.encode(utf8.encode('vtest:$password:$plaintext'));
 
 Future<String> _testDecrypt(String password, String blob, String device) async {
   final decoded = utf8.decode(base64.decode(blob));
@@ -54,8 +57,12 @@ void _bigSurface(WidgetTester tester) {
 /// Real (non-fake) async still exists in this flow — the vault path touches
 /// the filesystem and spawns `chmod` — so every cycle gives the real event
 /// loop time AND advances the fake clock for the UI.
-Future<void> _pumpUntil(WidgetTester tester, bool Function() done,
-    {int tries = 40, Duration step = const Duration(milliseconds: 500)}) async {
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  int tries = 40,
+  Duration step = const Duration(milliseconds: 500),
+}) async {
   for (var i = 0; i < tries; i++) {
     if (done()) return;
     await tester.runAsync(() => Future<void>.delayed(step));
@@ -92,76 +99,141 @@ void main() {
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });
 
-  testWidgets('Home quick action "Send" switches to the Send tab', (tester) async {
+  testWidgets('Home quick action "Send" switches to the Send tab', (
+    tester,
+  ) async {
     _bigSurface(tester);
     await appState.unlock(WalletCore.privateKeyFromHex(_testKeyHex));
     await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(milliseconds: 100));
     final button = find.widgetWithText(OutlinedButton, 'Send');
-    expect(button, findsOneWidget, reason: 'quick action must exist. On screen: ${_visibleTexts(tester)}');
+    expect(
+      button,
+      findsOneWidget,
+      reason: 'quick action must exist. On screen: ${_visibleTexts(tester)}',
+    );
     await tester.ensureVisible(button);
     await tester.tap(button);
     await tester.pump();
-    expect(appState.tab, 2, reason: 'the quick action must switch tabs, never push a blank page');
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
+    expect(
+      appState.tab,
+      2,
+      reason: 'the quick action must switch tabs, never push a blank page',
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
     await tester.pump();
   });
 
-  testWidgets('unlocking at the Send gate lands straight on the send form, no save offers',
-      (tester) async {
-    await tester.runAsync(() => appState.saveVaultAccount(
+  test('renaming a vault account preserves its recovery phrase', () async {
+    final key = WalletCore.privateKeyFromHex(_testKeyHex);
+    const phrase =
+        'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    await appState.saveVaultAccount(
+      _testPassword,
+      label: 'Before rename',
+      key: key,
+      mnemonic: phrase,
+    );
+
+    await appState.renameVaultAccount(_testPassword, 0, 'After rename');
+    final accounts = await appState.loadVaultAccounts(_testPassword);
+
+    expect(accounts, hasLength(1));
+    expect(accounts.single.label, 'After rename');
+    expect(accounts.single.mnemonic, phrase);
+    expect(accounts.single.address, key.address.eip55With0x);
+  });
+
+  testWidgets(
+    'unlocking at the Send gate lands straight on the send form, no save offers',
+    (tester) async {
+      await tester.runAsync(
+        () => appState.saveVaultAccount(
           _testPassword,
           label: 'Vault W',
           key: WalletCore.privateKeyFromHex(_testKeyHex),
-        ));
-    expect(appState.hasVault, isTrue);
-    appState.tab = 2;
-    await tester.pumpWidget(const MaterialApp(home: SendPage()));
-    await tester.pumpAndSettle();
-    expect(find.text('Open my vault'), findsOneWidget);
+        ),
+      );
+      expect(appState.hasVault, isTrue);
+      appState.tab = 2;
+      await tester.pumpWidget(const MaterialApp(home: SendPage()));
+      await tester.pumpAndSettle();
+      expect(find.text('Open my vault'), findsOneWidget);
 
-    await tester.tap(find.text('Open my vault'));
-    await tester.pumpAndSettle();
-    expect(find.text('Unlock encrypted vault'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), _testPassword);
-    final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.controller?.text, _testPassword,
-        reason: 'enterText must land in the password field');
-    await tester.tap(find.text('OK'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Unlock encrypted vault'), findsNothing,
-        reason: 'OK must close the password dialog. On screen: ${_visibleTexts(tester)}');
-    await _pumpUntil(tester, () => find.text('Vault accounts').evaluate().isNotEmpty);
-    if (find.text('Vault accounts').evaluate().isEmpty) {
-      fail('Vault accounts dialog never appeared. On screen: ${_visibleTexts(tester)}');
-    }
-    await tester.tap(find.text('Vault W'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await _pumpUntil(tester, () => appState.unlocked);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open my vault'));
+      await tester.pumpAndSettle();
+      expect(find.text('Unlock encrypted vault'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), _testPassword);
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(
+        field.controller?.text,
+        _testPassword,
+        reason: 'enterText must land in the password field',
+      );
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        find.text('Unlock encrypted vault'),
+        findsNothing,
+        reason:
+            'OK must close the password dialog. On screen: ${_visibleTexts(tester)}',
+      );
+      await _pumpUntil(
+        tester,
+        () => find.text('Vault accounts').evaluate().isNotEmpty,
+      );
+      if (find.text('Vault accounts').evaluate().isEmpty) {
+        fail(
+          'Vault accounts dialog never appeared. On screen: ${_visibleTexts(tester)}',
+        );
+      }
+      await tester.tap(find.text('Vault W'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await _pumpUntil(tester, () => appState.unlocked);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
 
-    expect(appState.unlocked, isTrue,
-        reason: 'unlock must complete. On screen: ${_visibleTexts(tester)}');
-    expect(find.text('Vault account unlocked.'), findsOneWidget);
-    expect(find.text('Save public profile?'), findsNothing,
-        reason: 'the account is already in the vault; no profile offer on unlock');
-    expect(find.text('Save encrypted vault?'), findsNothing,
-        reason: 'the account is already in the vault; no vault offer on unlock');
-    expect(find.text('Send BNB or BEP-20'), findsOneWidget,
-        reason: 'the send form itself must be on screen, ready to send');
-    expect(find.text('Review transfer'), findsOneWidget);
-  });
+      expect(
+        appState.unlocked,
+        isTrue,
+        reason: 'unlock must complete. On screen: ${_visibleTexts(tester)}',
+      );
+      expect(find.text('Vault account unlocked.'), findsOneWidget);
+      expect(
+        find.text('Save public profile?'),
+        findsNothing,
+        reason:
+            'the account is already in the vault; no profile offer on unlock',
+      );
+      expect(
+        find.text('Save encrypted vault?'),
+        findsNothing,
+        reason: 'the account is already in the vault; no vault offer on unlock',
+      );
+      expect(
+        find.text('Send BNB or BEP-20'),
+        findsOneWidget,
+        reason: 'the send form itself must be on screen, ready to send',
+      );
+      expect(find.text('Review transfer'), findsOneWidget);
+    },
+  );
 
-  testWidgets('unlocking from Home lands on the Wallet tab, no save offers', (tester) async {
+  testWidgets('unlocking from Home lands on the Wallet tab, no save offers', (
+    tester,
+  ) async {
     _bigSurface(tester);
-    await tester.runAsync(() => appState.saveVaultAccount(
-          _testPassword,
-          label: 'Vault W',
-          key: WalletCore.privateKeyFromHex(_testKeyHex),
-        ));
+    await tester.runAsync(
+      () => appState.saveVaultAccount(
+        _testPassword,
+        label: 'Vault W',
+        key: WalletCore.privateKeyFromHex(_testKeyHex),
+      ),
+    );
     await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pumpAndSettle();
     final open = find.text('Open my vault');
@@ -171,16 +243,28 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), _testPassword);
     final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.controller?.text, _testPassword,
-        reason: 'enterText must land in the password field');
+    expect(
+      field.controller?.text,
+      _testPassword,
+      reason: 'enterText must land in the password field',
+    );
     await tester.tap(find.text('OK'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Unlock encrypted vault'), findsNothing,
-        reason: 'OK must close the password dialog. On screen: ${_visibleTexts(tester)}');
-    await _pumpUntil(tester, () => find.text('Vault accounts').evaluate().isNotEmpty);
+    expect(
+      find.text('Unlock encrypted vault'),
+      findsNothing,
+      reason:
+          'OK must close the password dialog. On screen: ${_visibleTexts(tester)}',
+    );
+    await _pumpUntil(
+      tester,
+      () => find.text('Vault accounts').evaluate().isNotEmpty,
+    );
     if (find.text('Vault accounts').evaluate().isEmpty) {
-      fail('Vault accounts dialog never appeared. On screen: ${_visibleTexts(tester)}');
+      fail(
+        'Vault accounts dialog never appeared. On screen: ${_visibleTexts(tester)}',
+      );
     }
     await tester.tap(find.text('Vault W'));
     await tester.pump();
@@ -189,13 +273,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(appState.unlocked, isTrue,
-        reason: 'unlock must complete. On screen: ${_visibleTexts(tester)}');
-    expect(appState.tab, 1, reason: 'unlocking from Home must show the wallet itself');
+    expect(
+      appState.unlocked,
+      isTrue,
+      reason: 'unlock must complete. On screen: ${_visibleTexts(tester)}',
+    );
+    expect(
+      appState.tab,
+      1,
+      reason: 'unlocking from Home must show the wallet itself',
+    );
     expect(find.text('Vault account unlocked.'), findsOneWidget);
     expect(find.text('Save public profile?'), findsNothing);
     expect(find.text('Save encrypted vault?'), findsNothing);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
     await tester.pump();
   });
 }

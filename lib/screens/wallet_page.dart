@@ -215,14 +215,41 @@ class WalletPage extends StatefulWidget {
   State<WalletPage> createState() => _WalletPageState();
 }
 
+enum _HistoryFilter { all, success, failed, outgoing, incoming, bnb, token }
+
 class _WalletPageState extends State<WalletPage>
     with AutomaticKeepAliveClientMixin {
+  _HistoryFilter _historyFilter = _HistoryFilter.all;
+
+  List<LocalReceipt> get _filteredReceipts {
+    if (_receipts == null) return const [];
+    return _receipts!.where((r) {
+      switch (_historyFilter) {
+        case _HistoryFilter.success:
+          return r.status == 'success';
+        case _HistoryFilter.failed:
+          return r.status != 'success';
+        case _HistoryFilter.outgoing:
+          return r.from.toLowerCase() == appState.address?.toLowerCase();
+        case _HistoryFilter.incoming:
+          return r.to.toLowerCase() == appState.address?.toLowerCase();
+        case _HistoryFilter.bnb:
+          return r.assetAddress.isEmpty;
+        case _HistoryFilter.token:
+          return r.assetAddress.isNotEmpty;
+        case _HistoryFilter.all:
+          return true;
+      }
+    }).toList();
+  }
+
   List<HistoryTx>? _history;
   String? _historyError;
   bool _loadingHistory = false;
   Timer? _historyDebounce;
   Map<String, BigInt>? _balances;
   List<LocalReceipt>? _receipts;
+  Future<List<VaultAccount>>? _vaultAccountsFuture;
 
   @override
   bool get wantKeepAlive => true;
@@ -363,6 +390,11 @@ class _WalletPageState extends State<WalletPage>
             spacing: 10,
             runSpacing: 10,
             children: [
+              FilledButton.icon(
+                onPressed: () => _showAddWalletDialog(context),
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Add wallet'),
+              ),
               FilledButton.icon(
                 onPressed: () => showCreateWalletDialog(context),
                 icon: const Icon(Icons.add),
@@ -557,6 +589,13 @@ class _WalletPageState extends State<WalletPage>
               ),
               if (currentAddress != null)
                 OutlinedButton.icon(
+                  icon: const Icon(Icons.person_add_alt_1, size: 18),
+                  label: const Text('Add wallet'),
+                  onPressed: () => _showAddWalletDialog(context),
+                ),
+              if (currentAddress != null) const SizedBox(width: 8),
+              if (currentAddress != null)
+                OutlinedButton.icon(
                   icon: const Icon(Icons.lock_outline, size: 18),
                   label: const Text('Lock'),
                   onPressed: () async {
@@ -618,11 +657,16 @@ class _WalletPageState extends State<WalletPage>
                     label: const Text('Show secrets'),
                     onPressed: () => _revealSecrets(context),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Rename wallet',
+                    onPressed: () => _renameCurrentWallet(context),
+                  ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Save to vault'),
-                    onPressed: () => _saveVault(context),
+                    label: const Text('Storage'),
+                    onPressed: () => _chooseSecretStorage(context),
                   ),
                 ],
               ),
@@ -667,7 +711,7 @@ class _WalletPageState extends State<WalletPage>
             ),
             const SizedBox(height: 8),
             FutureBuilder<List<VaultAccount>>(
-              future: _loadVaultAccounts(),
+              future: _vaultAccountsFuture ??= _loadVaultAccounts(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -679,9 +723,20 @@ class _WalletPageState extends State<WalletPage>
                 }
                 final accounts = snapshot.data ?? [];
                 if (accounts.isEmpty) {
-                  return const Text(
-                    'Vault exists but has no accounts.',
-                    style: TextStyle(color: Colors.white54),
+                  return Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Vault is locked or has no accounts.',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _vaultAccountsFuture = null),
+                        child: const Text('Unlock'),
+                      ),
+                    ],
                   );
                 }
                 return Column(
@@ -834,8 +889,11 @@ class _WalletPageState extends State<WalletPage>
     );
     if (password == null || password.isEmpty || !mounted) return;
     try {
-      final key = await appState.unlockVaultAccount(password, index);
-      await appState.unlock(key);
+      final account = await appState.unlockVaultAccount(password, index);
+      await appState.unlock(
+        WalletCore.privateKeyFromHex(account.keystoreJson),
+        mnemonic: account.mnemonic,
+      );
       appState.focusTab(1);
       if (mounted) {
         showInfo(context, 'Vault account unlocked.');
@@ -863,6 +921,10 @@ class _WalletPageState extends State<WalletPage>
     if (!confirm || !mounted) return;
     try {
       await appState.deleteVaultAccount(password, account.address);
+      if (appState.address?.toLowerCase() == account.address.toLowerCase()) {
+        appState.lock();
+      }
+      _vaultAccountsFuture = appState.loadVaultAccounts(password);
       if (mounted) {
         showInfo(context, 'Vault account deleted.');
         setState(() {});
@@ -889,6 +951,7 @@ class _WalletPageState extends State<WalletPage>
     if (newLabel == null || newLabel.isEmpty || !mounted) return;
     try {
       await appState.renameVaultAccount(password, index, newLabel);
+      _vaultAccountsFuture = appState.loadVaultAccounts(password);
       if (mounted) {
         showInfo(context, 'Vault account renamed.');
         setState(() {});
@@ -922,6 +985,45 @@ class _WalletPageState extends State<WalletPage>
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.filter_list),
+                onSelected: (value) {
+                  if (value == 'all')
+                    setState(() => _historyFilter = _HistoryFilter.all);
+                  if (value == 'success')
+                    setState(() => _historyFilter = _HistoryFilter.success);
+                  if (value == 'failed')
+                    setState(() => _historyFilter = _HistoryFilter.failed);
+                  if (value == 'out')
+                    setState(() => _historyFilter = _HistoryFilter.outgoing);
+                  if (value == 'in')
+                    setState(() => _historyFilter = _HistoryFilter.incoming);
+                  if (value == 'token')
+                    setState(() => _historyFilter = _HistoryFilter.token);
+                  if (value == 'bnb')
+                    setState(() => _historyFilter = _HistoryFilter.bnb);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'all', child: Text('All')),
+                  PopupMenuItem(
+                    value: 'success',
+                    child: Text('Successful only'),
+                  ),
+                  PopupMenuItem(value: 'failed', child: Text('Failed only')),
+                  PopupMenuDivider(),
+                  PopupMenuItem(value: 'out', child: Text('Outgoing (sent)')),
+                  PopupMenuItem(
+                    value: 'in',
+                    child: Text('Incoming (received)'),
+                  ),
+                  PopupMenuDivider(),
+                  PopupMenuItem(value: 'bnb', child: Text('BNB only')),
+                  PopupMenuItem(
+                    value: 'token',
+                    child: Text('Tokens (USDT, USDC, etc.)'),
+                  ),
+                ],
+              ),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 18),
                 onPressed: _loadHistory,
@@ -931,10 +1033,11 @@ class _WalletPageState extends State<WalletPage>
           const SizedBox(height: 4),
           if (_receipts != null && _receipts!.isNotEmpty) ...[
             const Text(
-              'Receipts from this device (kept encrypted, offline)',
+              'Local receipts (kept encrypted, offline)',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
-            for (final receipt in _receipts!)
+            const SizedBox(height: 4),
+            for (final receipt in _filteredReceipts)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
@@ -954,8 +1057,14 @@ class _WalletPageState extends State<WalletPage>
                 subtitle: Text(
                   'block ${receipt.blockNumber} · '
                   '${receipt.finalized ? 'final' : 'included'} · '
-                  '${receipt.verifiedNodes >= 2 ? '2 nodes ✓' : '1 node'}',
-                  style: const TextStyle(fontSize: 12),
+                  '${receipt.verifiedNodes >= 2 ? '2 nodes ✓' : '1 node'} · '
+                  '${receipt.tierLabel}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.content_copy, size: 18),
+                  onPressed: () =>
+                      copyText(context, receipt.hash, 'Transaction hash'),
                 ),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -967,7 +1076,8 @@ class _WalletPageState extends State<WalletPage>
           ],
           if (appState.bscscanKey == null)
             const Text(
-              'Add a BscScan API key in Settings to enable history. Balances and transfers do not need it.',
+              'Add a BscScan API key in Settings to enable full history. '
+              'Balances and transfers do not need it.',
               style: TextStyle(color: Colors.white70, fontSize: 13),
             )
           else if (_loadingHistory)
@@ -1002,7 +1112,7 @@ class _WalletPageState extends State<WalletPage>
                   style: const TextStyle(fontSize: 12),
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.open_in_new, size: 16),
+                  icon: const Icon(Icons.content_copy, size: 16),
                   onPressed: () =>
                       copyText(context, tx.hash, 'Transaction hash'),
                 ),
@@ -1053,14 +1163,121 @@ class _WalletPageState extends State<WalletPage>
     );
     if (!confirmed || !mounted) return;
     final key = appState.privateKey!;
-    await showMessage(
-      context,
-      'Sensitive export',
-      'Address: ${appState.address}\n\n'
-          'Private key:\n${WalletCore.privateKeyHex(key)}\n\n'
-          'Recovery phrase:\n${appState.mnemonic ?? 'Not available for this import.'}\n\n'
-          'Store one secure offline backup. Never photograph or share it.',
+    final privateKey = WalletCore.privateKeyHex(key);
+    final mnemonic = appState.mnemonic;
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sensitive export'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Only copy a secret when you are restoring it now. '
+                'The clipboard may be visible to other applications.',
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Private key',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SelectableText(
+                privateKey,
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Recovery phrase',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SelectableText(mnemonic ?? 'Not available for this import.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                _copySecret(dialogContext, privateKey, 'Private key'),
+            child: const Text('Copy private key'),
+          ),
+          if (mnemonic != null)
+            TextButton(
+              onPressed: () =>
+                  _copySecret(dialogContext, mnemonic, 'Recovery phrase'),
+              child: const Text('Copy recovery phrase'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _copySecret(
+    BuildContext context,
+    String secret,
+    String label,
+  ) async {
+    final copy = await confirmDialog(
+      context,
+      title: 'Copy $label?',
+      message:
+          'This puts your $label on the system clipboard for 15 seconds. '
+          'Other applications may be able to read it.',
+      confirmLabel: 'Copy for 15 seconds',
+    );
+    if (!copy) return;
+    await Clipboard.setData(ClipboardData(text: secret));
+    if (context.mounted)
+      showInfo(context, '$label copied · clears in 15 seconds');
+    Future<void>.delayed(const Duration(seconds: 15), () async {
+      try {
+        final current = await Clipboard.getData('text/plain');
+        if (current?.text == secret) {
+          await Clipboard.setData(const ClipboardData(text: ''));
+        }
+      } catch (_) {
+        // Clipboard access can be unavailable after the window closes.
+      }
+    });
+  }
+
+  Future<void> _renameCurrentWallet(BuildContext context) async {
+    final address = appState.address;
+    if (address == null) return;
+    final profiles = appState.profiles;
+    final index = profiles.indexWhere(
+      (profile) => profile.address.toLowerCase() == address.toLowerCase(),
+    );
+    final label = await promptText(
+      context,
+      title: 'Rename wallet',
+      label: 'Wallet name',
+      initialValue: index >= 0
+          ? profiles[index].label
+          : 'Wallet ${profiles.length + 1}',
+      validator: (value) =>
+          value.trim().isEmpty ? 'Enter a wallet name.' : null,
+    );
+    if (label == null || !mounted) return;
+    if (index >= 0) {
+      await appState.renameProfile(index, label.trim());
+    } else {
+      await appState.addProfile(
+        WalletProfile(
+          label: label.trim(),
+          address: address,
+          source: appState.mnemonic != null ? 'phrase' : 'key',
+          createdAt: DateTime.now().toIso8601String(),
+        ),
+      );
+    }
+    if (mounted) showInfo(context, 'Wallet name updated.');
   }
 
   Future<void> _saveVault(BuildContext context) async {
@@ -1079,7 +1296,7 @@ class _WalletPageState extends State<WalletPage>
       label: 'Label',
       initialValue: 'Wallet ${appState.profiles.length + 1}',
     );
-    if (label == null || !mounted) return;
+    if (label == null || label.trim().isEmpty || !mounted) return;
     try {
       await appState.saveVaultAccount(
         password,
@@ -1087,9 +1304,43 @@ class _WalletPageState extends State<WalletPage>
         key: appState.privateKey!,
         mnemonic: appState.mnemonic,
       );
+      _vaultAccountsFuture = appState.loadVaultAccounts(password);
       if (mounted) showInfo(context, 'Encrypted vault saved.');
     } catch (error) {
       if (mounted) showError(context, error);
+    }
+  }
+
+  Future<void> _chooseSecretStorage(BuildContext context) async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Secret storage'),
+        content: const Text(
+          'Encrypted vault is the only persistent secret storage offered. '
+          'It uses your password plus this device’s protected key. Plaintext '
+          'private keys on disk are unsafe and are intentionally not supported.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'session'),
+            child: const Text('Keep session-only'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 'vault'),
+            child: const Text('Save encrypted vault'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'vault') {
+      await _saveVault(context);
+    } else {
+      showInfo(
+        context,
+        'Secret remains in memory only and is cleared when locked.',
+      );
     }
   }
 
@@ -1110,6 +1361,58 @@ class _WalletPageState extends State<WalletPage>
       ),
     );
     if (mounted) showInfo(context, 'Public profile saved.');
+  }
+}
+
+Future<void> _showAddWalletDialog(BuildContext context) async {
+  final choice = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => SimpleDialog(
+      title: const Text('Add wallet'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(dialogContext, 'create'),
+          child: const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.add_circle_outline),
+            title: Text('Create a new wallet'),
+            subtitle: Text('New recovery phrase or private key'),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(dialogContext, 'import'),
+          child: const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.file_download_outlined),
+            title: Text('Import an existing wallet'),
+            subtitle: Text(
+              'Recovery phrase, private key, keystore, or watch-only',
+            ),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(dialogContext, 'vault'),
+          child: const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.lock_open_outlined),
+            title: Text('Open encrypted vault'),
+            subtitle: Text('Choose another wallet stored on this device'),
+          ),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted) return;
+  switch (choice) {
+    case 'create':
+      await showCreateWalletDialog(context);
+      break;
+    case 'import':
+      await showImportWalletDialog(context);
+      break;
+    case 'vault':
+      await showUnlockVaultDialog(context, jumpToWalletTab: true);
+      break;
   }
 }
 
@@ -1943,7 +2246,9 @@ Future<void> _importPrivateKey(BuildContext context) async {
     await appState.unlock(key);
     appState.focusTab(1); // the wallet must visibly appear, not just a message
     if (context.mounted) showInfo(context, 'Wallet imported and unlocked.');
-    await showOfferProfileAndVault(context);
+    // A raw private key is already the complete backup. Do not add an
+    // encrypted secret store without an explicit choice in Wallet manager.
+    await _offerProfileOnly(context);
   } catch (error) {
     if (context.mounted) showError(context, error);
   }
@@ -2063,8 +2368,11 @@ Future<void> showUnlockVaultDialog(
   );
   if (index == null || !context.mounted) return;
   try {
-    final key = await appState.unlockVaultAccount(password, index);
-    await appState.unlock(key);
+    final account = await appState.unlockVaultAccount(password, index);
+    await appState.unlock(
+      WalletCore.privateKeyFromHex(account.keystoreJson),
+      mnemonic: account.mnemonic,
+    );
     // Callers that started away from the wallet (e.g. Home) ask to land on
     // the Wallet tab so the unlocked wallet is plainly on screen.
     if (jumpToWalletTab) appState.focusTab(1);

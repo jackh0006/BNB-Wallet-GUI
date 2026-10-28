@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'wallet_core.dart';
-
 /// A token shown in the wallet. `native` marks BNB itself.
 @immutable
 class TokenInfo {
@@ -417,12 +415,14 @@ class VaultAccount {
     required this.label,
     required this.address,
     required this.keystoreJson,
+    this.mnemonic,
     this.savedAt,
   });
 
   final String label;
   final String address;
   final String keystoreJson;
+  final String? mnemonic;
   final String? savedAt;
 }
 
