@@ -19,6 +19,7 @@ class _MockPathProvider extends PathProviderPlatform {
   Future<String?> getApplicationSupportPath() async => dir;
 }
 
+@Tags(['sequential'])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

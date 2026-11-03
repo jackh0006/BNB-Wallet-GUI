@@ -23,3 +23,6 @@ tags:
   kdf:
     # Heavy 64 MiB Argon2id suites (vault_test, workers_test). Tagged so
     # scripts/test-suite.sh can isolate them; never run these overlapped.
+  sequential:
+    # Tests that must run sequentially due to global state mutation.
+    # Never run these overlapped with other tests.

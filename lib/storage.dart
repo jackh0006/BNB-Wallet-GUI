@@ -19,27 +19,24 @@ final vaultOperationLock = Lock();
 
 // Permission constants for file operations
 const int _kPermMask = 511; // 0o777
-const int _kExpectedPerm = 384; // 0o600
+const int _kNoGroupOtherPerms = 63;  // 0o077 - no group/other permissions
+const int _kOwnerRWPerms = 384;      // 0o600 - owner read/write
 
 /// Creates a secure temporary file in the same directory as [destination].
 /// Uses a cryptographically random name to prevent collision and prediction.
-/// The file is created with restrictive permissions (0600) from the start.
+/// The file is created with restrictive permissions (0600) from the start
+/// by relying on the process umask and verifying the result.
 /// Returns the temporary [File] handle.
 /// Throws if the destination directory doesn't exist or isn't writable.
-/// Fails if restrictive permissions cannot be established.
+/// Fails closed if restrictive permissions cannot be established at creation time.
 Future<File> _createSecureTempFile(File destination) async {
   final parent = destination.parent;
   if (!await parent.exists()) {
     throw StateError('Destination directory does not exist: ${parent.path}');
   }
-  // Check if parent is a symlink
-  try {
-    final parentStat = await parent.stat();
-    if (parentStat.type == FileSystemEntityType.link) {
-      throw StateError('Destination parent directory is a symlink, refusing to write.');
-    }
-  } catch (_) {
-    // If stat fails, we'll catch write errors later
+  // Check if parent is a symlink using lstat (no follow)
+  if (await _isSymlink(parent.path)) {
+    throw StateError('Destination parent directory is a symlink, refusing to write.');
   }
 
   String tempName;
@@ -54,31 +51,30 @@ Future<File> _createSecureTempFile(File destination) async {
     if (!await tempFile.exists()) break;
     if (attempt == 9) throw StateError('Could not generate unique temporary filename');
   }
-  // Create the file first
+  // Create the file exclusively - this uses O_CREAT|O_EXCL on POSIX
   await tempFile!.create(exclusive: true);
-  // Set restrictive permissions (0600) on Linux/macOS
+  
+  // Verify restrictive permissions were established at creation (respecting umask).
+  // We do NOT use chmod - the file must be created with correct permissions from the start.
+  // On POSIX, the resulting mode is (0666 & ~umask). With default umask 0022, this gives 0644.
+  // We require the file to have no group/other permissions (i.e., mode & 0o077 == 0).
   if (Platform.isLinux || Platform.isMacOS) {
-    try {
-      await Process.run('chmod', ['600', tempFile.path]);
-    } catch (_) {
-      await tempFile!.delete();
-      throw StateError('Failed to set restrictive permissions (0600) on temporary file');
+    final stat = await tempFile.stat();
+    final perms = stat.mode & _kPermMask; // 0o777
+    // Fail closed if group or other has any permissions
+    if ((perms & _kNoGroupOtherPerms) != 0) {
+      await tempFile.delete();
+      throw StateError(
+        'Temporary file created with insecure permissions (mode: ${perms.toRadixString(8)}). '
+        'Process umask must be restrictive (e.g., 0077) to create 0600 files.'
+      );
     }
-    // Verify permissions were set correctly
-    try {
-      final stat = await tempFile.stat();
-      if ((stat.mode & _kPermMask) != _kExpectedPerm) {
-        // Try to fix if possible
-        await Process.run('chmod', ['600', tempFile.path]);
-        final recheck = await tempFile.stat();
-        if ((recheck.mode & _kPermMask) != _kExpectedPerm) {
-          await tempFile.delete();
-          throw StateError('Failed to set restrictive permissions (0600) on temporary file');
-        }
-      }
-    } catch (_) {
-      await tempFile!.delete();
-      throw StateError('Failed to verify restrictive permissions on temporary file');
+    // Additional check: owner must have read/write
+    if ((perms & _kOwnerRWPerms) != _kOwnerRWPerms) {
+      await tempFile.delete();
+      throw StateError(
+        'Temporary file created without owner read/write permissions (mode: ${perms.toRadixString(8)})'
+      );
     }
   }
   return tempFile!;
@@ -178,12 +174,20 @@ Future<File> atomicWrite(File destination, String data) async {
     // Atomic rename - on POSIX this is atomic when same filesystem
     // We do NOT delete the destination first - that would destroy data
     await tempFile.rename(destination.path);
-    // Ensure restrictive permissions on final file (best effort)
+    
+    // Verify restrictive permissions on final file (fail closed if insecure)
     if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', destination.path]);
-      } catch (_) {
-        // Log but don't fail - permissions are best effort
+      final stat = await destination.stat();
+      final perms = stat.mode & _kPermMask; // 0o777
+      if ((perms & _kNoGroupOtherPerms) != 0) {
+        // This should not happen if temp file had correct perms and rename preserves them
+        // Fail closed - insecure permissions on the final vault file
+        await destination.delete();
+        throw StateError('Atomic write result has insecure permissions (mode: ${perms.toRadixString(8)})');
+      }
+      if ((perms & _kOwnerRWPerms) != _kOwnerRWPerms) {
+        await destination.delete();
+        throw StateError('Atomic write result missing owner read/write (mode: ${perms.toRadixString(8)})');
       }
     }
     return destination;
@@ -426,9 +430,11 @@ class AppStorage {
     if (Platform.isLinux || Platform.isMacOS) {
       final mode = await dir.stat();
       if (mode.type == FileSystemEntityType.directory) {
-        try {
-          await Process.run('chmod', ['700', dir.path]);
-        } catch (_) {}
+        final perms = mode.mode & _kPermMask;
+        // Require directory to have no group/other permissions (700)
+        if ((perms & _kNoGroupOtherPerms) != 0) {
+          throw StateError('Data directory created with insecure permissions (mode: ${perms.toRadixString(8)}). Process umask must be restrictive (e.g., 0077).');
+        }
       }
     }
     return File('${dir.path}/bnb-wallet-vault.bnb');
@@ -442,9 +448,10 @@ class AppStorage {
     if (Platform.isLinux || Platform.isMacOS) {
       final mode = await parent.stat();
       if (mode.type == FileSystemEntityType.directory) {
-        try {
-          await Process.run('chmod', ['700', parent.path]);
-        } catch (_) {}
+        final perms = mode.mode & _kPermMask;
+        if ((perms & _kNoGroupOtherPerms) != 0) {
+          throw StateError('Parent directory created with insecure permissions (mode: ${perms.toRadixString(8)}). Process umask must be restrictive (e.g., 0077).');
+        }
       }
     }
   }
@@ -458,9 +465,10 @@ class AppStorage {
     if (Platform.isLinux || Platform.isMacOS) {
       final mode = await dir.stat();
       if (mode.type == FileSystemEntityType.directory) {
-        try {
-          await Process.run('chmod', ['700', dir.path]);
-        } catch (_) {}
+        final perms = mode.mode & _kPermMask;
+        if ((perms & _kNoGroupOtherPerms) != 0) {
+          throw StateError('Data directory created with insecure permissions (mode: ${perms.toRadixString(8)}). Process umask must be restrictive (e.g., 0077).');
+        }
       }
     }
     return dir;
@@ -491,10 +499,16 @@ class AppStorage {
     sink.write(base64);
     await sink.flush();
     await sink.close();
+    // Verify restrictive permissions on written file (fail closed if insecure)
     if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', file.path]);
-      } catch (_) {}
+      final stat = await file.stat();
+      final perms = stat.mode & _kPermMask;
+      if ((perms & _kNoGroupOtherPerms) != 0) {
+        throw StateError('Vault file written with insecure permissions (mode: ${perms.toRadixString(8)})');
+      }
+      if ((perms & _kOwnerRWPerms) != _kOwnerRWPerms) {
+        throw StateError('Vault file missing owner read/write (mode: ${perms.toRadixString(8)})');
+      }
     }
   }
 
@@ -883,14 +897,8 @@ class AppStorage {
   static Future<File> _drawerFile() async {
     final dir = await getApplicationSupportDirectory();
     final file = File('${dir.path}/device_secret_v2.drawer');
-    // 0600, best effort (older Dart SDKs have no File.setPermissions — a
-    // POSIX chmod via the system tool keeps behaviour without breaking the
-    // build). Never fail the whole flow over a chmod.
-    if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('/bin/chmod', ['600', file.path]);
-      } catch (_) {}
-    }
+    // File is created by _writeDrawerSecret with writeAsString which respects umask.
+    // We verify permissions on read/write operations instead of using chmod.
     return file;
   }
 
@@ -909,6 +917,17 @@ class AppStorage {
   static Future<String> _writeDrawerSecret(String encoded) async {
     final file = await _drawerFile();
     await file.writeAsString(encoded, flush: true);
+    // Verify restrictive permissions on written file (fail closed if insecure)
+    if (Platform.isLinux || Platform.isMacOS) {
+      final stat = await file.stat();
+      final perms = stat.mode & _kPermMask;
+      if ((perms & _kNoGroupOtherPerms) != 0) {
+        throw StateError('Drawer file written with insecure permissions (mode: ${perms.toRadixString(8)})');
+      }
+      if ((perms & _kOwnerRWPerms) != _kOwnerRWPerms) {
+        throw StateError('Drawer file missing owner read/write (mode: ${perms.toRadixString(8)})');
+      }
+    }
     return encoded;
   }
 

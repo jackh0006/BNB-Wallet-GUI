@@ -27,6 +27,42 @@ class AppState extends ChangeNotifier {
     rpc.addListener(_onRpcChanged);
   }
 
+  /// Validates that [base64Blob] is a valid vault envelope by checking
+  /// the base64-decoded magic bytes. Returns the version string ('BNBVL004' or 'BNBVL003')
+  /// on success, throws [StateError] on failure.
+  static String _validateVaultMagic(String base64Blob) {
+    Uint8List bytes;
+    try {
+      bytes = base64Decode(base64Blob);
+    } on FormatException {
+      throw StateError('Not a valid vault file (invalid base64).');
+    }
+    if (bytes.length < 8) {
+      throw StateError('Not a valid vault file (too short).');
+    }
+    const magicV2 = 'BNBVL004';
+    const magicV1 = 'BNBVL003';
+    final magicBytesV2 = utf8.encode(magicV2);
+    var valid = true;
+    for (var i = 0; i < magicBytesV2.length; i++) {
+      if (bytes[i] != magicBytesV2[i]) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) return magicV2;
+    final magicBytesV1 = utf8.encode(magicV1);
+    valid = true;
+    for (var i = 0; i < magicBytesV1.length; i++) {
+      if (bytes[i] != magicBytesV1[i]) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) return magicV1;
+    throw StateError('Not a valid vault file (missing magic marker BNBVL).');
+  }
+
   final RpcService rpc = RpcService();
   EthPrivateKey? _key;
   String? _mnemonic;
@@ -1438,9 +1474,7 @@ static Future<bool> _isSymlink(String path) async {
       if (blob == null) throw StateError('Vault file not found.');
 
       // Validate the vault envelope format before exporting
-      if (!blob.startsWith('BNBVL')) {
-        throw StateError('Active vault has invalid format. Export aborted.');
-      }
+      _validateVaultMagic(blob);
       if (blob.length > 5 * 1024 * 1024) {
         throw StateError('Vault is too large. Export aborted.');
       }
@@ -1472,7 +1506,8 @@ static Future<bool> _isSymlink(String path) async {
       }
 
       // Validate the exported file can be parsed as a valid vault envelope
-      if (!verifyBlob.startsWith('BNBVL') || verifyBlob.length > 5 * 1024 * 1024) {
+      _validateVaultMagic(verifyBlob);
+      if (verifyBlob.length > 5 * 1024 * 1024) {
         await exportFile.delete();
         throw StateError('Exported file validation failed.');
       }
@@ -1539,19 +1574,12 @@ static Future<bool> _isSymlink(String path) async {
       // Read the backup file
       final blob = await importFile.readAsString();
       if (blob.isEmpty) throw StateError('Import file is empty.');
-
-      // Validate the envelope format and version
-      if (!blob.startsWith('BNBVL')) {
-        throw StateError('Not a valid vault file (missing magic marker BNBVL).');
-      }
       if (blob.length > 5 * 1024 * 1024) {
         throw StateError('Imported vault is too large (max 5 MB).');
       }
 
-      // Check for valid version markers
-      if (!blob.startsWith('BNBVL004') && !blob.startsWith('BNBVL003')) {
-        throw StateError('Unsupported vault version. Only BNBVL003 (v1) and BNBVL004 (v2) are supported.');
-      }
+      // Validate the envelope format and version by checking base64-decoded magic bytes.
+      _validateVaultMagic(blob);
 
       // Validate the backup can be decrypted with the provided password
       // This validates: format, version, Argon2id parameters, cryptographic tags, device-key dependencies
