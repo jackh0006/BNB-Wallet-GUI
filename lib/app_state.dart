@@ -1575,30 +1575,66 @@ class AppState extends ChangeNotifier {
 
       await AppStorage.ensureParentDir(vaultFile);
 
-      // Write the imported vault to a secure temporary location first, validate, then atomically replace
-      // Use the secure atomic write utility
-      await atomicWrite(vaultFile, blob);
-
-      // Read back and validate the new vault
-      final finalBlob = await vaultFile.readAsString();
-      if (finalBlob != blob) {
-        throw StateError('Import verification failed: final vault content mismatch.');
+      // BACKUP ORIGINAL VAULT before replacement (if exists)
+      String? originalBlob;
+      if (hasVault) {
+        originalBlob = await AppStorage.readVault();
+        if (originalBlob == null) {
+          throw StateError('Failed to read original vault for rollback.');
+        }
       }
 
-      // Final validation: ensure the new vault can be opened with the password
       try {
-        await _readVaultJson(password);
-      } catch (_) {
-        throw StateError('Imported vault cannot be opened with the provided password after import.');
+        // Write the imported vault to a secure temporary location first, validate, then atomically replace
+        await atomicWrite(vaultFile, blob);
+
+        // Read back and validate the new vault
+        final finalBlob = await vaultFile.readAsString();
+        if (finalBlob != blob) {
+          throw StateError('Import verification failed: final vault content mismatch.');
+        }
+
+        // Final validation: ensure the new vault can be opened with the password
+        try {
+          await _readVaultJson(password);
+        } catch (_) {
+          throw StateError('Imported vault cannot be opened with the provided password after import.');
+        }
+
+        _vaultExists = true;
+        notifyListeners();
+
+        rpc.note(
+          'Vault imported from $importPath.',
+          kind: RpcStoryKind.info,
+        );
+      } catch (e) {
+        // ROLLBACK: Restore original vault on any failure
+        if (originalBlob != null) {
+          try {
+            await atomicWrite(vaultFile, originalBlob);
+            // Verify rollback succeeded
+            final rollbackBlob = await vaultFile.readAsString();
+            if (rollbackBlob != originalBlob) {
+              rpc.note(
+                'CRITICAL: Rollback failed - original vault may be corrupted!',
+                kind: RpcStoryKind.fail,
+              );
+            } else {
+              rpc.note(
+                'Import failed, original vault restored successfully.',
+                kind: RpcStoryKind.info,
+              );
+            }
+          } catch (rollbackError) {
+            rpc.note(
+              'CRITICAL: Rollback failed with error: $rollbackError. Manual recovery may be needed.',
+              kind: RpcStoryKind.fail,
+            );
+          }
+        }
+        rethrow;
       }
-
-      _vaultExists = true;
-      notifyListeners();
-
-      rpc.note(
-        'Vault imported from $importPath.',
-        kind: RpcStoryKind.info,
-      );
     });
   }
 

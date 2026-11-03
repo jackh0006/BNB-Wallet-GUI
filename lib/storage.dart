@@ -96,17 +96,43 @@ Future<void> _validateRegularFile(File file, {int maxSize = 5 * 1024 * 1024}) as
 }
 
 /// Atomically writes [data] to [destination] using a secure temporary file.
-/// The temporary file is created with restrictive permissions (0600).
+/// The temporary file is created with restrictive permissions (0600) from creation.
 /// On success, renames the temp file over the destination atomically (POSIX).
-/// On failure, cleans up the temporary file and rethrows.
+/// On failure, cleans up the temporary file and rethrows; NEVER deletes the destination.
 /// Returns the written [destination] file.
+/// If atomic replacement is not available on the platform, fails safely and preserves the original file.
 Future<File> atomicWrite(File destination, String data) async {
+  // Check parent directory exists and is a directory (not a symlink)
   final parentDir = destination.parent;
   if (!await parentDir.exists()) {
     throw StateError('Destination directory does not exist: ${parentDir.path}');
   }
+  // Validate parent directory is not a symlink (best effort)
+  try {
+    final parentStat = await parentDir.stat();
+    if (parentStat.type == FileSystemEntityType.link) {
+      throw StateError('Destination parent directory is a symlink, refusing to write.');
+    }
+  } catch (_) {
+    // If stat fails, we'll catch write errors later
+  }
+
+  // Ensure destination is not a symlink (best effort, race window exists)
+  if (await destination.exists()) {
+    try {
+      final link = Link(destination.path);
+      final target = await link.target();
+      if (target.isNotEmpty) {
+        throw StateError('Destination is a symbolic link, refusing to overwrite.');
+      }
+    } catch (_) {
+      // Not a symlink or cannot determine, continue
+    }
+  }
+
   final tempFile = await _createSecureTempFile(destination);
   try {
+    // Write data with restrictive permissions from the start
     await tempFile.writeAsString(data, flush: true, mode: FileMode.write);
     // Validate written content
     final written = await tempFile.readAsString();
@@ -114,27 +140,20 @@ Future<File> atomicWrite(File destination, String data) async {
       await tempFile.delete();
       throw StateError('Atomic write verification failed: content mismatch');
     }
-    // Atomic rename
-    try {
-      await tempFile.rename(destination.path);
-    } on FileSystemException {
-      // Some platforms don't allow rename over existing file
-      if (await destination.exists()) {
-        await destination.delete();
-        await tempFile.rename(destination.path);
-      } else {
-        rethrow;
-      }
-    }
-    // Ensure restrictive permissions on final file
+    // Atomic rename - on POSIX this is atomic when same filesystem
+    // We do NOT delete the destination first - that would destroy data
+    await tempFile.rename(destination.path);
+    // Ensure restrictive permissions on final file (best effort)
     if (Platform.isLinux || Platform.isMacOS) {
       try {
         await Process.run('chmod', ['600', destination.path]);
-      } catch (_) {}
+      } catch (_) {
+        // Log but don't fail - permissions are best effort
+      }
     }
     return destination;
   } catch (e) {
-    // Cleanup on any error
+    // Cleanup on any error - NEVER touch the destination file
     if (await tempFile.exists()) {
       await tempFile.delete();
     }
