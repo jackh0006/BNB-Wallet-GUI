@@ -34,8 +34,8 @@ Future<File> _createSecureTempFile(File destination) async {
   if (!await parent.exists()) {
     throw StateError('Destination directory does not exist: ${parent.path}');
   }
-  // Check if parent is a symlink using lstat (no follow)
-  if (await _isSymlink(parent.path)) {
+  // Check if parent is a symlink (no-follow semantics)
+  if (await isSymlink(parent.path)) {
     throw StateError('Destination parent directory is a symlink, refusing to write.');
   }
 
@@ -83,31 +83,24 @@ Future<File> _createSecureTempFile(File destination) async {
 /// Checks if [path] is a symlink using lstat semantics (no follow).
 /// Returns true if the path exists and is a symbolic link.
 /// Throws [StateError] if the filesystem check fails for any reason other than 'not found'.
-Future<bool> _isSymlink(String path) async {
+/// Uses no-follow semantics to correctly identify symlinks, including broken ones.
+Future<bool> isSymlink(String path) async {
   try {
-    // Use FileStat from lstat (File.stat() follows symlinks, but we can use
-    // the Link class which uses lstat internally on POSIX)
-    final link = Link(path);
-    final target = await link.target();
-    // If target is non-empty, it's a symlink. Empty target means either
-    // not a symlink or a broken symlink (which we also treat as symlink).
-    // To distinguish, we can check if the path exists at all via lstat.
-    final stat = await FileStat.stat(path); // This uses lstat on POSIX
-    if (stat.type == FileSystemEntityType.link) {
-      return true;
-    }
-    // If stat says it's not a link, but link.target() returned something,
-    // something is inconsistent - treat as symlink for safety.
-    if (target.isNotEmpty) {
-      return true;
-    }
-    return false;
+    // Use FileSystemEntity.type with followLinks: false for no-follow semantics.
+    // This correctly identifies:
+    // - Regular files -> FileSystemEntityType.file
+    // - Directories -> FileSystemEntityType.directory
+    // - Valid symlinks -> FileSystemEntityType.link
+    // - Broken symlinks -> FileSystemEntityType.link (target doesn't exist, but the link does)
+    // - Missing paths -> FileSystemEntityType.notFound
+    final type = await FileSystemEntity.type(path, followLinks: false);
+    return type == FileSystemEntityType.link;
   } on FileSystemException catch (e) {
     // File not found - not a symlink
     if (e.osError?.errorCode == 2 || e.osError?.errorCode == 0) {
       return false;
     }
-    // Other filesystem errors - fail closed for security
+    // Other filesystem errors (permission denied, etc.) - fail closed for security
     throw StateError('Failed to determine if path is a symlink: ${e.message}');
   } catch (e) {
     // Any other unexpected error - fail closed
@@ -117,23 +110,26 @@ Future<bool> _isSymlink(String path) async {
 
 /// Validates that [file] is a regular file (not a symlink, directory, or special file).
 /// Throws [StateError] if validation fails.
+/// Uses no-follow semantics to detect symlinks correctly.
 Future<void> _validateRegularFile(File file, {int maxSize = 5 * 1024 * 1024}) async {
-  if (!await file.exists()) {
+  // Check existence without following symlinks
+  final type = await FileSystemEntity.type(file.path, followLinks: false);
+  if (type == FileSystemEntityType.notFound) {
     throw StateError('File does not exist: ${file.path}');
   }
-  final stat = await file.stat();
-  if (stat.type != FileSystemEntityType.file) {
+  if (type == FileSystemEntityType.link) {
+    throw StateError('Path is a symbolic link, refusing to process: ${file.path}');
+  }
+  if (type != FileSystemEntityType.file) {
     throw StateError('Path is not a regular file: ${file.path}');
   }
+  // Now safe to stat (followLinks=true) since we know it's not a symlink
+  final stat = await file.stat();
   if (stat.size > maxSize) {
     throw StateError('File exceeds maximum size of ${maxSize} bytes: ${stat.size} bytes');
   }
   if (stat.size == 0) {
     throw StateError('File is empty');
-  }
-  // Check for symlink (best effort)
-  if (await _isSymlink(file.path)) {
-    throw StateError('Path is a symbolic link, refusing to process: ${file.path}');
   }
 }
 
@@ -149,14 +145,14 @@ Future<File> atomicWrite(File destination, String data) async {
   if (!await parentDir.exists()) {
     throw StateError('Destination directory does not exist: ${parentDir.path}');
   }
-  // Validate parent directory is not a symlink (using lstat via _isSymlink)
-  if (await _isSymlink(parentDir.path)) {
+  // Validate parent directory is not a symlink (no-follow semantics)
+  if (await isSymlink(parentDir.path)) {
     throw StateError('Destination parent directory is a symlink, refusing to write.');
   }
 
-  // Ensure destination is not a symlink (using lstat via _isSymlink)
+  // Ensure destination is not a symlink (no-follow semantics)
   if (await destination.exists()) {
-    if (await _isSymlink(destination.path)) {
+    if (await isSymlink(destination.path)) {
       throw StateError('Destination is a symbolic link, refusing to overwrite.');
     }
   }

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File, Link, Platform, Process, FileSystemEntityType, FileStat, FileSystemException;
+import 'dart:io' show File, Platform, Process, FileSystemEntityType;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1367,35 +1367,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Helper to check if a path is a symlink (using lstat).
-/// Returns true if the path exists and is a symbolic link.
-/// Throws [StateError] if the filesystem check fails for any reason other than 'not found'.
-static Future<bool> _isSymlink(String path) async {
-  try {
-    final stat = await FileStat.stat(path);
-    if (stat.type == FileSystemEntityType.link) {
-      return true;
-    }
-    // As a fallback, also check using Link (handles broken symlinks on some platforms)
-    final link = Link(path);
-    final target = await link.target();
-    if (target.isNotEmpty) {
-      return true;
-    }
-    return false;
-  } on FileSystemException catch (e) {
-    // File not found - not a symlink
-    if (e.osError?.errorCode == 2 || e.osError?.errorCode == 0) {
-      return false;
-    }
-    // Other filesystem errors - fail closed for security
-    throw StateError('Failed to determine if path is a symlink: ${e.message}');
-  } catch (e) {
-    // Any other unexpected error - fail closed
-    throw StateError('Unexpected error checking symlink status: $e');
-  }
-}
-
   /// Move the encrypted vault to a custom path.
   ///
   /// Reads the vault with [password], decrypts it, and writes it to [newPath]
@@ -1420,7 +1391,7 @@ static Future<bool> _isSymlink(String path) async {
 
       // Write to new location atomically using secure atomic write
       final newFile = File(newPath);
-      if (await _isSymlink(newPath)) {
+      if (await isSymlink(newPath)) {
         throw StateError('Destination is a symbolic link, refusing to write.');
       }
       await AppStorage.ensureParentDir(newFile);
@@ -1483,7 +1454,7 @@ static Future<bool> _isSymlink(String path) async {
 
       // Refuse symlink destinations
       if (await exportFile.exists()) {
-        if (await _isSymlink(exportPath)) {
+        if (await isSymlink(exportPath)) {
           throw StateError('Destination is a symbolic link, refusing to write.');
         }
       }
@@ -1557,7 +1528,7 @@ static Future<bool> _isSymlink(String path) async {
       if (!await importFile.exists()) {
         throw StateError('Import file not found: $importPath');
       }
-      if (await _isSymlink(importPath)) {
+      if (await isSymlink(importPath)) {
         throw StateError('Import path is a symbolic link, refusing to read.');
       }
       final importStat = await importFile.stat();
@@ -1614,7 +1585,7 @@ static Future<bool> _isSymlink(String path) async {
         if (!confirmReplace) {
           throw StateError('A vault already exists. Explicit confirmation required to replace it.');
         }
-        if (await _isSymlink(vaultFile.path)) {
+        if (await isSymlink(vaultFile.path)) {
           throw StateError('Active vault destination is a symbolic link, refusing to replace.');
         }
       }
