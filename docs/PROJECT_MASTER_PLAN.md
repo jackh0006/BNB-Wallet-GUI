@@ -2,7 +2,7 @@
 
 **Version**: 1.0 (2026-11-03)
 **Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
-**Status**: Milestone 2 complete; entering Milestone 3 (Local encrypted storage)
+**Status**: Milestone 3 complete; entering Milestone 4 (Wallet Core)
 
 ---
 
@@ -13,8 +13,8 @@
 | **M0** | Repository baseline & persistent instructions | AGENTS.md, BASELINE.md, task ledger | ✅ DONE |
 | **M1** | Existing code security & architecture review | Fix critical issues without breaking | ✅ DONE (security hardening round) |
 | **M2** | Linux application foundation | Build, initial .deb, desktop integration | ✅ DONE |
-| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | 🔄 IN PROGRESS |
-| **M4** | Wallet core | Accounts, signing, verification, recovery | ⏳ PENDING |
+| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | ✅ DONE |
+| **M4** | Wallet core | Accounts, signing, verification, recovery | 🔄 IN PROGRESS |
 | **M5** | Activity Center | Encrypted logs, events, redaction, integrity | ⏳ PENDING |
 | **M6** | Blockchain & RPC | Custom RPC, chain validation, endpoints | ⏳ PENDING |
 | **M7** | Assets & tokens | BNB, BEP-20, USDT, USDC, custom, validation | ⏳ PENDING |
@@ -82,7 +82,7 @@
 | M2-06 | SHA-256 + GPG signature on .deb | ✅ DONE | M2-03 | `.sha256` + `.asc` verified |
 | M2-07 | Document Linux build reproducibility | ⚠️ NOT TESTED | M2-04 | Toolchain not pinned |
 
-### MILESTONE 3 — Local Encrypted Storage
+### MILESTONE 3 — Local Encrypted Storage (COMPLETE)
 
 | Task ID | Description | Status | Dependencies |
 |---------|-------------|--------|--------------|
@@ -94,6 +94,16 @@
 | M3-06 | Storage usage display | ⏳ PENDING | M2 |
 | M3-07 | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | M2 |
 | M3-08 | Multiple vault support | ⏳ PENDING | M2 |
+| M3-09 | Atomic write hardening | ✅ DONE | M2 |
+| M3-10 | Symlink validation & rejection | ✅ DONE | M2 |
+| M3-11 | Import rollback with verification | ✅ DONE | M2 |
+| M3-12 | Vault operation locking | ✅ DONE | M2 |
+| M3-13 | Vault info display (path, size, custom/default) | ✅ DONE | M2 |
+| M3-14 | Secure temp file creation with 0600 perms | ✅ DONE | M2 |
+| M3-15 | Atomic write with rollback on failure | ✅ DONE | M2 |
+| M3-16 | Secure temp file permissions verification | ✅ DONE | M2 |
+| M3-17 | Symlink detection with lstat semantics | ✅ DONE | M2 |
+| M3-18 | Secure temp file collision handling | ✅ DONE | M2 |
 
 ### MILESTONE 4 — Wallet Core
 

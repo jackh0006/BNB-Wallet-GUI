@@ -1,9 +1,9 @@
 # PROJECT_STATUS.md — Current Project State
 
 **Last Updated**: 2026-11-03
-**Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
-**Current Milestone**: M3 — Local Encrypted Storage
-**Previous Milestone**: M2 — Linux Application Foundation (COMPLETE)
+**Baseline Commit**: `77112b036d024b652c13f305d407ffb43e213756`
+**Current Milestone**: M4 — Wallet Core
+**Previous Milestone**: M3 — Local Encrypted Storage (COMPLETE)
 
 ---
 
@@ -27,6 +27,24 @@
 | **M1-10**: Cold account-index signing | ✅ DONE | `ColdWalletService.signRequest` derives matching index |
 | **M1-11**: Test stability fixes | ✅ DONE | Keyring timeout, dialog `isExpanded=true` |
 | **M1-12**: Security documentation updates | ✅ DONE | `SECURITY_AUDIT.md`, `COLD_WALLET.md`, `TESTING.md`, etc. |
+| **M3-01** | Vault creation UI (path selection, password) | ✅ DONE (existing) | `lib/screens/wallet_page.dart` |
+| **M3-02** | Vault path management (move, rename, switch) | ✅ DONE | `lib/app_state.dart` (`moveVault`, `resetVaultPath`) |
+| **M3-03** | Password change (re-encrypt with new salt) | ✅ DONE | `lib/app_state.dart` (`changeVaultPassword`) |
+| **M3-04** | Encrypted backup (export/import) | ✅ DONE | `lib/app_state.dart` (`exportVault`, `importVault`) |
+| **M3-05** | Vault integrity verification | ✅ DONE | `lib/app_state.dart` (`getVaultInfo`, `importVault` validation) |
+| **M3-06** | Storage usage display | ⏳ PENDING | M2 |
+| **M3-07** | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | `lib/storage.dart` (`eraseAllData`) |
+| **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
+| **M3-09** | Atomic write hardening | ✅ DONE | `lib/storage.dart` (`atomicWrite`, `_createSecureTempFile`) |
+| **M3-10** | Symlink validation & rejection | ✅ DONE | `lib/storage.dart` (`_isSymlink`, `atomicWrite`, `_validateRegularFile`) |
+| **M3-11** | Import rollback with verification | ✅ DONE | `lib/app_state.dart` (`importVault` rollback logic) |
+| **M3-12** | Vault operation locking | ✅ DONE | `lib/storage.dart` (`vaultOperationLock`) |
+| **M3-13** | Vault info display (path, size, custom/default) | ✅ DONE | `lib/app_state.dart` (`getVaultInfo`) |
+| **M3-14** | Secure temp file creation with 0600 perms | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile`) |
+| **M3-15** | Atomic write with rollback on failure | ✅ DONE | `lib/app_state.dart` (`importVault` rollback) |
+| **M3-16** | Secure temp file permissions verification | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile` verification) |
+| **M3-16** | Symlink detection with lstat semantics | ✅ DONE | `lib/storage.dart` (`_isSymlink` using `FileStat.stat`) |
+| **M3-17** | Secure temp file collision handling | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile` with 10 attempts) |
 | **M2-01**: Verify `flutter build linux --release` | ✅ DONE | Built `build/linux/x64/release/bundle/bnb_wallet_gui` |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
@@ -56,18 +74,20 @@
 
 ---
 
-## Incomplete Tasks (Current Milestone M3)
+## Incomplete Tasks (Current Milestone M4)
 
 | Task ID | Description | Status | Blockers |
 |---------|-------------|--------|----------|
-| **M3-01** | Vault creation UI (path selection, password) | ✅ DONE (existing) | M2 |
-| **M3-02** | Vault path management (move, rename, switch) | ✅ DONE (backend) | M2 |
-| **M3-03** | Password change (re-encrypt with new salt) | ✅ DONE (backend) | M2 |
-| **M3-04** | Encrypted backup (export/import) | ✅ DONE (backend - security hardened) | M2 |
-| **M3-05** | Vault integrity verification | ✅ DONE (part of export/import) | M2 |
-| **M3-06** | Storage usage display | ⏳ PENDING | M2 |
-| **M3-07** | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | M2 |
-| **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
+| **M4-01** | Account derivation UI (add/remove/switch accounts) | ⏳ PENDING | M3 |
+| **M4-02** | Private key import (raw hex, keystore JSON v3) | ⏳ PENDING | M3 |
+| **M4-03** | Seed phrase import (12/24 words, validation) | ⏳ PENDING | M3 |
+| **M4-04** | Wallet unlock/lock (biometric where available) | ⏳ PENDING | M3 |
+| **M4-05** | Transaction signing (EIP-1559, legacy) | ✅ DONE | — |
+| **M4-06** | Signature verification (independent) | ✅ DONE | — |
+| **M4-06** | Nonce management (pending, replacement) | ⏳ PENDING | M3 |
+| **M4-07** | Chain ID validation (every sign/broadcast) | ✅ DONE | — |
+| **M4-07** | Replay protection (EIP-155 chain ID) | ✅ DONE | — |
+| **M4-08** | Address validation (EIP-55, contract detection) | ✅ DONE | — |
 
 ---
 
@@ -142,11 +162,12 @@ bash scripts/secret-scan.sh
 
 ## Next Exact Actions
 
-1. **Implement vault backup/restore UI** — Add "Export vault" and "Import vault" options in wallet management
-2. **Implement password change UI** — Add "Change vault password" option
-3. **Implement vault info display** — Show vault path, size, custom/default status
-4. **Implement vault path management UI** — Add "Move vault" and "Reset path" options in wallet management
-5. **Run full test suite** after each UI component
+1. **Implement M4-01: Account derivation UI** — Add/remove/switch accounts in wallet management
+2. **Implement M4-02: Private key import UI** — Raw hex, keystore JSON v3 import dialogs
+3. **Implement M4-03: Seed phrase import UI** — 12/24 word validation, checksum verification
+4. **Implement M4-04: Wallet unlock/lock UI** — Biometric integration where available
+5. **Implement M4-06: Nonce management UI** — Pending transaction display, replacement UI
+6. **Run full test suite** after each UI component
 
 ---
 
