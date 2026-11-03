@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show File, Link, Platform, Process, FileSystemEntityType;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web3dart/web3dart.dart';
+import 'package:synchronized/synchronized.dart';
 
 import 'cold_wallet.dart' hide WalletMode, WalletModeLabel;
 import 'cold_wallet_service.dart';
@@ -1330,51 +1331,59 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Helper to check if a path is a symlink (best effort).
+  static Future<bool> _isSymlink(String path) async {
+    try {
+      final link = Link(path);
+      final target = await link.target();
+      return target.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Move the encrypted vault to a custom path.
   ///
   /// Reads the vault with [password], decrypts it, and writes it to [newPath]
   /// using atomic write. The new path becomes the active vault location.
+  ///
+  /// Security guarantees:
+  /// - Verifies password against active vault
+  /// - Uses atomic write with secure temporary file
+  /// - Rejects symlink destinations
+  /// - Prevents concurrent vault operations
+  /// - Verifies written content after move
   Future<void> moveVault(String password, String newPath) async {
     if (!hasVault) throw StateError('No vault exists to move.');
     if (newPath.trim().isEmpty) throw ArgumentError('New path cannot be empty.');
 
-    final json = await _readVaultJson(password);
-    if (json == null) throw StateError('Vault not found or wrong password.');
+    await vaultOperationLock.synchronized(() async {
+      final json = await _readVaultJson(password);
+      if (json == null) throw StateError('Vault not found or wrong password.');
 
-    final device = await AppStorage.getOrGenerateDeviceSecret();
-    final blob = await _runVaultEncrypt(password, jsonEncode(json), device);
+      final device = await AppStorage.getOrGenerateDeviceSecret();
+      final blob = await _runVaultEncrypt(password, jsonEncode(json), device);
 
-    // Write to new location atomically
-    final newFile = File(newPath);
-    await AppStorage.ensureParentDir(newFile);
-    final tmp = File('${newFile.path}.tmp');
-    final sink = tmp.openWrite(mode: FileMode.write);
-    sink.add(utf8.encode(blob));
-    await sink.flush();
-    await sink.close();
-    try {
-      await tmp.rename(newFile.path);
-    } catch (_) {
-      if (await tmp.exists()) await tmp.delete();
-      rethrow;
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', newFile.path]);
-      } catch (_) {}
-    }
+      // Write to new location atomically using secure atomic write
+      final newFile = File(newPath);
+      if (await _isSymlink(newPath)) {
+        throw StateError('Destination is a symbolic link, refusing to write.');
+      }
+      await AppStorage.ensureParentDir(newFile);
+      await atomicWrite(newFile, blob);
 
-    // Update stored path and verify
-    await AppStorage.setVaultPath(newPath);
-    final verifyBlob = await newFile.readAsString();
-    if (verifyBlob != blob) {
-      throw StateError('Vault move verification failed.');
-    }
-    rpc.note(
-      'Vault moved to $newPath.',
-      kind: RpcStoryKind.info,
-    );
-    notifyListeners();
+      // Update stored path and verify
+      await AppStorage.setVaultPath(newPath);
+      final verifyBlob = await newFile.readAsString();
+      if (verifyBlob != blob) {
+        throw StateError('Vault move verification failed.');
+      }
+      rpc.note(
+        'Vault moved to $newPath.',
+        kind: RpcStoryKind.info,
+      );
+      notifyListeners();
+    });
   }
 
   /// Export the vault to a backup file at [exportPath].
@@ -1390,74 +1399,71 @@ class AppState extends ChangeNotifier {
   /// - Refuses to overwrite an existing file without explicit confirmation
   /// - Reads back and validates the exported file before reporting success
   /// - Never logs passwords, vault contents, seeds, or private keys
+  /// - Prevents concurrent vault operations
+  /// - Rejects symlink destinations
   Future<void> exportVault(String password, String exportPath) async {
     if (!hasVault) throw StateError('No vault exists to export.');
     if (password.isEmpty) throw ArgumentError('Password cannot be empty.');
 
-    // Verify the password against the active vault BEFORE exporting.
-    // This prevents exporting with a wrong password and ensures the user
-    // knows the correct password for the exported vault.
-    final json = await _readVaultJson(password);
-    if (json == null) {
-      throw StateError('Wrong vault password. Export aborted.');
-    }
+    // Acquire lock to prevent concurrent vault operations
+    await vaultOperationLock.synchronized(() async {
+      // Verify the password against the active vault BEFORE exporting.
+      // This prevents exporting with a wrong password and ensures the user
+      // knows the correct password for the exported vault.
+      final json = await _readVaultJson(password);
+      if (json == null) {
+        throw StateError('Wrong vault password. Export aborted.');
+      }
 
-    // Re-read the validated vault blob for export
-    final blob = await AppStorage.readVault();
-    if (blob == null) throw StateError('Vault file not found.');
+      // Re-read the validated vault blob for export
+      final blob = await AppStorage.readVault();
+      if (blob == null) throw StateError('Vault file not found.');
 
-    // Validate the vault envelope format before exporting
-    if (!blob.startsWith('BNBVL')) {
-      throw StateError('Active vault has invalid format. Export aborted.');
-    }
-    if (blob.length > 5 * 1024 * 1024) {
-      throw StateError('Vault is too large. Export aborted.');
-    }
+      // Validate the vault envelope format before exporting
+      if (!blob.startsWith('BNBVL')) {
+        throw StateError('Active vault has invalid format. Export aborted.');
+      }
+      if (blob.length > 5 * 1024 * 1024) {
+        throw StateError('Vault is too large. Export aborted.');
+      }
 
-    final exportFile = File(exportPath);
+      final exportFile = File(exportPath);
 
-    // Refuse to overwrite an existing backup without explicit user action.
-    if (await exportFile.exists()) {
-      throw StateError('Export file already exists. Remove it first or choose a different path.');
-    }
+      // Refuse symlink destinations
+      if (await exportFile.exists()) {
+        if (await _isSymlink(exportPath)) {
+          throw StateError('Destination is a symbolic link, refusing to write.');
+        }
+      }
 
-    await AppStorage.ensureParentDir(exportFile);
+      // Refuse to overwrite an existing backup without explicit user action.
+      if (await exportFile.exists()) {
+        throw StateError('Export file already exists. Remove it first or choose a different path.');
+      }
 
-    // Atomic write with restrictive permissions
-    final tmpFile = File('$exportPath.tmp');
-    await tmpFile.writeAsString(blob, flush: true);
+      await AppStorage.ensureParentDir(exportFile);
 
-    try {
-      await tmpFile.rename(exportFile.path);
-    } catch (_) {
-      if (await tmpFile.exists()) await tmpFile.delete();
-      rethrow;
-    }
+      // Atomic write with restrictive permissions using secure temp file
+      await atomicWrite(exportFile, blob);
 
-    // Apply restrictive permissions (0600) on Unix-like systems
-    if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', exportFile.path]);
-      } catch (_) {}
-    }
+      // Read back and validate the exported file
+      final verifyBlob = await exportFile.readAsString();
+      if (verifyBlob != blob) {
+        await exportFile.delete();
+        throw StateError('Export verification failed: file content mismatch.');
+      }
 
-    // Read back and validate the exported file
-    final verifyBlob = await exportFile.readAsString();
-    if (verifyBlob != blob) {
-      await exportFile.delete();
-      throw StateError('Export verification failed: file content mismatch.');
-    }
+      // Validate the exported file can be parsed as a valid vault envelope
+      if (!verifyBlob.startsWith('BNBVL') || verifyBlob.length > 5 * 1024 * 1024) {
+        await exportFile.delete();
+        throw StateError('Exported file validation failed.');
+      }
 
-    // Validate the exported file can be parsed as a valid vault envelope
-    if (!verifyBlob.startsWith('BNBVL') || verifyBlob.length > 5 * 1024 * 1024) {
-      await exportFile.delete();
-      throw StateError('Exported file validation failed.');
-    }
-
-    rpc.note(
-      'Vault exported to $exportPath.',
-      kind: RpcStoryKind.info,
-    );
+      rpc.note(
+        'Vault exported to $exportPath.',
+        kind: RpcStoryKind.info,
+      );
+    });
   }
 
   /// Import a vault from a backup file at [importPath].
@@ -1477,142 +1483,123 @@ class AppState extends ChangeNotifier {
   /// - Uses safe atomic replacement with restrictive permissions
   /// - Requires explicit user confirmation before replacing an existing vault
   /// - Reports success only after the new vault has been read back and validated
+  /// - Prevents concurrent vault operations
+  /// - Rejects symlink sources and destinations
+  /// - Uses secure temporary files with restrictive permissions
   Future<void> importVault(
     String importPath, {
     String? password,
     bool verifyPassword = true, // Always verify by default for security
     required bool confirmReplace, // Explicit confirmation required
   }) async {
-    final importFile = File(importPath);
-
-    // Validate import file exists and is a regular file
-    if (!await importFile.exists()) {
-      throw StateError('Import file not found: $importPath');
-    }
-    final importStat = await importFile.stat();
-    if (importStat.type != FileSystemEntityType.file) {
-      throw StateError('Import path is not a regular file.');
-    }
-    if (importStat.size > 5 * 1024 * 1024) {
-      throw StateError('Import file is too large (max 5 MB).');
-    }
-    if (importStat.size == 0) {
-      throw StateError('Import file is empty.');
-    }
-
-    // Read the backup file
-    final blob = await importFile.readAsString();
-    if (blob.isEmpty) throw StateError('Import file is empty.');
-
-    // Validate the envelope format and version
-    if (!blob.startsWith('BNBVL')) {
-      throw StateError('Not a valid vault file (missing magic marker BNBVL).');
-    }
-    if (blob.length > 5 * 1024 * 1024) {
-      throw StateError('Imported vault is too large (max 5 MB).');
-    }
-
-    // Check for valid version markers
-    if (!blob.startsWith('BNBVL004') && !blob.startsWith('BNBVL003')) {
-      throw StateError('Unsupported vault version. Only BNBVL003 (v1) and BNBVL004 (v2) are supported.');
-    }
-
-    // Validate the backup can be decrypted with the provided password
-    // This validates: format, version, Argon2id parameters, cryptographic tags, device-key dependencies
     if (password == null || password.isEmpty) {
       throw ArgumentError('Password is required to verify the backup.');
     }
 
-    // Try to decrypt the imported backup with the provided password
-    // This validates: format, version, Argon2id parameters, all cryptographic tags, device-key
-    try {
+    // Acquire lock to prevent concurrent vault operations
+    await vaultOperationLock.synchronized(() async {
+      final importFile = File(importPath);
+
+      // Validate import file exists and is a regular file (not symlink)
+      if (!await importFile.exists()) {
+        throw StateError('Import file not found: $importPath');
+      }
+      if (await _isSymlink(importPath)) {
+        throw StateError('Import path is a symbolic link, refusing to read.');
+      }
+      final importStat = await importFile.stat();
+      if (importStat.type != FileSystemEntityType.file) {
+        throw StateError('Import path is not a regular file.');
+      }
+      if (importStat.size > 5 * 1024 * 1024) {
+        throw StateError('Import file is too large (max 5 MB).');
+      }
+      if (importStat.size == 0) {
+        throw StateError('Import file is empty.');
+      }
+
+      // Read the backup file
+      final blob = await importFile.readAsString();
+      if (blob.isEmpty) throw StateError('Import file is empty.');
+
+      // Validate the envelope format and version
+      if (!blob.startsWith('BNBVL')) {
+        throw StateError('Not a valid vault file (missing magic marker BNBVL).');
+      }
+      if (blob.length > 5 * 1024 * 1024) {
+        throw StateError('Imported vault is too large (max 5 MB).');
+      }
+
+      // Check for valid version markers
+      if (!blob.startsWith('BNBVL004') && !blob.startsWith('BNBVL003')) {
+        throw StateError('Unsupported vault version. Only BNBVL003 (v1) and BNBVL004 (v2) are supported.');
+      }
+
+      // Validate the backup can be decrypted with the provided password
+      // This validates: format, version, Argon2id parameters, cryptographic tags, device-key dependencies
       final device = await AppStorage.getOrGenerateDeviceSecret();
-      // We need to use the vault decryption directly on the imported blob
-      // to verify the password against THIS backup, not the current vault.
-      final decryptedJson = await _decryptVaultBlob(blob, password, device);
-      // If we get here, the backup is valid and the password is correct for THIS backup
-      // Optionally parse the JSON to ensure it's valid structure
-      final decoded = jsonDecode(decryptedJson) as List;
-      if (decoded.isEmpty) {
-        throw StateError('Imported vault contains no accounts.');
-      }
-      for (final item in decoded) {
-        if (item is! Map<String, dynamic>) {
-          throw StateError('Invalid vault account record format.');
-        }
-        if (item['label'] == null || item['address'] == null || item['privateKeyHex'] == null) {
-          throw StateError('Incomplete vault account record (missing label/address/key).');
-        }
-      }
-    } catch (e) {
-      if (e is StateError || e is ArgumentError) rethrow;
-      throw StateError('Wrong password or corrupted/tampered backup file.');
-    }
-
-    // Require explicit user confirmation before replacing an existing vault
-    if (!confirmReplace) {
-      throw StateError('Explicit confirmation required to replace the active vault.');
-    }
-
-    if (hasVault && !confirmReplace) {
-      throw StateError('A vault already exists. Explicit confirmation required to replace it.');
-    }
-
-    // Write the imported vault to a temporary location first, validate, then atomically replace
-    final vaultFile = await AppStorage.vaultFile();
-    await AppStorage.ensureParentDir(vaultFile);
-
-    final tmpFile = File('${vaultFile.path}.tmp_import');
-    await tmpFile.writeAsString(blob, flush: true);
-
-    // Validate the temporary file before replacing
-    final verifyBlob = await tmpFile.readAsString();
-    if (verifyBlob != blob) {
-      await tmpFile.delete();
-      throw StateError('Import validation failed: temporary file content mismatch.');
-    }
-
-    // Final validation of the temp file
-    if (!verifyBlob.startsWith('BNBVL') || verifyBlob.length > 5 * 1024 * 1024) {
-      await tmpFile.delete();
-      throw StateError('Imported vault validation failed after write.');
-    }
-
-    // Atomic replacement: rename temp over the vault file
-    try {
-      await tmpFile.rename(vaultFile.path);
-    } catch (_) {
-      if (await tmpFile.exists()) await tmpFile.delete();
-      rethrow;
-    }
-
-    // Apply restrictive permissions (0600) on Unix-like systems
-    if (Platform.isLinux || Platform.isMacOS) {
       try {
-        await Process.run('chmod', ['600', vaultFile.path]);
-      } catch (_) {}
-    }
+        final decryptedJson = await _decryptVaultBlob(blob, password, device);
+        final decoded = jsonDecode(decryptedJson) as List;
+        if (decoded.isEmpty) {
+          throw StateError('Imported vault contains no accounts.');
+        }
+        for (final item in decoded) {
+          if (item is! Map<String, dynamic>) {
+            throw StateError('Invalid vault account record format.');
+          }
+          if (item['label'] == null || item['address'] == null || item['privateKeyHex'] == null) {
+            throw StateError('Incomplete vault account record (missing label/address/key).');
+          }
+        }
+      } catch (e) {
+        if (e is StateError || e is ArgumentError) rethrow;
+        throw StateError('Wrong password or corrupted/tampered backup file.');
+      }
 
-    // Read back and validate the new vault
-    final finalBlob = await vaultFile.readAsString();
-    if (finalBlob != blob) {
-      throw StateError('Import verification failed: final vault content mismatch.');
-    }
+      // Require explicit user confirmation before replacing an existing vault
+      if (!confirmReplace) {
+        throw StateError('Explicit confirmation required to replace the active vault.');
+      }
 
-    // Final validation: ensure the new vault can be opened with the password
-    try {
-      await _readVaultJson(password);
-    } catch (_) {
-      throw StateError('Imported vault cannot be opened with the provided password after import.');
-    }
+      // Check for existing vault and symlink destination
+      final vaultFile = await AppStorage.vaultFile();
+      if (hasVault) {
+        if (!confirmReplace) {
+          throw StateError('A vault already exists. Explicit confirmation required to replace it.');
+        }
+        if (await _isSymlink(vaultFile.path)) {
+          throw StateError('Active vault destination is a symbolic link, refusing to replace.');
+        }
+      }
 
-    _vaultExists = true;
-    notifyListeners();
+      await AppStorage.ensureParentDir(vaultFile);
 
-    rpc.note(
-      'Vault imported from $importPath.',
-      kind: RpcStoryKind.info,
-    );
+      // Write the imported vault to a secure temporary location first, validate, then atomically replace
+      // Use the secure atomic write utility
+      await atomicWrite(vaultFile, blob);
+
+      // Read back and validate the new vault
+      final finalBlob = await vaultFile.readAsString();
+      if (finalBlob != blob) {
+        throw StateError('Import verification failed: final vault content mismatch.');
+      }
+
+      // Final validation: ensure the new vault can be opened with the password
+      try {
+        await _readVaultJson(password);
+      } catch (_) {
+        throw StateError('Imported vault cannot be opened with the provided password after import.');
+      }
+
+      _vaultExists = true;
+      notifyListeners();
+
+      rpc.note(
+        'Vault imported from $importPath.',
+        kind: RpcStoryKind.info,
+      );
+    });
   }
 
   /// Decrypts and validates a vault blob directly without touching the active vault.
@@ -1625,6 +1612,12 @@ class AppState extends ChangeNotifier {
   ///
   /// Reads the vault with [oldPassword], decrypts it, and re-encrypts with
   /// [newPassword] (new salt, new device KEK). Atomic write.
+  ///
+  /// Security guarantees:
+  /// - Verifies old password against active vault
+  /// - Generates new salt and re-encrypts with new password
+  /// - Uses atomic write
+  /// - Prevents concurrent vault operations
   Future<void> changeVaultPassword(String oldPassword, String newPassword) async {
     if (!hasVault) throw StateError('No vault exists.');
     if (oldPassword == newPassword) {
@@ -1634,17 +1627,19 @@ class AppState extends ChangeNotifier {
       throw ArgumentError('Use at least 16 characters for the new password.');
     }
 
-    final json = await _readVaultJson(oldPassword);
-    if (json == null) throw StateError('Wrong password or vault not found.');
+    await vaultOperationLock.synchronized(() async {
+      final json = await _readVaultJson(oldPassword);
+      if (json == null) throw StateError('Wrong password or vault not found.');
 
-    final device = await AppStorage.getOrGenerateDeviceSecret();
-    final blob = await _runVaultEncrypt(newPassword, jsonEncode(json), device);
+      final device = await AppStorage.getOrGenerateDeviceSecret();
+      final blob = await _runVaultEncrypt(newPassword, jsonEncode(json), device);
 
-    await AppStorage.writeVaultAtomic(blob);
-    rpc.note(
-      'Vault password changed.',
-      kind: RpcStoryKind.info,
-    );
+      await AppStorage.writeVaultAtomic(blob);
+      rpc.note(
+        'Vault password changed.',
+        kind: RpcStoryKind.info,
+      );
+    });
   }
 
   /// Get information about the current vault.
@@ -1668,13 +1663,15 @@ class AppState extends ChangeNotifier {
 
   /// Reset vault path to default (system app data directory).
   Future<void> resetVaultPath() async {
-    await AppStorage.setVaultPath(null);
-    _vaultExists = await AppStorage.vaultExists();
-    notifyListeners();
-    rpc.note(
-      'Vault path reset to default.',
-      kind: RpcStoryKind.info,
-    );
+    await vaultOperationLock.synchronized(() async {
+      await AppStorage.setVaultPath(null);
+      _vaultExists = await AppStorage.vaultExists();
+      notifyListeners();
+      rpc.note(
+        'Vault path reset to default.',
+        kind: RpcStoryKind.info,
+      );
+    });
   }
 
   /// Erases every trace: vault (shredded after random overwrite), secrets in

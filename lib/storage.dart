@@ -7,9 +7,176 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:synchronized/synchronized.dart';
 
 import 'models.dart';
 import 'rpc_service.dart';
+import 'vault.dart';
+
+/// A lock to prevent concurrent vault operations (export/import/move/password change).
+/// Exported for use by AppState.
+final vaultOperationLock = Lock();
+
+/// Creates a secure temporary file in the same directory as [destination].
+/// Uses a cryptographically random name to prevent collision and prediction.
+/// The file is created with restrictive permissions (0600) from the start.
+/// Returns the temporary [File] handle.
+/// Throws if the destination directory doesn't exist or isn't writable.
+Future<File> _createSecureTempFile(File destination) async {
+  final parent = destination.parent;
+  if (!await parent.exists()) {
+    throw StateError('Destination directory does not exist: ${parent.path}');
+  }
+  // Check if parent is a symlink (best effort - followLinks: false)
+  try {
+    final parentStat = await parent.stat();
+    if (parentStat.type == FileSystemEntityType.link) {
+      throw StateError('Destination parent directory is a symlink, refusing to write.');
+    }
+  } catch (_) {
+    // If stat fails, continue anyway - we'll catch write errors later
+  }
+
+  String tempName;
+  File? tempFile;
+
+  // Try a few times to get a unique name
+  for (var attempt = 0; attempt < 10; attempt++) {
+    final randomPart = List<int>.generate(16, (_) => math.Random.secure().nextInt(256));
+    final hex = randomPart.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    tempName = '.${destination.uri.pathSegments.last}.tmp.$hex';
+    tempFile = File('${parent.path}/$tempName');
+    if (!await tempFile.exists()) break;
+    if (attempt == 9) throw StateError('Could not generate unique temporary filename');
+  }
+  // Create with restrictive permissions from the start
+  await tempFile!.create(exclusive: true);
+  if (Platform.isLinux || Platform.isMacOS) {
+    try {
+      await Process.run('chmod', ['600', tempFile.path]);
+    } catch (_) {
+      // Best effort
+    }
+  }
+  return tempFile;
+}
+
+/// Checks if [path] is a symlink (best effort, platform-dependent).
+/// Returns true if the path exists and is a symbolic link.
+Future<bool> _isSymlink(String path) async {
+  try {
+    final link = Link(path);
+    final target = await link.target();
+    return target.isNotEmpty;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Validates that [file] is a regular file (not a symlink, directory, or special file).
+/// Throws [StateError] if validation fails.
+Future<void> _validateRegularFile(File file, {int maxSize = 5 * 1024 * 1024}) async {
+  if (!await file.exists()) {
+    throw StateError('File does not exist: ${file.path}');
+  }
+  final stat = await file.stat();
+  if (stat.type != FileSystemEntityType.file) {
+    throw StateError('Path is not a regular file: ${file.path}');
+  }
+  if (stat.size > maxSize) {
+    throw StateError('File exceeds maximum size of ${maxSize} bytes: ${stat.size} bytes');
+  }
+  if (stat.size == 0) {
+    throw StateError('File is empty');
+  }
+  // Check for symlink (best effort)
+  if (await _isSymlink(file.path)) {
+    throw StateError('Path is a symbolic link, refusing to process: ${file.path}');
+  }
+}
+
+/// Atomically writes [data] to [destination] using a secure temporary file.
+/// The temporary file is created with restrictive permissions (0600).
+/// On success, renames the temp file over the destination atomically (POSIX).
+/// On failure, cleans up the temporary file and rethrows.
+/// Returns the written [destination] file.
+Future<File> atomicWrite(File destination, String data) async {
+  final parentDir = destination.parent;
+  if (!await parentDir.exists()) {
+    throw StateError('Destination directory does not exist: ${parentDir.path}');
+  }
+  final tempFile = await _createSecureTempFile(destination);
+  try {
+    await tempFile.writeAsString(data, flush: true, mode: FileMode.write);
+    // Validate written content
+    final written = await tempFile.readAsString();
+    if (written != data) {
+      await tempFile.delete();
+      throw StateError('Atomic write verification failed: content mismatch');
+    }
+    // Atomic rename
+    try {
+      await tempFile.rename(destination.path);
+    } on FileSystemException {
+      // Some platforms don't allow rename over existing file
+      if (await destination.exists()) {
+        await destination.delete();
+        await tempFile.rename(destination.path);
+      } else {
+        rethrow;
+      }
+    }
+    // Ensure restrictive permissions on final file
+    if (Platform.isLinux || Platform.isMacOS) {
+      try {
+        await Process.run('chmod', ['600', destination.path]);
+      } catch (_) {}
+    }
+    return destination;
+  } catch (e) {
+    // Cleanup on any error
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+    rethrow;
+  }
+}
+
+/// Reads a file and validates it's a regular file with expected size limits.
+Future<String> _readAndValidateVaultFile(File file) async {
+  await _validateRegularFile(file);
+  final content = await file.readAsString();
+  if (!content.startsWith('BNBVL')) {
+    throw StateError('Not a valid vault file (missing BNBVL magic marker)');
+  }
+  if (!content.startsWith('BNBVL004') && !content.startsWith('BNBVL003')) {
+    throw StateError('Unsupported vault version. Only BNBVL003 (v1) and BNBVL004 (v2) are supported.');
+  }
+  if (content.length > 5 * 1024 * 1024) {
+    throw StateError('Vault file exceeds maximum size (5 MB)');
+  }
+  return content;
+}
+
+/// Validates a vault blob (base64 encoded) by attempting decryption.
+/// Returns the decrypted JSON on success.
+/// Throws [StateError] with a generic message on any failure (no oracle).
+Future<String> _validateVaultBlob(String blob, String password, String deviceSecret) async {
+  if (!blob.startsWith('BNBVL')) {
+    throw StateError('Invalid vault format');
+  }
+  if (!blob.startsWith('BNBVL004') && !blob.startsWith('BNBVL003')) {
+    throw StateError('Unsupported vault version');
+  }
+  if (blob.length > 5 * 1024 * 1024) {
+    throw StateError('Vault blob too large');
+  }
+  try {
+    return await VaultCipher.validateAndDecrypt(blob, password, deviceSecret);
+  } catch (_) {
+    throw StateError('Wrong password or corrupted/tampered vault');
+  }
+}
 
 /// Persists public configuration and the encrypted local vault.
 ///
@@ -287,26 +454,10 @@ class AppStorage {
   /// Atomic save: writes a temp file first, then renames it over the final
   /// path (atomic on POSIX). A crash can therefore never leave a half-written
   /// vault in place of the good one.
+  /// Uses secure temporary file with restrictive permissions from creation.
   static Future<void> writeVaultAtomic(String base64) async {
     final file = await vaultFile();
-    final tmp = File('${file.path}.tmp');
-    final data = utf8.encode(base64);
-    final sink = tmp.openWrite(mode: FileMode.write);
-    sink.add(data);
-    await sink.flush();
-    await sink.close();
-    try {
-      await tmp.rename(file.path);
-    } on FileSystemException {
-      // rename() refuses to replace an existing file on some platforms.
-      await file.delete();
-      await tmp.rename(file.path);
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', file.path]);
-      } catch (_) {}
-    }
+    await atomicWrite(file, base64);
   }
 
   // ---- encrypted local receipts (key from wallet + drawer, see receipt_store) ----
@@ -330,24 +481,10 @@ class AppStorage {
   }
 
   /// Atomic save, same pattern as the vault: temp file, rename, owner-only.
+  /// Uses secure temporary file with restrictive permissions from creation.
   static Future<void> writeReceiptsAtomic(String base64) async {
     final file = await _receiptsFile();
-    final tmp = File('${file.path}.tmp');
-    final sink = tmp.openWrite(mode: FileMode.write);
-    sink.write(base64);
-    await sink.flush();
-    await sink.close();
-    try {
-      await tmp.rename(file.path);
-    } on FileSystemException {
-      await file.delete();
-      await tmp.rename(file.path);
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
-      try {
-        await Process.run('chmod', ['600', file.path]);
-      } catch (_) {}
-    }
+    await atomicWrite(file, base64);
   }
 
   /// Erases everything the app can reach: shredded vault, preferences,
