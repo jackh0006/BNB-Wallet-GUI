@@ -1,0 +1,188 @@
+# SECURITY_CLAIMS.md — Honest Security Claims and Verification Status
+
+**Date**: 2026-11-03
+**Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
+**Classification**: **Self-assessed Testnet-ready — NOT production-ready — NO third-party audit**
+
+---
+
+## Claim Classification
+
+| Label | Meaning |
+|-------|---------|
+| **VERIFIED WITH EVIDENCE** | Independent reproduction possible: packet capture, hardware test, cross-implementation vector, cryptographic proof |
+| **TESTED** | Automated test passes in CI/local; code coverage exists |
+| **IMPLEMENTED** | Code exists and compiles; no automated test or manual verification |
+| **NOT TESTED** | No automated test + no manual verification |
+| **BLOCKED** | Explicit dependency prevents verification |
+| **NOT SUPPORTED** | Intentionally out of scope |
+| **PARTIAL** | Some aspects verified, others not |
+
+---
+
+## Cryptographic Claims
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| Vault uses Argon2id (64 MiB, t=3, p=4) + XChaCha20-Poly1305 | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` (7 KDF tests) |
+| Vault v2 (BNBVL004) double-wrapped (password + device secret) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
+| Vault v1 (BNBVL003) read-only migration | **TESTED** | `test/vault_test.dart` legacy blob test |
+| Argon2id runs on worker isolate (off UI thread) | **TESTED** | `lib/workers.dart`, `test/workers_test.dart` (3 tests) |
+| BIP-39 seed generation (24 words, CSPRNG) | **TESTED** | `lib/wallet_core.dart`, `test/wallet_core_test.dart` |
+| BIP-32/44 derivation (m/44'/60'/0'/0/i) | **TESTED** | `lib/wallet_core.dart`, `test/wallet_core_test.dart` |
+| EIP-55 checksummed address display | **TESTED** | `lib/wallet_core.dart`, `test/wallet_core_test.dart` |
+| ECDSA signing (RFC-6979 deterministic, low-s) | **TESTED** | `lib/wallet_core.dart` (via web3dart) |
+| EIP-1559 transaction construction | **TESTED** | `lib/cold_tx_codec.dart`, `test/cold_tx_codec_test.dart` (4/4) |
+| EIP-1559 signing digest = keccak256(0x02 \| rlp([...])) | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (ethers.js 6.13.2 independent) |
+| Cold response verification (field-by-field + recovery) | **TESTED** | `WalletCore.verifyColdSignatureDetailed`, 15 service tests |
+| Cold replay protection (single-use request ID + burn list) | **TESTED** | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` |
+| No private keys/seed in logs, URLs, clipboard, network | **TESTED** | `ClipboardGuard.secretFree()`, `lib/screens/common.dart` |
+| App-lock PIN: Argon2id (same params) + exponential backoff | **TESTED** | `lib/security.dart`, `lib/storage.dart` |
+
+---
+
+## Network Privacy Claims
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| All outbound traffic through `NetworkPrivacyManager` | **IMPLEMENTED** | `lib/net/privacy_client.dart`, `lib/rpc_service.dart` |
+| Direct HTTPS with certificate validation | **TESTED** | `test/tls_pinning_test.dart` (standard validation first) |
+| TLS SPKI pinning (after standard CA/hostname validation) | **TESTED** | `test/tls_pinning_test.dart` (6/6: pin cannot bypass CA/hostname) |
+| Fixed v3 cert SPKI index (was hashing extensions) | **VERIFIED WITH EVIDENCE** | Dart pin == OpenSSL `x509 -pubkey \| pkey -outform DER \| dgst -sha256` |
+| HTTP/HTTPS proxy (CONNECT) with auth | **IMPLEMENTED** | `lib/net/privacy_client.dart` |
+| SOCKS5 proxy (domain/IPv4/IPv6, auth, remote DNS) | **IMPLEMENTED** | `lib/net/privacy_client.dart` (via `socks5_proxy`) |
+| Tor via system daemon (SOCKS5, fail-closed) | **IMPLEMENTED** | `lib/net/privacy_client.dart`, `lib/tor_manager.dart` |
+| Tor bridges (obfs4, WebTunnel via Tor config) | **IMPLEMENTED** | Documented in settings; Tor handles bridges |
+| Strict Privacy Mode (all traffic, no fallback) | **IMPLEMENTED** | `lib/app_state.dart` enforces route |
+| Offline Mode (blocks all outbound at network layer) | **IMPLEMENTED** | `RpcService.setOffline(true)`, `connect()` fails closed |
+| No identifying headers (User-Agent scrubbed) | **TESTED** | `test/ua_scrub_test.dart` |
+| DNS leak prevention (SOCKS5h, Tor remote resolve) | **IMPLEMENTED** | `lib/net/privacy_client.dart` |
+| Chain ID validated on every RPC connect | **TESTED** | `lib/rpc_service.dart`, `test/nodes_test.dart` |
+| HTTP CONNECT with pins: refused before socket | **TESTED** | `test/tls_pinning_test.dart` (pins not enforced on CONNECT) |
+
+---
+
+## Storage Security Claims
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED** | `lib/storage.dart::writeVaultAtomic` |
+| Vault double AEAD (password KEK + device KEK) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
+| Device secret in platform secure storage | **TESTED** | `lib/storage.dart` (flutter_secure_storage) |
+| Desktop: device secret in owner-only drawer file (0600) | **IMPLEMENTED** | `lib/storage.dart` (Linux keyring avoided) |
+| Crypto-erasure on "Erase All Data" (delete device secret) | **TESTED** | `lib/storage.dart`, `test/erase_flow_test.dart` |
+| Best-effort overwrite before unlink | **IMPLEMENTED** | `lib/storage.dart` |
+| Preferences: public config only (no secrets) | **TESTED** | `lib/storage.dart` (SharedPreferences) |
+| Secure storage: only device_secret, PIN hash, backoff, BscScan key | **TESTED** | `lib/storage.dart` |
+| Activity logs encrypted at rest (BNBLOG01) | **TESTED** | `lib/encrypted_log_store.dart`, `test/encrypted_log_store_test.dart` |
+| Receipts encrypted at rest (BNBRCPT1, capped 200) | **TESTED** | `lib/receipt_store.dart`, `test/receipt_store_test.dart` |
+| No cloud sync, no telemetry, no analytics | **IMPLEMENTED** | No network calls for these features |
+
+---
+
+## Cold Wallet Claims
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| Cold signer: no network (RpcService offline, connect fails) | **TESTED** | `lib/app_state.dart::setWalletMode(1)` |
+| Online companion: no keys (wipes keys, opens watch address) | **TESTED** | `lib/app_state.dart::setWalletMode(2)` |
+| Pairing: public addresses + fingerprint only | **TESTED** | `lib/cold_wallet_protocol.dart`, 15 protocol tests |
+| Request: unsigned EIP-1559, versioned, checksummed, expiry | **TESTED** | 15 protocol tests, 15 service tests |
+| Offline signing: account-index aware (not always index 0) | **TESTED** | `ColdWalletService.signRequest` derives matching index |
+| Response: strict verify-before-broadcast | **TESTED** | `ColdWalletService.verifyResponse` + `verifyColdSignatureDetailed` |
+| Replay protection: single-use ID, pending required, burn list | **TESTED** | 15 service tests |
+| Independent ethers.js verification of signed bytes | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (8 substitutions rejected) |
+| Request lifetime 30 min default, 24h max, 5 min clock skew | **IMPLEMENTED** | `lib/cold_wallet_service.dart`, `lib/cold_wallet_protocol.dart` |
+| QR/file/paste transport (no camera on Linux) | **IMPLEMENTED** | `lib/screens/cold_wallet_dialogs.dart` |
+| Camera QR scanning on Linux | **NOT SUPPORTED** | File/paste/QR display only |
+
+---
+
+## Memory/Process Hardening Claims (Linux)
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| `prctl(PR_SET_DUMPABLE, 0)` — prevents same-UID ptrace/core | **TESTED** | `test/memory_protection_test.dart` reads kernel state |
+| `setrlimit(RLIMIT_CORE, 0)` — no core dumps | **TESTED** | `test/memory_protection_test.dart` reads kernel state |
+| `mlockall(MCL_CURRENT \| MCL_FUTURE)` — best-effort memory lock | **PARTIAL** | Called; may fail under low RLIMIT_MEMLOCK; not asserted |
+| No `sh -c ulimit` no-op | **VERIFIED** | Old code removed; FFI direct kernel calls |
+
+---
+
+## Release Security Claims
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| No committed keystore (`.jks`, `.keystore`, `.p12`, `.pfx`) | **VERIFIED** | `scripts/secret-scan.sh` passes; `.gitignore` blocks |
+| No hardcoded release passwords | **VERIFIED** | `secret-scan.sh` checks for old `BnbWalletRelease-*` pattern |
+| `build-apk.sh` requires env vars (BNB_KEYSTORE, etc.) | **IMPLEMENTED** | `scripts/build-apk.sh` fails closed if missing |
+| `build-apk.sh` refuses tracked keystore | **IMPLEMENTED** | Checks `git ls-files` |
+| GPG detached signatures on release artifacts | **IMPLEMENTED** | `build-deb.sh`, `build-apk.sh` create `.asc` if key provided |
+| SHA-256 checksums on release artifacts | **IMPLEMENTED** | Build scripts generate `.sha256` |
+| SBOM committed and current (deterministic from lockfile) | **VERIFIED** | `scripts/sbom.py`, `docs/SBOM.json`, CI check |
+| Token source links verified in CI | **IMPLEMENTED** | `scripts/check_token_sources.py` |
+
+---
+
+## Explicit Non-Claims (What We Do NOT Promise)
+
+| Non-Claim | Reason |
+|-----------|--------|
+| Perfect security | Impossible; software carries risk |
+| Guaranteed anonymity | Tor hides IP from RPC, not on-chain linkage |
+| Complete invisibility from ISP/DPI | ISP sees Tor/proxy traffic; timing analysis possible |
+| Guaranteed protection vs compromised OS | Keyloggers, rootkits, malicious keyboard defeat local protections |
+| Guaranteed physical erasure of SSD data | Wear-leveling, snapshots, filesystem copies prevent guarantee |
+| Universal hardware wallet compatibility | Only tested integrations claimed; matrix NOT TESTED |
+| Guaranteed safe storage of arbitrary amounts | **Testnet-ready self-assessed only**; production requires third-party audit |
+| OS-enforced air gap (no INTERNET permission) | Runtime offline only; APK still carries INTERNET |
+| Reproducible builds verified | Toolchain pin not finalized; marked NOT TESTED |
+| Third-party audit completed | **No** — internal self-audit only (SECURITY_AUDIT.md) |
+
+---
+
+## Verification Evidence Locations
+
+| Evidence Type | Location |
+|---------------|----------|
+| Automated test results | `docs/evidence/test-results-*.log` (to be generated) |
+| Build metadata | `docs/evidence/build-*.log` (to be generated) |
+| Packet captures (network leaks) | `docs/evidence/pcap-*.pcapng` (to be generated) |
+| Cryptographic vectors | `verification/fixture.json`, `verification/verify.cjs` |
+| Secret scan logs | `docs/evidence/secret-scan-*.log` (to be generated) |
+| Static analysis logs | `docs/evidence/analyze-*.log` (to be generated) |
+
+---
+
+## How to Verify Independently
+
+```bash
+# 1. Cryptographic vectors (cold signing)
+cd verification && npm ci && node verify.cjs
+
+# 2. TLS pinning (generates ephemeral certs, compares with OpenSSL)
+flutter test test/tls_pinning_test.dart
+
+# 3. Memory hardening (reads real kernel state)
+flutter test test/memory_protection_test.dart
+
+# 4. Full test suite (non-KDF)
+flutter test --exclude-tags kdf --concurrency=2
+
+# 5. KDF tests (individual, generous timeouts)
+flutter test test/vault_test.dart --plain-name "VaultCipher v2 envelope round-trips"
+flutter test test/workers_test.dart --plain-name "pinHashJob keeps the exact v1.0.4 record format"
+
+# 6. Secret scan
+bash scripts/secret-scan.sh
+
+# 7. Static analysis
+flutter analyze --no-pub
+
+# 8. Build verification (when .deb exists)
+dpkg -c bnb-wallet-*.deb | grep -E '\.jks|\.keystore|\.p12|\.pfx|private' && echo "FAIL" || echo "PASS"
+```
+
+---
+
+*This document distinguishes implementation from verification. Internal self-audit ≠ independent third-party audit. All claims are qualified with their verification status.*

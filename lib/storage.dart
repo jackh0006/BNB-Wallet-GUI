@@ -168,9 +168,36 @@ class AppStorage {
   static Future<void> clearBscscanKey() =>
       _secure.delete(key: 'bscscan_api_key');
 
-  // ---- encrypted vault ----
+  // ---- vault path management (M3) ----
 
-  static Future<File> _vaultFile() async {
+  static const String _vaultPathKey = 'vault_custom_path';
+
+  /// Get the custom vault path if set, otherwise null (uses default).
+  static String? getVaultPath() => prefs.getString(_vaultPathKey);
+
+  /// Set a custom vault path. Returns true if changed.
+  static Future<bool> setVaultPath(String? path) async {
+    final current = getVaultPath();
+    if (path == null || path.isEmpty) {
+      if (current != null) {
+        await prefs.remove(_vaultPathKey);
+        return true;
+      }
+      return false;
+    }
+    if (current == path) return false;
+    await prefs.setString(_vaultPathKey, path);
+    return true;
+  }
+
+  /// Get the active vault file (custom path or default).
+  static Future<File> vaultFile() async {
+    final customPath = getVaultPath();
+    if (customPath != null) {
+      final file = File(customPath);
+      await ensureParentDir(file);
+      return file;
+    }
     final dir = await getApplicationSupportDirectory();
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -178,14 +205,27 @@ class AppStorage {
     if (Platform.isLinux || Platform.isMacOS) {
       final mode = await dir.stat();
       if (mode.type == FileSystemEntityType.directory) {
-        // Best-effort owner-only directory; never fatal on platforms that
-        // do not support POSIX modes.
         try {
           await Process.run('chmod', ['700', dir.path]);
         } catch (_) {}
       }
     }
     return File('${dir.path}/bnb-wallet-vault.bnb');
+  }
+
+  static Future<void> ensureParentDir(File file) async {
+    final parent = file.parent;
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
+    if (Platform.isLinux || Platform.isMacOS) {
+      final mode = await parent.stat();
+      if (mode.type == FileSystemEntityType.directory) {
+        try {
+          await Process.run('chmod', ['700', parent.path]);
+        } catch (_) {}
+      }
+    }
   }
 
   /// Returns the app's data directory (same as vault/receipts/logs).
@@ -205,11 +245,11 @@ class AppStorage {
     return dir;
   }
 
-  static Future<bool> vaultExists() async => (await _vaultFile()).exists();
+  static Future<bool> vaultExists() async => (await vaultFile()).exists();
 
   static Future<String?> readVault() async {
     try {
-      final file = await _vaultFile();
+      final file = await vaultFile();
       if (!await file.exists()) return null;
       final stat = await file.stat();
       if (stat.type != FileSystemEntityType.file) {
@@ -225,7 +265,7 @@ class AppStorage {
   }
 
   static Future<void> writeVault(String base64) async {
-    final file = await _vaultFile();
+    final file = await vaultFile();
     final sink = file.openWrite(mode: FileMode.write);
     sink.write(base64);
     await sink.flush();
@@ -238,7 +278,7 @@ class AppStorage {
   }
 
   static Future<void> deleteVault() async {
-    final file = await _vaultFile();
+    final file = await vaultFile();
     if (await file.exists()) await file.delete();
     final tmp = File('${file.path}.tmp');
     if (await tmp.exists()) await tmp.delete();
@@ -248,7 +288,7 @@ class AppStorage {
   /// path (atomic on POSIX). A crash can therefore never leave a half-written
   /// vault in place of the good one.
   static Future<void> writeVaultAtomic(String base64) async {
-    final file = await _vaultFile();
+    final file = await vaultFile();
     final tmp = File('${file.path}.tmp');
     final data = utf8.encode(base64);
     final sink = tmp.openWrite(mode: FileMode.write);
@@ -272,7 +312,7 @@ class AppStorage {
   // ---- encrypted local receipts (key from wallet + drawer, see receipt_store) ----
 
   static Future<File> _receiptsFile() async {
-    final vault = await _vaultFile();
+    final vault = await vaultFile();
     return File('${vault.parent.path}/bnb-wallet-receipts.bin');
   }
 
@@ -319,7 +359,7 @@ class AppStorage {
   /// the UI can never claim success while something still exists on disk.
   static Future<List<String>> eraseAllData() async {
     final leftovers = <String>[];
-    final vault = await _vaultFile();
+    final vault = await vaultFile();
     final receipts = await _receiptsFile();
     for (final file in [
       vault,

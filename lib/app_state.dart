@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1326,6 +1327,187 @@ class AppState extends ChangeNotifier {
     await AppStorage.setTorPort(port);
     rpc.privacyChanged();
     notifyListeners();
+  }
+
+  /// Move the encrypted vault to a custom path.
+  ///
+  /// Reads the vault with [password], decrypts it, and writes it to [newPath]
+  /// using atomic write. The new path becomes the active vault location.
+  Future<void> moveVault(String password, String newPath) async {
+    if (!hasVault) throw StateError('No vault exists to move.');
+    if (newPath.trim().isEmpty) throw ArgumentError('New path cannot be empty.');
+
+    final json = await _readVaultJson(password);
+    if (json == null) throw StateError('Vault not found or wrong password.');
+
+    final device = await AppStorage.getOrGenerateDeviceSecret();
+    final blob = await _runVaultEncrypt(password, jsonEncode(json), device);
+
+    // Write to new location atomically
+    final newFile = File(newPath);
+    await AppStorage.ensureParentDir(newFile);
+    final tmp = File('${newFile.path}.tmp');
+    final sink = tmp.openWrite(mode: FileMode.write);
+    sink.add(utf8.encode(blob));
+    await sink.flush();
+    await sink.close();
+    try {
+      await tmp.rename(newFile.path);
+    } catch (_) {
+      if (await tmp.exists()) await tmp.delete();
+      rethrow;
+    }
+    if (Platform.isLinux || Platform.isMacOS) {
+      try {
+        await Process.run('chmod', ['600', newFile.path]);
+      } catch (_) {}
+    }
+
+    // Update stored path and verify
+    await AppStorage.setVaultPath(newPath);
+    final verifyBlob = await newFile.readAsString();
+    if (verifyBlob != blob) {
+      throw StateError('Vault move verification failed.');
+    }
+    rpc.note(
+      'Vault moved to $newPath.',
+      kind: RpcStoryKind.info,
+    );
+    notifyListeners();
+  }
+
+  /// Export the vault to a backup file at [exportPath].
+  ///
+  /// The exported file is a standard vault envelope (BNBVL004) that can be
+  /// restored on this device or another with the same password + device secret.
+  Future<void> exportVault(String password, String exportPath) async {
+    if (!hasVault) throw StateError('No vault exists to export.');
+
+    final blob = await AppStorage.readVault();
+    if (blob == null) throw StateError('Vault file not found.');
+
+    final exportFile = File(exportPath);
+    await AppStorage.ensureParentDir(exportFile);
+    await exportFile.writeAsString(blob);
+
+    rpc.note(
+      'Vault exported to $exportPath.',
+      kind: RpcStoryKind.info,
+    );
+  }
+
+  /// Import a vault from a backup file at [importPath].
+  ///
+  /// Validates the envelope format and optionally verifies the password.
+  /// If [verifyPassword] is true, attempts to decrypt with [password].
+  Future<void> importVault(
+    String importPath, {
+    String? password,
+    bool verifyPassword = false,
+  }) async {
+    final importFile = File(importPath);
+    if (!await importFile.exists()) {
+      throw StateError('Import file not found: $importPath');
+    }
+    final blob = await importFile.readAsString();
+    if (blob.isEmpty) throw StateError('Import file is empty.');
+
+    // Validate it's a proper vault envelope
+    if (!blob.startsWith('BNBVL')) {
+      throw StateError('Not a valid vault file (missing magic marker).');
+    }
+
+    // Optionally verify password
+    if (verifyPassword && password != null) {
+      try {
+        await _readVaultJson(password);
+      } catch (_) {
+        throw StateError('Wrong password for this vault.');
+      }
+    }
+
+    // Write to current vault location atomically
+    final vaultFile = await AppStorage.vaultFile();
+    await AppStorage.ensureParentDir(vaultFile);
+    final tmp = File('${vaultFile.path}.tmp');
+    final sink = tmp.openWrite(mode: FileMode.write);
+    sink.add(utf8.encode(blob));
+    await sink.flush();
+    await sink.close();
+    try {
+      await tmp.rename(vaultFile.path);
+    } catch (_) {
+      if (await tmp.exists()) await tmp.delete();
+      rethrow;
+    }
+    if (Platform.isLinux || Platform.isMacOS) {
+      try {
+        await Process.run('chmod', ['600', vaultFile.path]);
+      } catch (_) {}
+    }
+
+    _vaultExists = true;
+    notifyListeners();
+    rpc.note(
+      'Vault imported from $importPath.',
+      kind: RpcStoryKind.info,
+    );
+  }
+
+  /// Change the vault password.
+  ///
+  /// Reads the vault with [oldPassword], decrypts it, and re-encrypts with
+  /// [newPassword] (new salt, new device KEK). Atomic write.
+  Future<void> changeVaultPassword(String oldPassword, String newPassword) async {
+    if (!hasVault) throw StateError('No vault exists.');
+    if (oldPassword == newPassword) {
+      throw ArgumentError('New password must be different from the old one.');
+    }
+    if (newPassword.length < 16) {
+      throw ArgumentError('Use at least 16 characters for the new password.');
+    }
+
+    final json = await _readVaultJson(oldPassword);
+    if (json == null) throw StateError('Wrong password or vault not found.');
+
+    final device = await AppStorage.getOrGenerateDeviceSecret();
+    final blob = await _runVaultEncrypt(newPassword, jsonEncode(json), device);
+
+    await AppStorage.writeVaultAtomic(blob);
+    rpc.note(
+      'Vault password changed.',
+      kind: RpcStoryKind.info,
+    );
+  }
+
+  /// Get information about the current vault.
+  Future<Map<String, dynamic>> getVaultInfo() async {
+    final file = await AppStorage.vaultFile();
+    final customPath = AppStorage.getVaultPath();
+    final exists = await file.exists();
+    int? size;
+    if (exists) {
+      final stat = await file.stat();
+      size = stat.size;
+    }
+    return {
+      'path': file.path,
+      'customPath': customPath,
+      'exists': exists,
+      'size': size,
+      'isCustom': customPath != null,
+    };
+  }
+
+  /// Reset vault path to default (system app data directory).
+  Future<void> resetVaultPath() async {
+    await AppStorage.setVaultPath(null);
+    _vaultExists = await AppStorage.vaultExists();
+    notifyListeners();
+    rpc.note(
+      'Vault path reset to default.',
+      kind: RpcStoryKind.info,
+    );
   }
 
   /// Erases every trace: vault (shredded after random overwrite), secrets in
