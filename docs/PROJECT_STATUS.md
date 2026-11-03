@@ -61,10 +61,10 @@
 | Task ID | Description | Status | Blockers |
 |---------|-------------|--------|----------|
 | **M3-01** | Vault creation UI (path selection, password) | ✅ DONE (existing) | M2 |
-| **M3-02** | Vault path management (move, rename, switch) | 🔄 IN PROGRESS | M2 |
-| **M3-03** | Password change (re-encrypt with new salt) | 🔄 IN PROGRESS | M2 |
-| **M3-04** | Encrypted backup (export/import) | 🔄 IN PROGRESS | M2 |
-| **M3-05** | Vault integrity verification | ⏳ PENDING | M2 |
+| **M3-02** | Vault path management (move, rename, switch) | ✅ DONE (backend) | M2 |
+| **M3-03** | Password change (re-encrypt with new salt) | ✅ DONE (backend) | M2 |
+| **M3-04** | Encrypted backup (export/import) | ✅ DONE (backend - security hardened) | M2 |
+| **M3-05** | Vault integrity verification | ✅ DONE (part of export/import) | M2 |
 | **M3-06** | Storage usage display | ⏳ PENDING | M2 |
 | **M3-07** | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | M2 |
 | **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
@@ -142,10 +142,10 @@ bash scripts/secret-scan.sh
 
 ## Next Exact Actions
 
-1. **Implement vault path management UI** — Add "Move vault" and "Reset path" options in wallet management
+1. **Implement vault backup/restore UI** — Add "Export vault" and "Import vault" options in wallet management
 2. **Implement password change UI** — Add "Change vault password" option
-3. **Implement vault backup/restore UI** — Add "Export vault" and "Import vault" options
-4. **Implement vault info display** — Show vault path, size, custom/default status
+3. **Implement vault info display** — Show vault path, size, custom/default status
+4. **Implement vault path management UI** — Add "Move vault" and "Reset path" options in wallet management
 5. **Run full test suite** after each UI component
 
 ---

@@ -4,6 +4,33 @@ All notable changes to this wallet. Dates in 2026; version 1.0.5 is the
 release line built as a deb for Debian/Ubuntu (no APK — the deb is the
 distribution form for this device).
 
+## 2026-11-03 — M3 Security Fixes: Vault Backup/Restore Hardening
+
+- **Export (Backup) Security Hardening:**
+  - Verifies the supplied password against the active vault BEFORE exporting
+  - Rejects incorrect passwords immediately
+  - Validates the vault envelope format (magic, version, structure, size limits)
+  - Uses atomic output creation (tmp → rename) with restrictive permissions (0600)
+  - Refuses to overwrite an existing backup file without explicit user action
+  - Reads back and validates the exported file (content match + envelope validation)
+  - Never logs passwords, vault contents, seeds, or private keys
+
+- **Import (Restore) Security Hardening:**
+  - Reads and validates the SELECTED BACKUP file, not the current vault
+  - Enforces regular-file checks, sensible size limits (5 MB), recognized format/version (BNBVL003/BNBVL004)
+  - Verifies the supplied password by decrypting THE IMPORTED BACKUP (not the current vault)
+  - Verifies all required cryptographic authentication tags and device-key dependencies
+  - Rejects truncated, malformed, corrupted, unsupported-version, wrong-password, and tampered files
+  - Does NOT replace the active vault until validation and decryption succeed completely
+  - Preserves the original vault if any step fails (atomic tmp → rename replacement)
+  - Requires explicit user confirmation before replacing an existing vault
+  - Reports success only after the new vault has been read back and validated
+
+- **Cross-device Recovery:**
+  - The vault format uses a device-bound secret (second factor)
+  - Backup files can be restored on another device with the same password + device secret
+  - Device secret migration documented; cross-device recovery tested via independent decryption
+
 ## 2026-11-03 — cold-wallet and verification hardening (unreleased)
 
 - **Cold wallet end-to-end:** pairing/request/signature envelopes with

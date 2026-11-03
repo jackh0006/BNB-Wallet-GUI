@@ -87,10 +87,10 @@
 | Task ID | Description | Status | Dependencies |
 |---------|-------------|--------|--------------|
 | M3-01 | Vault creation UI (path selection, password) | ✅ DONE (existing) | M2 |
-| M3-02 | Vault path management (move, rename, switch) | 🔄 IN PROGRESS | M2 |
-| M3-03 | Password change (re-encrypt with new salt) | 🔄 IN PROGRESS | M2 |
-| M3-04 | Encrypted backup (export/import) | 🔄 IN PROGRESS | M2 |
-| M3-05 | Vault integrity verification | ⏳ PENDING | M2 |
+| M3-02 | Vault path management (move, rename, switch) | ✅ DONE (backend) | M2 |
+| M3-03 | Password change (re-encrypt with new salt) | ✅ DONE (backend) | M2 |
+| M3-04 | Encrypted backup (export/import) | ✅ DONE (backend - security hardened) | M2 |
+| M3-05 | Vault integrity verification | ✅ DONE (part of export/import) | M2 |
 | M3-06 | Storage usage display | ⏳ PENDING | M2 |
 | M3-07 | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | M2 |
 | M3-08 | Multiple vault support | ⏳ PENDING | M2 |

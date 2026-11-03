@@ -125,6 +125,17 @@ class VaultCipher {
     throw const VaultException('Vault data is malformed.');
   }
 
+  /// Decrypts and validates a vault blob using the provided password and device secret.
+  /// This is a public method for validating imported backup files.
+  /// Throws [VaultException] if the blob is invalid, password is wrong, or device secret mismatches.
+  static Future<String> validateAndDecrypt(
+    String encoded,
+    String password,
+    String deviceSecret,
+  ) async {
+    return decrypt(password, encoded, deviceSecret);
+  }
+
   // ------------------------------------------------------------------ v2---
 
   static Future<String> _decryptV2(
