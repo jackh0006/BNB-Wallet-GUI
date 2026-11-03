@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart' show compute;
@@ -140,32 +139,3 @@ class AppSecurity {
   }
 }
 
-/// Linux memory hardening (R6): mlock, core-dump disable, prctl.
-///
-/// On Linux desktop this disables core dumps and attempts to lock sensitive
-/// memory pages so they never hit swap. Best effort — failures are silent.
-/// Call once during app startup (e.g., in main.dart before runApp).
-class MemoryProtection {
-  static bool _initialized = false;
-
-  static Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
-
-    if (!Platform.isLinux) return;
-
-    try {
-      // Disable core dumps via ulimit
-      await Process.run('sh', ['-c', 'ulimit -c 0']);
-    } catch (_) {}
-
-    try {
-      // prctl(PR_SET_DUMPABLE, 0) via /proc — prevents ptrace and core dumps
-      await Process.run('sh', ['-c', 'echo 0 > /proc/self/prctl_dumpable 2>/dev/null || true']);
-    } catch (_) {}
-
-    // Note: mlockall() requires native code. We'll rely on the system
-    // RLIMIT_MEMLOCK and the fact that Dart's isolate memory is allocated
-    // in a way that the OS can manage. True mlockall requires FFI.
-  }
-}

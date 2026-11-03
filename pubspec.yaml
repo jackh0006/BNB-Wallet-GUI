@@ -23,6 +23,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   web3dart: ^3.0.3
+  collection: ^1.18.0
   bip39_mnemonic: ^4.1.0
   bip32_plus: ^1.0.0
   dargon2_flutter: ^3.3.0
@@ -42,6 +43,9 @@ dependencies:
   wallet: ^0.0.18
   flutter_localizations:
     sdk: flutter
+  rlp: ^2.0.0
+  asn1lib: ^1.6.8
+  ffi: ^2.2.0
 
 dev_dependencies:
   flutter_test:

@@ -4,10 +4,17 @@ import 'dart:typed_data';
 import 'package:bip32_plus/bip32_plus.dart';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:wallet/wallet.dart';
-import 'package:web3dart/web3dart.dart';
 import 'package:collection/collection.dart';
-
+import 'package:rlp/rlp.dart';
+import 'package:web3dart/web3dart.dart';
 import 'cold_wallet.dart';
+
+/// Custom RLP Address subclass to ensure correct RLP encoding of 20-byte addresses.
+/// The rlp package's Address class is used for correct RLP encoding (0x94 prefix).
+/// Note: Address constructor expects Uint8List (20 bytes), not String.
+class _RlpAddress extends Address {
+  _RlpAddress(String hex) : super(hexToBytes(hex.startsWith('0x') ? hex : '0x\$hex'));
+}
 
 /// Pure wallet helpers for the BNB Wallet GUI.
 ///
@@ -519,6 +526,7 @@ class WalletCore {
 
   /// Signs a transaction on the cold device.
   /// Returns the signature components (r, s, v) and the signed transaction hash.
+  /// Uses EIP-1559 transaction format with proper RLP encoding.
   static ColdTxSignature signTransaction({
     required String phrase,
     required ColdTxRequest request,
@@ -534,53 +542,62 @@ class WalletCore {
     final tx = Transaction(
       from: EthereumAddress.fromHex(request.from),
       to: EthereumAddress.fromHex(request.to),
-      value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value))),
+      value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value), radix: 16)),
       nonce: request.nonce,
-      maxGas: int.parse(_strip0x(request.gasLimit)),
+      maxGas: int.parse(_strip0x(request.gasLimit), radix: 16),
       maxFeePerGas: EtherAmount.inWei(
-        BigInt.parse(_strip0x(request.maxFeePerGas)),
+        BigInt.parse(_strip0x(request.maxFeePerGas), radix: 16),
       ),
       maxPriorityFeePerGas: EtherAmount.inWei(
-        BigInt.parse(_strip0x(request.maxPriorityFeePerGas)),
+        BigInt.parse(_strip0x(request.maxPriorityFeePerGas), radix: 16),
       ),
       data: hexToBytes(_strip0x(request.data)),
     );
 
-    final txPayload = _encodeTransactionForSigning(tx, request.chainId);
+    // Build the transaction payload for signing (EIP-1559: 0x02 || rlp([...]))
+    final txPayload = _buildTransactionPayload(tx, request.chainId);
     final signature = privateKey.signToEcSignature(
       txPayload,
       chainId: request.chainId,
       isEIP1559: true,
     );
 
-    // EIP-1559 transaction encoding (simplified - in production use rlp package)
-    // 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList])
-    final rawBytes = <int>[0x02];
-    // Simplified - in production use proper RLP encoding
-    // For now, we'll use a placeholder
-    final rawHex = bytesToHex(
-      Uint8List.fromList(rawBytes),
-      include0x: true,
-      padToEvenLength: true,
-    );
-    final hash = bytesToHex(
-      keccak256(hexToBytes(_strip0x(rawHex))),
-      include0x: true,
-    );
+    // Build the signed transaction RLP
+    // EIP-1559: 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList, yParity, r, s])
+    // yParity is 0 or 1 (the low bit of v for EIP-1559)
+    final yParity = signature.v & 1;
+    final toBytes = tx.to != null ? hexToBytes(_strip0x(tx.to!.eip55With0x)) : <int>[];
+    final rlpList = [
+      request.chainId,
+      tx.nonce ?? 0,
+      tx.maxPriorityFeePerGas?.getInWei ?? BigInt.zero,
+      tx.maxFeePerGas?.getInWei ?? BigInt.zero,
+      tx.maxGas ?? 0,
+      toBytes,
+      tx.value?.getInWei ?? BigInt.zero,
+      tx.data ?? <int>[],
+      <int>[], // access list
+      yParity,
+      signature.r,
+      signature.s,
+    ];
 
-    // Extract signature from signed transaction (RLP decoding)
-    // For now, use placeholder - in production decode the RLP
-    final r = BigInt.from(1);
-    final s = BigInt.from(1);
-    final v = 27 + (request.chainId * 2); // EIP-155
+    final rawTxBytes = Rlp.encode(rlpList);
+    final rawBytes = Uint8List.fromList([0x02] + rawTxBytes);
+    final rawHex = bytesToHex(rawBytes, include0x: true, padToEvenLength: true);
+    final hash = bytesToHex(keccak256(rawBytes), include0x: true);
+
+    // For EIP-1559, store the full recovery ID (0-3) from signToEcSignature
+    // This is needed for correct signature verification
+    final v = signature.v;
 
     return ColdTxSignature(
       version: 1,
       requestId: request.id ?? '',
       chainId: request.chainId,
       from: privateKey.address.eip55With0x,
-      r: '0x${r.toRadixString(16).padLeft(64, '0')}',
-      s: '0x${s.toRadixString(16).padLeft(64, '0')}',
+      r: '0x${signature.r.toRadixString(16).padLeft(64, '0')}',
+      s: '0x${signature.s.toRadixString(16).padLeft(64, '0')}',
       v: '0x${v.toRadixString(16)}',
       signedTxHash: hash,
       signedAt: DateTime.now().toUtc().toIso8601String(),
@@ -602,19 +619,19 @@ class WalletCore {
       final tx = Transaction(
         from: EthereumAddress.fromHex(request.from),
         to: EthereumAddress.fromHex(request.to),
-        value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value))),
+        value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value), radix: 16)),
         nonce: request.nonce,
-        maxGas: int.parse(_strip0x(request.gasLimit)),
+        maxGas: int.parse(_strip0x(request.gasLimit), radix: 16),
         maxFeePerGas: EtherAmount.inWei(
-          BigInt.parse(_strip0x(request.maxFeePerGas)),
+          BigInt.parse(_strip0x(request.maxFeePerGas), radix: 16),
         ),
         maxPriorityFeePerGas: EtherAmount.inWei(
-          BigInt.parse(_strip0x(request.maxPriorityFeePerGas)),
+          BigInt.parse(_strip0x(request.maxPriorityFeePerGas), radix: 16),
         ),
         data: hexToBytes(_strip0x(request.data)),
       );
 
-      final recovered = _recoverSigner(tx, signature);
+      final recovered = _recoverSigner(tx, signature, expectedFrom: expectedFrom);
       final recoveredAddr = recovered.eip55With0x;
 
       if (recoveredAddr.toLowerCase() != expectedFrom.toLowerCase()) {
@@ -627,41 +644,123 @@ class WalletCore {
     }
   }
 
-  static EthereumAddress _recoverSigner(Transaction tx, ColdTxSignature sig) {
-    return EthereumAddress.fromHex(sig.from);
+  static EthereumAddress _recoverSigner(Transaction tx, ColdTxSignature sig, {String? expectedFrom}) {
+    // Recover the signer address from the signature
+    // Build the signing payload (same as used for signing)
+    final txPayload = _encodeTransactionForSigning(tx, sig.chainId);
+    
+    // Parse signature components (hex strings with 0x prefix)
+    final r = BigInt.parse(_strip0x(sig.r), radix: 16);
+    final s = BigInt.parse(_strip0x(sig.s), radix: 16);
+    // The v in ColdTxSignature is the full recovery ID (0-3) from signToEcSignature
+    final recoveryId = int.parse(_strip0x(sig.v), radix: 16);
+    
+    // Use the full recovery ID from the signature for ecRecover
+    final msgSig = MsgSignature(r, s, 27 + recoveryId);
+    try {
+      final recoveredPubKey = ecRecover(txPayload, msgSig);
+      final addr = EthereumAddress(publicKeyToAddress(recoveredPubKey));
+      if (expectedFrom != null && addr.eip55With0x.toLowerCase() == expectedFrom.toLowerCase()) {
+        return addr;
+      }
+      // If no expectedFrom provided, return the recovered address
+      return addr;
+    } catch (e) {
+      throw Exception('Could not recover address: $e');
+    }
   }
 
-  static Uint8List _eip1559SigningHash(Transaction tx) {
-    return keccak256(Uint8List.fromList('placeholder'.codeUnits));
+  /// Builds the transaction payload for signing (EIP-1559).
+  /// Returns the raw payload: 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas,
+  // maxFeePerGas, gasLimit, to, value, data, accessList])
+  static Uint8List _buildTransactionPayload(Transaction tx, int chainId) {
+    // Manually construct RLP encoding to avoid Address class issues
+    // The 'to' address must be encoded as 0x94 + 20 bytes
+    final toBytes = tx.to != null ? hexToBytes(_strip0x(tx.to!.eip55With0x)) : List<int>.filled(20, 0);
+    final addressRlp = Uint8List.fromList([0x94] + toBytes);
+    
+    // Encode each field using Rlp.encode and strip list prefixes
+    final items = <Uint8List>[];
+    
+    // chainId
+    items.add(_stripListPrefix(Rlp.encode([chainId])));
+    // nonce
+    items.add(_stripListPrefix(Rlp.encode([tx.nonce ?? 0])));
+    // maxPriorityFeePerGas
+    items.add(_stripListPrefix(Rlp.encode([tx.maxPriorityFeePerGas?.getInWei ?? BigInt.zero])));
+    // maxFeePerGas
+    items.add(_stripListPrefix(Rlp.encode([tx.maxFeePerGas?.getInWei ?? BigInt.zero])));
+    // gasLimit
+    items.add(_stripListPrefix(Rlp.encode([tx.maxGas ?? 0])));
+    // to address (manually encoded with 0x94 prefix)
+    items.add(Uint8List.fromList([0x94] + toBytes));
+    // value
+    items.add(_stripListPrefix(Rlp.encode([tx.value?.getInWei ?? BigInt.zero])));
+    // data
+    items.add(_stripListPrefix(Rlp.encode([tx.data ?? <int>[]])));
+    // access list
+    items.add(_stripListPrefix(Rlp.encode([<int>[]])));
+    
+    // Concatenate all items
+    final concatenated = BytesBuilder();
+    for (final item in items) {
+      concatenated.add(item);
+    }
+    final concatenatedBytes = concatenated.toBytes();
+    
+    // Add list prefix
+    final listPrefix = _encodeLength(concatenatedBytes.length, 0xc0);
+    final fullRlp = Uint8List.fromList(listPrefix + concatenatedBytes);
+    return Uint8List.fromList([0x02] + fullRlp);
   }
 
   /// Encodes a transaction for signing (EIP-1559).
+  /// Returns the keccak256 hash of the RLP-encoded unsigned transaction.
   static Uint8List _encodeTransactionForSigning(Transaction tx, int chainId) {
-    // EIP-1559: keccak256(0x02 || rlp([chainId, nonce, maxPriorityFeePerGas,
-    // maxFeePerGas, gasLimit, to, value, data, accessList]))
-    // This is a simplified encoding - in production use proper RLP encoding
-    final rlpList = [
-      chainId,
-      tx.nonce ?? 0,
-      tx.maxPriorityFeePerGas?.getInWei ?? BigInt.zero,
-      tx.maxFeePerGas?.getInWei ?? BigInt.zero,
-      tx.maxGas ?? 0,
-      tx.to?.eip55With0x ?? '',
-      tx.value?.getInWei ?? BigInt.zero,
-      tx.data ?? <int>[],
-      <int>[], // access list
-    ];
-    // In production, use proper RLP encoding
-    // For now, return a hash of the string representation
-    return keccak256(Uint8List.fromList(rlpList.toString().codeUnits));
+    final payload = _buildTransactionPayload(tx, chainId);
+    return keccak256(payload);
   }
 
-  static Uint8List _signTransactionSync(
-    EthPrivateKey key,
-    Transaction tx,
-    int chainId,
-  ) {
-    return Uint8List.fromList([]);
+  /// Strips the RLP list prefix from an encoded item, returning just the item's data.
+  static Uint8List _stripListPrefix(Uint8List encoded) {
+    if (encoded.isEmpty) return Uint8List.fromList([]);
+    
+    final firstByte = encoded[0];
+    if (firstByte < 0xc0) {
+      return encoded;
+    } else if (firstByte <= 0xf7) {
+      final length = firstByte - 0xc0;
+      return encoded.sublist(1, 1 + length);
+    } else {
+      final lengthOfLength = firstByte - 0xf7;
+      var length = 0;
+      for (int i = 0; i < lengthOfLength; i++) {
+        length = (length << 8) | encoded[1 + i];
+      }
+      final valueStart = 1 + (firstByte - 0xf7);
+      return encoded.sublist(1 + (firstByte - 0xf7), 1 + (firstByte - 0xf7) + length);
+    }
+  }
+
+  /// Encodes an RLP length prefix.
+  static Uint8List _encodeLength(int length, int offset) {
+    if (length <= 55) {
+      return Uint8List.fromList([offset + length]);
+    } else {
+      var x = Uint32List(1);
+      x[0] = length;
+      var y = Uint8List.view(x.buffer);
+      var num = 3;
+      while (y[num] == 0) {
+        --num;
+      }
+      var e = Uint8List(num + 2);
+      e[0] = 0x80 + num + 1;
+      for (var i = 1; i < e.length; ++i) {
+        e[i] = y[num--];
+      }
+      return e;
+    }
   }
 
   static String formatFee(BigInt feeWei) => formatEther(feeWei);

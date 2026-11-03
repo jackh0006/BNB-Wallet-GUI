@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_state.dart';
 import 'screens/screens.dart';
 import 'security.dart';
+import 'memory_protection.dart';
 import 'tor_manager.dart';
 import 'l10n/app_localizations.dart';
 

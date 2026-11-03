@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:asn1lib/asn1lib.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart' as http_io;
@@ -184,14 +185,14 @@ void _applyHttpConnect(
   if (username != null && username.isNotEmpty) {
     inner.authenticateProxy =
         (String proxyHost, int proxyPort, String scheme, String? realm) async {
-          final uri = Uri.parse('http://$proxyHost:$proxyPort');
-          inner.addCredentials(
-            uri,
-            realm ?? '',
-            HttpClientBasicCredentials(username, password ?? ''),
-          );
-          return true;
-        };
+      final uri = Uri.parse('http://$proxyHost:$proxyPort');
+      inner.addCredentials(
+        uri,
+        realm ?? '',
+        HttpClientBasicCredentials(username, password ?? ''),
+      );
+      return true;
+    };
   }
 }
 
@@ -199,7 +200,11 @@ void _applyHttpConnect(
 /// Used by RpcService when querying individual nodes (fee engine, test, etc.).
 /// Supports R4: HTTP CONNECT proxy, cert pinning (SPKI), HTTP auth, custom headers.
 http.Client createClientForNode(RpcNode node) {
-  final inner = HttpClient()
+  // For nodes with certificate pinning, we use a SecurityContext with no
+  // trusted roots so that badCertificateCallback is invoked for all certificates.
+  // This allows us to verify the certificate chain and check SPKI pins.
+  final context = node.pinnedSpkiHashes.isNotEmpty ? SecurityContext() : null;
+  final inner = HttpClient(context: context)
     ..userAgent = null
     ..idleTimeout = const Duration(seconds: 30);
 
@@ -207,8 +212,8 @@ http.Client createClientForNode(RpcNode node) {
   if (node.pinnedSpkiHashes.isNotEmpty) {
     inner.badCertificateCallback =
         (X509Certificate cert, String host, int port) {
-          return _verifySpkiPin(cert, node.pinnedSpkiHashes);
-        };
+      return _verifySpkiPin(cert, node.pinnedSpkiHashes);
+    };
   }
 
   switch (node.transport) {
@@ -275,22 +280,57 @@ http.Client createClientForNode(RpcNode node) {
 /// [pinnedHashes] are base64-encoded SHA-256 of the SPKI (Subject Public Key Info).
 bool _verifySpkiPin(X509Certificate cert, List<String> pinnedHashes) {
   try {
-    // Extract SPKI from certificate and compute SHA-256
-    final der = cert.der;
-    // For simplicity, we use the certificate's public key DER encoding
-    // In a full implementation, we'd extract the SPKI ASN.1 structure
-    // This is a simplified check - real implementation would use ASN.1 parsing
-    final sha256 = _sha256(der);
-    final b64 = base64Encode(sha256);
-    return pinnedHashes.contains(b64);
+    final spkiHash = _extractSpkiSha256Base64(cert.der);
+    return pinnedHashes.contains(spkiHash);
   } catch (_) {
     return false;
   }
 }
 
-Uint8List _sha256(List<int> input) {
-  final digest = crypto.sha256.convert(input);
-  return Uint8List.fromList(digest.bytes);
+/// Extract SPKI (Subject Public Key Info) from a certificate DER and compute SHA-256 base64.
+String _extractSpkiSha256Base64(Uint8List certDer) {
+  final parser = ASN1Parser(certDer);
+  final cert = parser.nextObject() as ASN1Sequence;
+  
+  // Certificate structure:
+  // SEQUENCE {
+  //   tbsCertificate TBSCertificate,
+  //   signatureAlgorithm AlgorithmIdentifier,
+  //   signatureValue BIT STRING
+  // }
+  
+  final tbsCert = cert.elements[0] as ASN1Sequence;
+  
+  // TBSCertificate structure:
+  // SEQUENCE {
+  //   version [0] EXPLICIT Version,
+  //   serialNumber CertificateSerialNumber,
+  //   signature AlgorithmIdentifier,
+  //   issuer Name,
+  //   validity Validity,
+  //   subject Name,
+  //   subjectPublicKeyInfo SubjectPublicKeyInfo,  // index 6
+  //   ...
+  // }
+  
+  // Handle explicit version tag (0xA0) which may be present
+  int spkiIndex = 6;
+  if (tbsCert.elements.length > 6) {
+    // Check if first element is explicit version tag
+    final first = tbsCert.elements[0];
+    if (first.tag == 0xA0) {
+      spkiIndex = 7; // version is explicit, so SPKI is at index 7
+    }
+  }
+  
+  final spki = tbsCert.elements[spkiIndex];
+  
+  // Get the encoded bytes of the SPKI (includes tag and length)
+  final spkiDer = spki.encodedBytes;
+  
+  // Compute SHA-256
+  final digest = crypto.sha256.convert(spkiDer);
+  return base64Encode(digest.bytes);
 }
 
 /// R4: Authenticated HTTP client that injects auth headers and custom headers.
@@ -339,7 +379,7 @@ class _AuthenticatingHttpClient extends http.BaseClient {
       'x-forwarded-for',
       'x-real-ip',
       'x-client-',
-      'x-device-',
+      'x-dev-',
       'x-app-',
       'x-wallet-',
     };

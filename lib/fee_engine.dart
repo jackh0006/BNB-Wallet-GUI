@@ -105,7 +105,7 @@ class FeeEngine {
   FeeEngine._();
 
   static const int _percentiles = 3;
-  static const List<String> _tierLabels = ['Slow', 'Standard', 'Fast'];
+  static const List<String> _tierLabels = ['Low', 'Medium', 'High'];
   static const List<int> _legacyBps = [9000, 10000, 12500];
 
   /// Roughly 5000 gwei in wei: above this, even a consistent quote is worth
