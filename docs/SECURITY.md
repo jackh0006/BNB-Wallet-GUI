@@ -41,6 +41,57 @@ plain-language list of what is and is not protected, see docs/THREAT_MODEL.md.
 - Locking clears private keys, the seed phrase, and cached history from
   memory.
 
+## Cold wallet mode
+
+- Three roles: hot (seed + network), cold (seed, no network) and online
+  (public pairing, network, no seed).
+- Cold mode puts `RpcService` offline and `connect()` fails closed; it never
+  prepares or broadcasts. Online mode wipes keys from memory and opens the
+  paired watch-only address.
+- Pairing exports public addresses and a fingerprint only. Compare the
+  fingerprint on both devices before trusting the pairing.
+- Requests and signed responses are versioned canonical JSON envelopes with a
+  SHA-256 checksum and strict allow-listed fields. The checksum is integrity,
+  not authentication; the ECDSA signature over the exact transaction and the
+  paired address provide authenticity.
+- The online side re-derives the signing digest, parses the raw EIP-1559
+  transaction, compares every field, checks `r`/`s`/`yParity`/hash, recovers
+  the signer and refuses anything already broadcast. It broadcasts only after
+  that succeeds and treats a node-returned hash mismatch as an unknown
+  outcome (no automatic resend).
+- Only the first 20 default BIP-44 accounts are supported; the signer picks
+  the matching index instead of always using index 0.
+- Request lifetime defaults to 30 minutes (hard cap 24 hours); the response
+  must have been produced before expiry (5-minute clock skew tolerated).
+
+Details and operator steps: [`COLD_WALLET.md`](COLD_WALLET.md).
+
+## TLS pinning
+
+Optional per-node SPKI pins are checked **after** standard CA and hostname
+validation. A pin cannot rescue an untrusted chain or a wrong host. A wrong
+pin or an empty pin list fails closed. Pinned HTTP CONNECT is refused before
+any socket is opened. SPKI extraction follows RFC 5280 (index 6 with the
+explicit version field, index 5 without) and is cross-checked against OpenSSL
+in `test/tls_pinning_test.dart`.
+
+## Process memory hardening (Linux)
+
+The wallet calls `prctl(PR_SET_DUMPABLE, 0)`, sets `RLIMIT_CORE` to 0 and
+attempts `mlockall(MCL_CURRENT | MCL_FUTURE)` through FFI. The first two are
+asserted by reading kernel state; `mlockall` is best-effort and may fail under
+a low memlock limit. This is not encrypted memory and does not defend against
+a compromised OS.
+
+## Release signing key
+
+The old `scripts/release.keystore` and its hardcoded password were committed
+to this public repository. The file is removed from the current tree, but it
+remains in history. **Treat that signing key as compromised and rotate it.**
+`scripts/build-apk.sh` now requires `BNB_KEYSTORE`, `BNB_KEY_ALIAS`,
+`BNB_STORE_PASS` and `BNB_KEY_PASS` from the environment, never creates a
+keystore, and refuses a tracked keystore. `scripts/secret-scan.sh` runs in CI.
+
 ## Erase all data
 
 Located in Settings. Requires typing `ERASE`. It:
@@ -112,9 +163,11 @@ proven by use (or by paying a third-party audit). Questions:
 
 ## Known limitations
 
-See docs/THREAT_MODEL.md — in particular: no third-party audit yet, no
-screenshot blocking on Linux, on-chain data is inherently public, and a
-compromised OS defeats everything.
+See docs/THREAT_MODEL.md and SECURITY_AUDIT.md — in particular: no
+third-party audit yet, no OS-enforced air gap for cold mode (runtime offline
+only), no camera QR on Linux, no two-device field test, no screenshot
+blocking on Linux, the old release key must be rotated, on-chain data is
+inherently public, and a compromised OS defeats everything.
 
 ## Bug disclosure
 

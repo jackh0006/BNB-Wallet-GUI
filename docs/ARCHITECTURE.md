@@ -10,7 +10,12 @@ Version 1.0.5 · AGPL-3.0-or-later
 │                      phone book, custom tokens, strict mode    │
 │ storage.dart         plain preferences + secure API-key store │
 │ wallet_core.dart     pure cryptography/validation (BIP-39     │
-│                      seeds, EIP-55 addresses, guards)          │
+│                      seeds, EIP-55 addresses, guards, cold    │
+│                      signing + strict verification)           │
+│ cold_tx_codec.dart   strict canonical EIP-1559/RLP codec      │
+│ cold_wallet_protocol.dart  versioned pairing/request/response  │
+│ cold_wallet_service.dart   public cold state, replay, broadcast│
+│ memory_protection.dart FFI prctl/setrlimit/mlockall (Linux)   │
 │ vault_engine.dart    Argon2id(64MiB,t=3,p=4) + XChaCha20-     │
 │                      Poly1305 vault envelope                   │
 │ receipt_store.dart   encrypted receipt archive (BNBRCPT1,     │
@@ -30,7 +35,8 @@ Version 1.0.5 · AGPL-3.0-or-later
 │ receipt_image.dart   full-receipt PNG rendering (dart:ui)     │
 │ widgets/journey_map.dart, hold_to_confirm.dart                │
 │ screens/             wallet_page, send_page, settings_page,   │
-│                      receipt_page, logs_page, common.dart     │
+│                      receipt_page, logs_page, common.dart,    │
+│                      cold_wallet_dialogs.dart (QR/file/paste) │
 │                      (dialogs, clipboard auto-clear)          │
 └───────────────────────────────────────────────────────────────┘
 ```

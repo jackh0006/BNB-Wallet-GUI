@@ -9,6 +9,9 @@ import 'package:wallet/wallet.dart';
 import 'package:web3dart/web3dart.dart';
 
 import '../app_state.dart';
+import '../cold_wallet.dart';
+import '../cold_wallet_protocol.dart';
+import '../cold_wallet_service.dart';
 import '../fee_engine.dart';
 import '../models.dart';
 import '../rpc_service.dart';
@@ -17,6 +20,7 @@ import '../tx_lifecycle.dart';
 import '../wallet_core.dart';
 import '../widgets/hold_to_confirm.dart';
 import '../widgets/journey_map.dart';
+import 'cold_wallet_dialogs.dart';
 import 'common.dart';
 import 'receipt_page.dart';
 import 'wallet_page.dart';
@@ -55,6 +59,7 @@ class _SendPageState extends State<SendPage>
   bool _sending = false;
   TxStage? _stage;
   String _flowError = '';
+  ColdTxRequest? _pendingCold;
 
   /// The JSON-RPC calls this send actually made, in order — rendered as the
   /// "what the node sees" panel on the review, generated, never hand-copied.
@@ -97,10 +102,23 @@ class _SendPageState extends State<SendPage>
     // the gate (or anywhere else) must repaint this page the moment the key
     // lands in memory — the Shell's const children never rebuild themselves.
     appState.addListener(_onAppStateChanged);
+    _refreshColdDesk();
   }
 
   void _onAppStateChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    _refreshColdDesk();
+  }
+
+  Future<void> _refreshColdDesk() async {
+    final pending = appState.onlineMode
+        ? await ColdWalletService.instance.latestPendingRequest()
+        : null;
+    if (!mounted) return;
+    if (pending?.id != _pendingCold?.id) {
+      setState(() => _pendingCold = pending);
+    }
   }
 
   @override
@@ -122,14 +140,143 @@ class _SendPageState extends State<SendPage>
     return Scaffold(
       appBar: AppBar(title: const Text('Send')),
       body: SafeArea(
-        child: appState.watchOnly
+        child: appState.coldMode
+            ? _coldSignerNotice()
+            : appState.onlineMode && appState.address == null
+            ? _onlinePairingNotice()
+            : appState.watchOnly && !appState.onlineMode
             ? _watchOnlyNotice()
             : appState.unlocked
             ? ListView(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-                children: [_pendingCard(), _journeyCard(), _formCard()],
+                children: [
+                  if (appState.onlineMode) _coldDeskCard(),
+                  _pendingCard(),
+                  _journeyCard(),
+                  _formCard(),
+                ],
               )
             : _walletGate(),
+      ),
+    );
+  }
+
+  /// Cold signer: this device has no network and never prepares a request.
+  /// It only signs envelopes carried over from the companion.
+  Widget _coldSignerNotice() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+      children: [
+        InfoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.smartphone, color: Color(0xFFF0B90B), size: 40),
+              const SizedBox(height: 12),
+              const Text(
+                'Cold signer — offline',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This device holds the key but no network connection. Prepare '
+                'the transfer on the online companion, carry its request here, '
+                'review it, and carry the signed response back.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () => coldSignPendingRequest(context),
+                icon: const Icon(Icons.edit_document),
+                label: const Text('Sign a request offline'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => coldShowLastSignature(context),
+                icon: const Icon(Icons.qr_code_2),
+                label: const Text('Show last signed response'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _onlinePairingNotice() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: InfoCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.link, color: Color(0xFFF0B90B), size: 40),
+              const SizedBox(height: 12),
+              const Text(
+                'Pair the cold wallet first',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This online companion holds no key. Import the public pairing '
+                'from the cold device and verify the fingerprint on both '
+                'screens before preparing a transfer.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () => appState.focusTab(4),
+                icon: const Icon(Icons.settings),
+                label: const Text('Open settings to pair'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _coldDeskCard() {
+    final pending = _pendingCold;
+    if (pending == null) return const SizedBox.shrink();
+    return InfoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionTitle('Cold signing request'),
+          Text(
+            'Ready for the signer. ID ${pending.id} · expires '
+            '${pending.expiresAt}',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () =>
+                    coldShowPendingRequest(context, request: pending),
+                icon: const Icon(Icons.qr_code_2, size: 17),
+                label: const Text('Show request'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  await coldImportAndBroadcastSignature(context);
+                  await _refreshColdDesk();
+                },
+                icon: const Icon(Icons.verified_user, size: 17),
+                label: const Text('Import signed response'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -946,8 +1093,11 @@ class _SendPageState extends State<SendPage>
         'Calls this send has made so far (what each node saw):',
         for (final line in _nodeSees) '• $line',
         '',
-        'Planned next: eth_sendRawTransaction — the signed public bytes '
-            '(recipient, amount, fee, signature). The exact raw bytes appear in the receipt.',
+        appState.onlineMode
+            ? 'Planned next: create an unsigned EIP-1559 request for the cold '
+                  'signer. This device cannot sign and will not broadcast yet.'
+            : 'Planned next: eth_sendRawTransaction — the signed public bytes '
+                  '(recipient, amount, fee, signature). The exact raw bytes appear in the receipt.',
         'Not sent, ever: your name or contacts, device details, your other accounts, your seed or keys.',
         appState.torEnabled
             ? 'Your IP address is hidden behind Tor in this mode.'
@@ -1143,7 +1293,7 @@ class _SendPageState extends State<SendPage>
             FilledButton(
               onPressed: () =>
                   Navigator.pop(dialogContext, _suffix.text.trim()),
-              child: const Text('Sign'),
+              child: Text(appState.onlineMode ? 'Continue' : 'Sign'),
             ),
           ],
         ),
@@ -1163,12 +1313,15 @@ class _SendPageState extends State<SendPage>
       // §9: the final action is a deliberate hold, not a single stray click.
       final held = await showHoldToConfirm(
         context,
-        title: 'Hold to sign',
-        message:
-            'The next step signs the exact transaction shown in the review. '
-            'Hold the button until it fills. Releasing early cancels — nothing '
-            'is signed, sent or charged.',
-        label: 'Hold to sign',
+        title: appState.onlineMode ? 'Hold to create request' : 'Hold to sign',
+        message: appState.onlineMode
+            ? 'The next step creates an unsigned request for the exact '
+                  'transaction shown in the review. No key exists on this '
+                  'device, so nothing is signed or sent. Releasing early cancels.'
+            : 'The next step signs the exact transaction shown in the review. '
+                  'Hold the button until it fills. Releasing early cancels — '
+                  'nothing is signed, sent or charged.',
+        label: appState.onlineMode ? 'Hold to create request' : 'Hold to sign',
       );
       if (!held) {
         if (!mounted) return;
@@ -1225,6 +1378,60 @@ class _SendPageState extends State<SendPage>
         expectedMaxFee: selected.maxFeePerGas,
         expectedPriority: selected.priorityFeePerGas,
       );
+      if (appState.onlineMode) {
+        if (selected.mode != 'eip1559') {
+          throw StateError(
+            'Cold requests currently require an EIP-1559 fee quote. The node '
+            'did not provide one; try again when fee history is available.',
+          );
+        }
+        final request = ColdWalletService.instance.createRequest(
+          chainId: rpc.chainId,
+          from: from,
+          to: _asset.native ? checksummed : _asset.address,
+          value: _asset.native ? amount : BigInt.zero,
+          gasLimit: gasLimit,
+          maxFeePerGas: selected.maxFeePerGas,
+          maxPriorityFeePerGas: selected.priorityFeePerGas,
+          nonce: nonce,
+          data: bytesToHex(data, include0x: true, padToEvenLength: true),
+          assetInfo: ColdTxAssetInfo(
+            isNative: _asset.native,
+            symbol: _asset.symbol,
+            name: _asset.name,
+            contractAddress: _asset.native ? null : _asset.address,
+            decimals: assetDecimals,
+          ),
+        );
+        await ColdWalletService.instance.storePendingRequest(request);
+        if (!mounted) return;
+        setState(() {
+          _sending = false;
+          _stage = null;
+          _pendingCold = request;
+        });
+        await showColdPayloadDialog(
+          context,
+          title: 'Cold signing request',
+          payload: ColdWalletProtocol.encodeRequest(request),
+          fileName: 'bnb-cold-request-${request.id}.json',
+          note:
+              'No key exists on this device, so nothing was signed. Carry this '
+              'request to the cold signer. It expires at ${request.expiresAt}.',
+        );
+        return;
+      }
+      if (appState.coldMode) {
+        throw StateError(
+          'The cold signer cannot prepare or broadcast requests.',
+        );
+      }
+      final key = appState.privateKey;
+      if (key == null) {
+        throw StateError(
+          'No private key is in memory. Unlock the wallet before signing.',
+        );
+      }
       final signedNote = sendEventNote(SendEvent.signed);
       rpc.note(signedNote.text, kind: signedNote.kind);
       _nodeSees.add(
@@ -1233,7 +1440,7 @@ class _SendPageState extends State<SendPage>
       if (mounted) setState(() => _stage = TxStage.signed);
       // Sign locally, then broadcast. The signing and the sending are separate
       // steps so a node that answers "already known" cannot lose the hash.
-      final signed = await rpc.signOnly(transaction, appState.privateKey!);
+      final signed = await rpc.signOnly(transaction, key);
       String hash;
       var acceptedKnown = false;
       try {
@@ -1764,6 +1971,13 @@ class _SendPageState extends State<SendPage>
   /// Only one of the original and the replacement can confirm, and nothing
   /// is auto-resent — the user taps and confirms this on purpose.
   Future<void> _bump(PendingTx tx, {required bool cancel}) async {
+    if (appState.coldMode || appState.onlineMode) {
+      showError(
+        context,
+        'Speed-up/cancel signs locally. Do it on the device that holds the key.',
+      );
+      return;
+    }
     final rpc = appState.rpc;
     final key = appState.privateKey;
     if (key == null || _sending) return;

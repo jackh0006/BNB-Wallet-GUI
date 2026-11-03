@@ -24,6 +24,23 @@ Argon2id froze the desktop.
 - Honest record in docs/SECURITY.md and docs/STANDARDS.md, verified by the
   new worker round-trip tests (`test/workers_test.dart`).
 
+## Cold wallet mode and independent verification
+
+- **Cold (offline signer)** holds the seed and refuses all network access.
+  **Online (companion)** holds only a public pairing, prepares the unsigned
+  EIP-1559 request, verifies the returned signature and broadcasts.
+- Pairing, requests and signed responses are versioned canonical JSON
+  envelopes with strict field allow-lists, SHA-256 checksums, expiry and
+  replay protection. No seed or private key crosses the channel.
+- The online side re-derives the digest, parses the raw transaction, compares
+  every field, checks `r`/`s`/`yParity`/hash and recovers the signer before
+  broadcasting.
+- `verification/verify.cjs` is an **independent ethers.js 6.13.2** check of
+  the exact signed bytes (not web3dart). It runs in CI.
+- Status: self-verified, **not third-party audited**. Read
+  [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) and
+  [`docs/COLD_WALLET.md`](docs/COLD_WALLET.md) before using it.
+
 ## What is new in 1.0.4
 
 - **Connection story on Home**: every blockchain action is narrated in plain
@@ -53,8 +70,9 @@ Argon2id froze the desktop.
 Read docs/THREAT_MODEL.md (honest limits), docs/STANDARDS.md (proof map),
 docs/SECURITY.md (controls), docs/CRYPTO.md (byte-level spec).
 Also shipped: LICENSE (AGPL-3.0-or-later), PRIVACY.md, ARCHITECTURE.md,
-CONTRIBUTING.md, CHANGELOG.md, SPEC-COMPLIANCE.md (why every spec line is
-done, partially done, or an honest deviation), and docs/SBOM.json — the
+CONTRIBUTING.md, CHANGELOG.md, SECURITY_AUDIT.md, docs/COLD_WALLET.md,
+docs/TESTING.md, SPEC-COMPLIANCE.md (why every spec line is done, partially
+done, or an honest deviation), and docs/SBOM.json — the
 deterministic component inventory `python3 scripts/sbom.py` regenerates
 from the committed lockfile. `python3 scripts/check_token_sources.py`
 verifies the trusted token-source links from docs/SPEC-COMPLIANCE §10e
@@ -83,9 +101,16 @@ before each release.
 ```bash
 flutter pub get
 flutter analyze lib
-scripts/test-suite.sh   # sequential-aware runner (see dart_test.yaml)
-scripts/build-deb.sh    # the release line: a signed amd64 .deb
+scripts/test-suite.sh        # sequential-aware runner (see dart_test.yaml)
+bash scripts/secret-scan.sh  # no tracked keystores/private keys
+cd verification && npm ci && node verify.cjs && cd ..  # independent ethers.js
+scripts/build-deb.sh         # the release line: a signed amd64 .deb
 ```
+
+`scripts/build-apk.sh` is provided for an Android arm64 release, but it
+requires an external `BNB_KEYSTORE`, `BNB_KEY_ALIAS`, `BNB_STORE_PASS` and
+`BNB_KEY_PASS`; it never creates or commits a keystore. The old committed
+release key must be treated as compromised and rotated.
 
 `scripts/test-suite.sh` runs the light suites two-wide and the heavy
 Argon2id (`kdf`-tagged) suites strictly one at a time — on a 2-core machine,

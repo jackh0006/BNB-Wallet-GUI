@@ -1,10 +1,21 @@
 # Static verification: analyzer, full test suite, trusted-source links,
-# and SBOM freshness. No builds here — the deb release line is built and
-# signed locally by the maintainer (scripts/build-deb.sh).
+# independent ethers.js cold-signature verification, secret scan, and SBOM
+# freshness. No release builds here — the deb/APK release line is built and
+# signed locally by the maintainer (scripts/build-deb.sh, scripts/build-apk.sh).
 name: verify
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No keystores or private keys tracked
+        run: bash scripts/secret-scan.sh
+
   flutter:
     runs-on: ubuntu-latest
     steps:
@@ -15,6 +26,23 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-pub
       - run: bash scripts/test-suite.sh
+
+  cold-signature:
+    # Independent of Dart: parses the exact signed bytes with ethers.js and
+    # recovers the signer with a separate secp256k1 implementation.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: verification/package-lock.json
+      - run: npm ci
+      - run: node verify.cjs
 
   sources-and-sbom:
     runs-on: ubuntu-latest

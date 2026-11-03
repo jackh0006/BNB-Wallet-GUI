@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:asn1lib/asn1lib.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart' as http_io;
 import 'package:socks5_proxy/socks_client.dart' as socks;
@@ -42,7 +43,10 @@ http.Client createRpcClient() {
 /// Applies the configured global privacy route to [inner]: custom proxy first,
 /// then Tor, then direct. A configured proxy that cannot be applied throws —
 /// it never silently falls back to a direct connection.
-void _applyGlobalRoute(HttpClient inner) {
+void _applyGlobalRoute(
+  HttpClient inner, {
+  List<String> pinnedSpkiHashes = const [],
+}) {
   GlobalProxyConfig proxy;
   bool torOn;
   try {
@@ -50,6 +54,9 @@ void _applyGlobalRoute(HttpClient inner) {
     torOn = AppStorage.torEnabled;
   } on StateError {
     // Storage not initialized yet: tests and very early bootstrap only.
+    if (pinnedSpkiHashes.isNotEmpty) {
+      _installPinnedTlsFactory(inner, pinnedSpkiHashes);
+    }
     return;
   }
   if (proxy.type != ProxyType.none) {
@@ -62,7 +69,7 @@ void _applyGlobalRoute(HttpClient inner) {
         'Open Settings and fix it, or choose Direct.',
       );
     }
-    _applyGlobalProxy(inner, proxy);
+    _applyGlobalProxy(inner, proxy, pinnedSpkiHashes: pinnedSpkiHashes);
     return;
   }
   if (torOn) {
@@ -71,13 +78,25 @@ void _applyGlobalRoute(HttpClient inner) {
       host: AppStorage.torHost,
       port: AppStorage.torPort,
       remoteDns: true,
+      pinnedSpkiHashes: pinnedSpkiHashes,
     );
+    return;
+  }
+  if (pinnedSpkiHashes.isNotEmpty) {
+    _installPinnedTlsFactory(inner, pinnedSpkiHashes);
   }
 }
 
-void _applyGlobalProxy(HttpClient inner, GlobalProxyConfig proxy) {
+void _applyGlobalProxy(
+  HttpClient inner,
+  GlobalProxyConfig proxy, {
+  List<String> pinnedSpkiHashes = const [],
+}) {
   switch (proxy.type) {
     case ProxyType.none:
+      if (pinnedSpkiHashes.isNotEmpty) {
+        _installPinnedTlsFactory(inner, pinnedSpkiHashes);
+      }
       return;
     case ProxyType.socks5:
       _applySocks5(
@@ -87,6 +106,7 @@ void _applyGlobalProxy(HttpClient inner, GlobalProxyConfig proxy) {
         username: proxy.username,
         password: proxy.password,
         remoteDns: false,
+        pinnedSpkiHashes: pinnedSpkiHashes,
       );
     case ProxyType.socks5h:
       _applySocks5(
@@ -96,8 +116,15 @@ void _applyGlobalProxy(HttpClient inner, GlobalProxyConfig proxy) {
         username: proxy.username,
         password: proxy.password,
         remoteDns: true,
+        pinnedSpkiHashes: pinnedSpkiHashes,
       );
     case ProxyType.httpConnect:
+      if (pinnedSpkiHashes.isNotEmpty) {
+        throw StateError(
+          'SPKI pinning cannot be combined with HTTP CONNECT in this build. '
+          'Use direct HTTPS, SOCKS5/SOCKS5h or Tor for a pinned node.',
+        );
+      }
       _applyHttpConnect(
         inner,
         host: proxy.host,
@@ -115,6 +142,7 @@ void _applySocks5(
   String? username,
   String? password,
   required bool remoteDns,
+  List<String> pinnedSpkiHashes = const [],
 }) {
   if (host.trim().isEmpty || port <= 0 || port > 65535) {
     throw StateError('SOCKS5 proxy host/port is incomplete.');
@@ -149,11 +177,17 @@ void _applySocks5(
     );
     if (uri.scheme == 'https') {
       // TLS is negotiated end-to-end after the SOCKS tunnel exists, with the
-      // destination hostname used for SNI and certificate validation.
-      final secure = client.secure(uri.host);
+      // destination hostname used for SNI and STANDARD certificate validation.
+      // The pin is checked only after that validation succeeds, so a pin can
+      // narrow trust but can never replace the public CA chain.
+      final secure = await client.secure(uri.host);
+      if (!_checkPinnedPeer(secure, pinnedSpkiHashes)) {
+        secure.destroy();
+        throw const HandshakeException('SPKI pin mismatch');
+      }
       return ConnectionTask.fromSocket(
-        secure,
-        () => secure.then((socket) => socket.close()).ignore(),
+        Future<SecureSocket>.value(secure),
+        () => secure.close().ignore(),
       );
     }
     return ConnectionTask.fromSocket(
@@ -185,14 +219,14 @@ void _applyHttpConnect(
   if (username != null && username.isNotEmpty) {
     inner.authenticateProxy =
         (String proxyHost, int proxyPort, String scheme, String? realm) async {
-      final uri = Uri.parse('http://$proxyHost:$proxyPort');
-      inner.addCredentials(
-        uri,
-        realm ?? '',
-        HttpClientBasicCredentials(username, password ?? ''),
-      );
-      return true;
-    };
+          final uri = Uri.parse('http://$proxyHost:$proxyPort');
+          inner.addCredentials(
+            uri,
+            realm ?? '',
+            HttpClientBasicCredentials(username, password ?? ''),
+          );
+          return true;
+        };
   }
 }
 
@@ -200,29 +234,23 @@ void _applyHttpConnect(
 /// Used by RpcService when querying individual nodes (fee engine, test, etc.).
 /// Supports R4: HTTP CONNECT proxy, cert pinning (SPKI), HTTP auth, custom headers.
 http.Client createClientForNode(RpcNode node) {
-  // For nodes with certificate pinning, we use a SecurityContext with no
-  // trusted roots so that badCertificateCallback is invoked for all certificates.
-  // This allows us to verify the certificate chain and check SPKI pins.
-  final context = node.pinnedSpkiHashes.isNotEmpty ? SecurityContext() : null;
-  final inner = HttpClient(context: context)
+  // Pinning is performed AFTER the standard TLS handshake succeeded. There is
+  // deliberately no empty SecurityContext and no permissive
+  // badCertificateCallback here: a pin must never become a substitute for
+  // hostname + CA-chain validation.
+  final inner = HttpClient()
     ..userAgent = null
     ..idleTimeout = const Duration(seconds: 30);
-
-  // R4: Certificate pinning (SPKI)
-  if (node.pinnedSpkiHashes.isNotEmpty) {
-    inner.badCertificateCallback =
-        (X509Certificate cert, String host, int port) {
-      return _verifySpkiPin(cert, node.pinnedSpkiHashes);
-    };
-  }
+  final pins = node.pinnedSpkiHashes;
 
   switch (node.transport) {
     case NodeTransport.inherit:
       // The global setting is resolved for every node that inherits it, so a
       // newly enabled proxy/Tor route applies to the whole node book.
-      _applyGlobalRoute(inner);
+      _applyGlobalRoute(inner, pinnedSpkiHashes: pins);
       break;
     case NodeTransport.direct:
+      if (pins.isNotEmpty) _installPinnedTlsFactory(inner, pins);
       break;
     case NodeTransport.tor:
       _applySocks5(
@@ -230,6 +258,7 @@ http.Client createClientForNode(RpcNode node) {
         host: AppStorage.torHost,
         port: AppStorage.torPort,
         remoteDns: true,
+        pinnedSpkiHashes: pins,
       );
       break;
     case NodeTransport.customProxy:
@@ -250,9 +279,16 @@ http.Client createClientForNode(RpcNode node) {
         username: node.proxyUser,
         password: node.proxyPass,
         remoteDns: true,
+        pinnedSpkiHashes: pins,
       );
       break;
     case NodeTransport.httpConnect:
+      if (pins.isNotEmpty) {
+        throw StateError(
+          'Node "${node.label}" pins a certificate but uses HTTP CONNECT. '
+          'That combination is refused; use SOCKS5 or direct HTTPS.',
+        );
+      }
       if (node.proxyHost == null ||
           node.proxyHost!.trim().isEmpty ||
           node.proxyPort == null ||
@@ -276,31 +312,86 @@ http.Client createClientForNode(RpcNode node) {
   return _AuthenticatingHttpClient(inner: http_io.IOClient(inner), node: node);
 }
 
-/// R4: Verify SPKI pin against the certificate chain.
+/// Install a connection factory that performs the normal TLS handshake and
+/// only then enforces the SPKI pin. Used for direct HTTPS and inherited direct
+/// routes. The callback never disables hostname or CA validation.
+void _installPinnedTlsFactory(HttpClient inner, List<String> pins) {
+  inner.connectionFactory = (uri, ignoredProxyHost, ignoredProxyPort) async {
+    if (uri.scheme != 'https') {
+      throw const SocketException('Pinned connections must use HTTPS');
+    }
+    final socket = await openPinnedTlsConnection(uri.host, uri.port, pins);
+    return ConnectionTask.fromSocket(
+      Future<SecureSocket>.value(socket),
+      () => socket.close().ignore(),
+    );
+  };
+}
+
+/// Open a TLS connection with the platform's normal certificate validation,
+/// then enforce an SPKI pin on the peer certificate. Exposed for negative
+/// tests; production callers use [createClientForNode].
+@visibleForTesting
+Future<SecureSocket> openPinnedTlsConnection(
+  String host,
+  int port,
+  List<String> pins, {
+  SecurityContext? context,
+}) async {
+  if (pins.isEmpty) {
+    throw ArgumentError('A pinned connection needs at least one pin');
+  }
+  final socket = await SecureSocket.connect(
+    host,
+    port,
+    context: context ?? SecurityContext.defaultContext,
+  );
+  if (!_checkPinnedPeer(socket, pins)) {
+    socket.destroy();
+    throw const HandshakeException(
+      'The server certificate does not match the configured SPKI pin',
+    );
+  }
+  return socket;
+}
+
+/// Check a live socket's peer certificate against [pins]. Empty pin lists are
+/// permissive only for code paths that do not pin; a caller that passes a
+/// non-empty list must match exactly.
+bool _checkPinnedPeer(SecureSocket socket, List<String> pins) {
+  if (pins.isEmpty) return true;
+  final cert = socket.peerCertificate;
+  if (cert == null) return false;
+  return verifySpkiPin(cert, pins);
+}
+
+/// R4: Verify an SPKI pin against a certificate.
 /// [pinnedHashes] are base64-encoded SHA-256 of the SPKI (Subject Public Key Info).
-bool _verifySpkiPin(X509Certificate cert, List<String> pinnedHashes) {
+bool verifySpkiPin(X509Certificate cert, List<String> pinnedHashes) {
+  if (pinnedHashes.isEmpty) return false;
   try {
-    final spkiHash = _extractSpkiSha256Base64(cert.der);
+    final spkiHash = spkiSha256Base64FromDer(cert.der);
     return pinnedHashes.contains(spkiHash);
   } catch (_) {
     return false;
   }
 }
 
-/// Extract SPKI (Subject Public Key Info) from a certificate DER and compute SHA-256 base64.
-String _extractSpkiSha256Base64(Uint8List certDer) {
+/// Extract SPKI (Subject Public Key Info) from a certificate DER and compute
+/// SHA-256 base64. Exposed for tests and pin-generation tools.
+String spkiSha256Base64FromDer(Uint8List certDer) {
   final parser = ASN1Parser(certDer);
   final cert = parser.nextObject() as ASN1Sequence;
-  
+
   // Certificate structure:
   // SEQUENCE {
   //   tbsCertificate TBSCertificate,
   //   signatureAlgorithm AlgorithmIdentifier,
   //   signatureValue BIT STRING
   // }
-  
+
   final tbsCert = cert.elements[0] as ASN1Sequence;
-  
+
   // TBSCertificate structure:
   // SEQUENCE {
   //   version [0] EXPLICIT Version,
@@ -312,22 +403,22 @@ String _extractSpkiSha256Base64(Uint8List certDer) {
   //   subjectPublicKeyInfo SubjectPublicKeyInfo,  // index 6
   //   ...
   // }
-  
-  // Handle explicit version tag (0xA0) which may be present
-  int spkiIndex = 6;
-  if (tbsCert.elements.length > 6) {
-    // Check if first element is explicit version tag
-    final first = tbsCert.elements[0];
-    if (first.tag == 0xA0) {
-      spkiIndex = 7; // version is explicit, so SPKI is at index 7
-    }
+
+  // RFC 5280 TBSCertificate: the explicit [0] version field is OPTIONAL.
+  // With it, SPKI is element 6; without it, SPKI is element 5. Do not use a
+  // version-present offset of 7: that element is the extensions block, and
+  // hashing it would silently pin the wrong bytes.
+  final first = tbsCert.elements[0];
+  final spkiIndex = first.tag == 0xA0 ? 6 : 5;
+  if (tbsCert.elements.length <= spkiIndex) {
+    throw const FormatException('Certificate has no subjectPublicKeyInfo');
   }
-  
+
   final spki = tbsCert.elements[spkiIndex];
-  
+
   // Get the encoded bytes of the SPKI (includes tag and length)
   final spkiDer = spki.encodedBytes;
-  
+
   // Compute SHA-256
   final digest = crypto.sha256.convert(spkiDer);
   return base64Encode(digest.bytes);

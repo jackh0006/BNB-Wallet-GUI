@@ -3,14 +3,18 @@
 Statuses: ✅ done and verifiable · 🟡 partial (gap stated) · ❌ not done
 (deviation stated) · 🔒 blocked by an external decision/constraint.
 
-Alignment as of 2026-10-21, version 1.0.5 deb line (R0 source restoration,
-R2 privacy/log round, R3 journey/receipt round). R0: the truncated
-`lib/rpc_service.dart` was rebuilt in verified chunks, the suite was re-run,
-and stale rows below were corrected. R3 added the Journey Map and node card,
-receipt completion (QR/JSON/PNG, decoded call/logs), backup quiz, watch-only
-profiles, token hiding, Lite mode + reduce-motion and hold-to-confirm signing.
-Every ✅ cites where a reader can check it. Roadmap for remaining gaps at the
-bottom (R4…R7), mirroring the working plan.
+Alignment as of 2026-11-03, version 1.0.5 deb line (R0 source restoration,
+R2 privacy/log round, R3 journey/receipt round, R4/TLS+memory and R5 cold
+wallet round). R0: the truncated `lib/rpc_service.dart` was rebuilt in
+verified chunks, the suite was re-run, and stale rows below were corrected.
+R3 added the Journey Map and node card, receipt completion (QR/JSON/PNG,
+decoded call/logs), backup quiz, watch-only profiles, token hiding, Lite mode
++ reduce-motion and hold-to-confirm signing. The 2026-11-03 round added the
+strict EIP-1559 cold codec, cold request/response envelopes, independent
+ethers.js verification, standard-TLS-first SPKI pinning, FFI kernel memory
+hardening and secret-scanning CI. Every ✅ cites where a reader can check it.
+Roadmap for remaining gaps at the bottom (R4…R7), mirroring the working plan;
+the internal self-assessment is [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md).
 
 ---
 
@@ -18,7 +22,7 @@ bottom (R4…R7), mirroring the working plan.
 
 | # | Requirement | Status | Evidence / gap |
 |---|---|---|---|
-| 0.1 | Audited libraries only; pin, lockfile, hashes | ✅ | `pubspec.lock` committed; `docs/SBOM.json` lists every version + SHA-256 (`scripts/sbom.py`); no hand-rolled crypto (`wallet_core.dart` uses web3dart primitives) |
+| 0.1 | Audited libraries only; pin, lockfile, hashes | 🟡 | `pubspec.lock` committed; `docs/SBOM.json` lists every version + SHA-256 (`scripts/sbom.py`); crypto primitives come from `cryptography`/`web3dart`. The EIP-1559/RLP serialization is project code (`cold_tx_codec.dart`) because the available RLP helper was wrong for byte strings; it is cross-checked with ethers.js in `verification/verify.cjs` |
 | 0.2 | No invented chain facts | ✅ | Fee engine measures fee history + block times live (`fee_engine.dart`, `rpc_service.dart`); presets derive ETAs from measured seconds-per-block |
 | 0.3 | Zero telemetry/ads/SDKs | ✅ | PRIVACY.md; only RPC/explorers ever contacted; `docs/SECURITY.md` |
 | 0.4 | Privacy claims testable | 🟡 | Behavior tests exist; automated traffic-capture (tcpdump asserting §6/§7) not yet — R4/R7 |
@@ -31,7 +35,7 @@ bottom (R4…R7), mirroring the working plan.
 |---|---|---|
 | Rust core via flutter_rust_bridge (secrets only in Rust) | ❌ deviation | **Documented deviation**, not an oversight: pure-Dart core, secrets handled in Dart (`wallet_core.dart`), rationale + revisit-conditions in `docs/ARCHITECTURE.md` |
 | Offline-first (default work with no network) | 🟡 | Signing/seed/settings/logs work offline; balances need a node (refresh on demand) |
-| Air-gapped build flavor (no INTERNET) | ❌ | R5 — cold wallet round |
+| Air-gapped build flavor (no INTERNET) | 🟡 | Cold mode is runtime-offline only: `RpcService.setOffline(true)` and `connect()` fail closed; the APK still carries the INTERNET permission, so this is not an OS-enforced air gap. A separate no-INTERNET build flavor is not produced |
 
 ## §2 Cryptography & key management
 
@@ -43,7 +47,7 @@ bottom (R4…R7), mirroring the working plan.
 | Legacy + EIP-1559 by runtime detection | ✅ | `fee_engine.dart` (feeHistory probe → fallback legacy) |
 | Argon2id ≥64 MiB/t≥3 + XChaCha20-Poly1305 vault | ✅ | `vault_engine.dart`; docs/CRYPTO.md |
 | Android Keystore wrap + biometric admin | 🟡 | PIN gate + FLAG_SECURE + allowBackup=false present; no Keystore-wrapped vault key |
-| Linux $XDG_DATA_HOME 0600, core-dump off, mlock | 🟡 | Vault under XDG with 0600; mlock/prctl not wired (R6) |
+| Linux $XDG_DATA_HOME 0600, core-dump off, mlock | ✅ | Vault under XDG with 0600; `memory_protection.dart` uses FFI `prctl(PR_SET_DUMPABLE,0)`, `setrlimit(RLIMIT_CORE,0)` and best-effort `mlockall`; `test/memory_protection_test.dart` asserts real kernel state (2/2) |
 | Clipboard auto-clear 30 s; never copy seed | ✅ | `common.dart` timer clear + `ClipboardGuard.secretFree` tests |
 | Auto-lock (60 s default, options) | ✅ | Settings chips 0/60/300; background lock |
 | Backup quiz (re-enter words) | ✅ | `backup_quiz.dart` + `screens/backup_quiz_dialog.dart`: creation asks for 3 random words before the wallet is created; Settings can re-verify an existing phrase; 5 unit tests |
@@ -85,7 +89,7 @@ bottom (R4…R7), mirroring the working plan.
 | Requirement | Status | Evidence / gap |
 |---|---|---|
 | One choke point; allowlist of configured RPCs | ✅ | `net/privacy_client.dart` + all calls via `RpcService` |
-| Direct HTTPS with pinned certs | 🟡 | https only; SPKI pinning not wired |
+| Direct HTTPS with pinned certs | ✅ | `lib/net/privacy_client.dart`: normal CA/hostname validation first, then SPKI SHA-256 pin; wrong pin closes the connection. `test/tls_pinning_test.dart` (6/6) proves a pin cannot bypass CA or hostname checks and that Dart's pin equals OpenSSL's. Pinned HTTP CONNECT is refused before any socket opens |
 | Tor via SOCKS5, kill-switch (no direct fallback) | ✅ | Tor switch with failure = error, no fallback; embedded Arti ❌ (external system tor/Orbot — documented) |
 | Bridges | 🟡 | transparently supported: configure bridges inside Orbot/tor; app explains (settings copy) |
 | Custom SOCKS5 w/ auth; HTTP CONNECT | 🟡 | SOCKS5 host/port + optional username/password wired (`createClientForNode`); HTTP CONNECT proxy not implemented |
@@ -177,7 +181,7 @@ bottom (R4…R7), mirroring the working plan.
 | Import/export JSON without secrets | ✅ — clipboard JSON; import validates + dedupes |
 | Everything routes through node manager; no hardcoded endpoint anywhere else | ✅ — doors live in `BnbNetworks` tables only; pools fed from the book |
 | Per-node transport override | ✅ — Direct / Tor / custom SOCKS5 per node, inherit-global default (`app_state.setNodeTransport`, privacy client) |
-| Bearer/Basic auth in vault; custom headers; pinned cert | ❌ — R4 (SOCKS5 proxy auth exists; node HTTP auth/pinning does not) |
+| Bearer/Basic auth in vault; custom headers; pinned cert | 🟡 — SPKI pinning and SOCKS5 proxy auth are wired and tested; node HTTP Bearer/Basic auth and custom headers remain open |
 | Selection modes: manual/auto-fastest/round-robin/quorum | 🟡 — manual + strict; auto/random/quorum — open |
 | "use for: reads/broadcast/both" per node | ❌ — open |
 
@@ -199,7 +203,7 @@ bottom (R4…R7), mirroring the working plan.
 
 | Requirement | Status |  Evidence / gap |
 |---|---|---|
-| Complete cold mode (signer/companion, pairing, offline signing, privacy of files, erase-everything) | ❌ → R5 | whole section reserved; the erase flows, storage rules and tests are specced already |
+| Complete cold mode (signer/companion, pairing, offline signing, privacy of files, erase-everything) | 🟡 | Implemented: versioned pairing/request/signature envelopes, SHA-256 checksum, public-address-only pairing, runtime-offline signer, strict verify-before-broadcast, replay/burn list, bounded public storage, mode transitions that wipe keys. Evidence: `lib/cold_wallet_protocol.dart`, `lib/cold_wallet_service.dart`, `lib/screens/cold_wallet_dialogs.dart`, `test/cold_wallet_protocol_test.dart` (15), `test/cold_wallet_service_test.dart` (15), `verification/verify.cjs`. Gaps: no OS-enforced no-INTERNET build, no camera QR on Linux, no two-device field test, no third-party audit |
 
 ## §11 Repo deliverables
 
@@ -221,7 +225,7 @@ bottom (R4…R7), mirroring the working plan.
 
 | Requirement | Status | Evidence / gap |
 |---|---|---|
-| Public chain visibility, nodes see IP, Tor limits, compromised device, seed loss, fee estimates, malicious tokens | ✅ | About → **Honest limits** dialog covers compromised OS, RPC visibility/lies, hot-wallet scope, missing cold mode, fake tokens, clipboard window, missing themes/i18n and no warranty; plus the security notice and PRIVACY.md |
+| Public chain visibility, nodes see IP, Tor limits, compromised device, seed loss, fee estimates, malicious tokens | ✅ | About → **Honest limits** dialog covers compromised OS, RPC visibility/lies, the file/paste cold flow (no camera QR on Linux), fake tokens, clipboard window, missing themes/i18n and no warranty; plus the security notice, PRIVACY.md and SECURITY_AUDIT.md |
 
 ## §13 Definition of Done
 
@@ -232,10 +236,15 @@ Unmet items, all honestly named:
    a funded testnet key and explicit consent for a small mainnet transfer.
 3. 🔒 2 GB Android 8/9 device battery of checks — deb-only decision keeps
    APKs out of scope; a Linux-equivalent check is ours (done).
-4. ❌ R4 (networking hardening), R5 (cold wallet) and R7 (release round)
-   remain; R3 and most of R6 are done (see the section rows above).
+4. 🟡 R4/R5/R7 remain partially open: node HTTP auth/custom headers,
+   selection modes, an OS-enforced no-INTERNET build, camera QR, two-device
+   cold field test, and release-key rotation. R3 and most of R6 are done;
+   cold signing/verification and TLS/memory hardening are implemented and
+   tested (see the section rows above and SECURITY_AUDIT.md).
 5. 🔒 Reproducible-build published-hash verification — GPG-signed set exists;
    toolchain pin — R7.
+6. 🔒 Release-key rotation — the old keystore was committed and is
+   compromised; future APKs need a new key held outside the repository.
 
 ## Working plan to zero (R3…R7)
 
@@ -244,9 +253,13 @@ Unmet items, all honestly named:
   open and tracked in the rows above: per-tx log timeline, selection modes
   (auto/random/quorum), checks-passed card.
 - **R4 networking hardening:** batching/padding/jitter; dust mode;
-  cert pinning; HTTP CONNECT; N-node broadcast; node HTTP auth headers.
-- **R5 cold wallet:** §10f end-to-end (QR/file transports, blind-signing
-  refusals, wipe tests).
+  N-node broadcast; node HTTP auth headers. Cert pinning and standard-TLS
+  ordering are done; HTTP CONNECT with pins is refused, not silently
+  downgraded.
+- **R5 cold wallet:** §10f end-to-end is implemented (file/paste/QR display,
+  strict field binding, replay protection, wipe-on-mode-switch tests). Open:
+  camera QR, OS-enforced no-INTERNET build, two physical devices, external
+  audit.
 - **R6 leftovers:** ✅ backup quiz, watch-only, built-in token hide, honest
   limits, Lite mode + reduce motion; still open: light/AMOLED themes, i18n
   scaffold, mlock/core-dump, adding-chains doc.

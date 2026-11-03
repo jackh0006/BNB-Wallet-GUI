@@ -254,6 +254,7 @@ class _ProxySettingsDialogState extends State<_ProxySettingsDialog> {
               const SizedBox(height: 14),
               DropdownButtonFormField<ProxyType>(
                 initialValue: _type,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Proxy type',
                   border: OutlineInputBorder(),
@@ -789,6 +790,7 @@ class _TorSettingsDialogState extends State<_TorSettingsDialog> {
               const SizedBox(height: 10),
               DropdownButtonFormField<TorBridgeType>(
                 initialValue: _bridgeType,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Bridge type',
                   border: OutlineInputBorder(),

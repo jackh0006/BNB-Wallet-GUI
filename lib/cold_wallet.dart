@@ -10,11 +10,7 @@ import 'package:flutter/foundation.dart';
 /// The wallet's operating mode. Default is [WalletMode.hot] (normal hot wallet).
 /// [WalletMode.cold] = offline signer (holds seed, no network).
 /// [WalletMode.online] = watch-only companion (no secrets, broadcasts for cold).
-enum WalletMode {
-  hot,
-  cold,
-  online,
-}
+enum WalletMode { hot, cold, online }
 
 extension WalletModeLabel on WalletMode {
   String get label {
@@ -75,16 +71,17 @@ class ColdPairingData {
     'includeXpub': includeXpub,
   };
 
-  factory ColdPairingData.fromJson(Map<String, dynamic> json) => ColdPairingData(
-    version: (json['version'] as num?)?.toInt() ?? 1,
-    walletName: '${json['walletName'] ?? ''}',
-    chainId: (json['chainId'] as num?)?.toInt() ?? 56,
-    addresses: (json['addresses'] as List?)?.cast<String>() ?? const [],
-    fingerprint: '${json['fingerprint'] ?? ''}',
-    exportedAt: '${json['exportedAt'] ?? ''}',
-    xpub: json['xpub']?.toString(),
-    includeXpub: json['includeXpub'] == true,
-  );
+  factory ColdPairingData.fromJson(Map<String, dynamic> json) =>
+      ColdPairingData(
+        version: (json['version'] as num?)?.toInt() ?? 1,
+        walletName: '${json['walletName'] ?? ''}',
+        chainId: (json['chainId'] as num?)?.toInt() ?? 56,
+        addresses: (json['addresses'] as List?)?.cast<String>() ?? const [],
+        fingerprint: '${json['fingerprint'] ?? ''}',
+        exportedAt: '${json['exportedAt'] ?? ''}',
+        xpub: json['xpub']?.toString(),
+        includeXpub: json['includeXpub'] == true,
+      );
 }
 
 /// A transaction request sent from the online device to the cold device
@@ -152,7 +149,8 @@ class ColdTxRequest {
     nonce: (json['nonce'] as num?)?.toInt() ?? 0,
     data: '${json['data'] ?? ''}',
     assetInfo: ColdTxAssetInfo.fromJson(
-        json['assetInfo'] as Map<String, dynamic>? ?? {}),
+      json['assetInfo'] as Map<String, dynamic>? ?? {},
+    ),
     expiresAt: '${json['expiresAt'] ?? ''}',
     createdAt: '${json['createdAt'] ?? ''}',
     id: json['id']?.toString(),
@@ -193,15 +191,16 @@ class ColdTxAssetInfo {
     if (warning != null) 'warning': warning,
   };
 
-  factory ColdTxAssetInfo.fromJson(Map<String, dynamic> json) => ColdTxAssetInfo(
-    isNative: json['isNative'] == true,
-    symbol: json['symbol']?.toString(),
-    name: json['name']?.toString(),
-    contractAddress: json['contractAddress']?.toString(),
-    decimals: (json['decimals'] as num?)?.toInt(),
-    isUnknown: json['isUnknown'] == true,
-    warning: json['warning']?.toString(),
-  );
+  factory ColdTxAssetInfo.fromJson(Map<String, dynamic> json) =>
+      ColdTxAssetInfo(
+        isNative: json['isNative'] == true,
+        symbol: json['symbol']?.toString(),
+        name: json['name']?.toString(),
+        contractAddress: json['contractAddress']?.toString(),
+        decimals: (json['decimals'] as num?)?.toInt(),
+        isUnknown: json['isUnknown'] == true,
+        warning: json['warning']?.toString(),
+      );
 }
 
 /// Result returned from the cold device after signing
@@ -214,19 +213,23 @@ class ColdTxSignature {
     required this.from, // recovered signer address
     required this.r, // signature components
     required this.s,
-    required this.v,
+    required this.v, // full ECDSA recovery ID (0..3), NOT just yParity
     required this.signedTxHash, // hash of the signed transaction
     required this.signedAt,
+    this.requestHash,
+    this.yParity,
     this.rawSignedTx, // optional full signed transaction RLP
   });
 
   final int version;
   final String requestId;
+  final String? requestHash;
   final int chainId;
   final String from;
   final String r;
   final String s;
   final String v;
+  final int? yParity;
   final String signedTxHash;
   final String signedAt;
   final String? rawSignedTx;
@@ -234,28 +237,33 @@ class ColdTxSignature {
   Map<String, dynamic> toJson() => {
     'version': version,
     'requestId': requestId,
+    if (requestHash != null) 'requestHash': requestHash,
     'chainId': chainId,
     'from': from,
     'r': r,
     's': s,
     'v': v,
+    if (yParity != null) 'yParity': yParity,
     'signedTxHash': signedTxHash,
     'signedAt': signedAt,
     if (rawSignedTx != null) 'rawSignedTx': rawSignedTx,
   };
 
-  factory ColdTxSignature.fromJson(Map<String, dynamic> json) => ColdTxSignature(
-    version: (json['version'] as num?)?.toInt() ?? 1,
-    requestId: '${json['requestId'] ?? ''}',
-    chainId: (json['chainId'] as num?)?.toInt() ?? 56,
-    from: '${json['from'] ?? ''}',
-    r: '${json['r'] ?? ''}',
-    s: '${json['s'] ?? ''}',
-    v: '${json['v'] ?? ''}',
-    signedTxHash: '${json['signedTxHash'] ?? ''}',
-    signedAt: '${json['signedAt'] ?? ''}',
-    rawSignedTx: json['rawSignedTx']?.toString(),
-  );
+  factory ColdTxSignature.fromJson(Map<String, dynamic> json) =>
+      ColdTxSignature(
+        version: (json['version'] as num?)?.toInt() ?? 1,
+        requestId: '${json['requestId'] ?? ''}',
+        requestHash: json['requestHash']?.toString(),
+        chainId: (json['chainId'] as num?)?.toInt() ?? 56,
+        from: '${json['from'] ?? ''}',
+        r: '${json['r'] ?? ''}',
+        s: '${json['s'] ?? ''}',
+        v: '${json['v'] ?? ''}',
+        yParity: (json['yParity'] as num?)?.toInt(),
+        signedTxHash: '${json['signedTxHash'] ?? ''}',
+        signedAt: '${json['signedAt'] ?? ''}',
+        rawSignedTx: json['rawSignedTx']?.toString(),
+      );
 }
 
 /// Balance snapshot imported into the cold device from the online device
@@ -283,13 +291,14 @@ class BalanceSnapshot {
     'source': source,
   };
 
-  factory BalanceSnapshot.fromJson(Map<String, dynamic> json) => BalanceSnapshot(
-    address: '${json['address'] ?? ''}',
-    balances: (json['balances'] as Map?)?.cast<String, String>() ?? {},
-    fetchedAt: '${json['fetchedAt'] ?? ''}',
-    blockNumber: (json['blockNumber'] as num?)?.toInt() ?? 0,
-    source: '${json['source'] ?? 'online'}',
-  );
+  factory BalanceSnapshot.fromJson(Map<String, dynamic> json) =>
+      BalanceSnapshot(
+        address: '${json['address'] ?? ''}',
+        balances: (json['balances'] as Map?)?.cast<String, String>() ?? {},
+        fetchedAt: '${json['fetchedAt'] ?? ''}',
+        blockNumber: (json['blockNumber'] as num?)?.toInt() ?? 0,
+        source: '${json['source'] ?? 'online'}',
+      );
 }
 
 /// Cold device hygiene status (for display)

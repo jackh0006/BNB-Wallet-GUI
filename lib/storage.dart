@@ -25,12 +25,20 @@ class AppStorage {
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     // Proxy passwords never go to SharedPreferences. Reading the secure store
-    // is best-effort here so widget tests and keyring-less systems still boot;
-    // a missing password simply means the proxy will fail auth, not fall back.
-    try {
-      _proxyPasswordCache = await _secure.read(key: 'proxy_password');
-    } catch (_) {
-      _proxyPasswordCache = null;
+    // is best-effort here so keyring-less systems still boot; a missing
+    // password means the proxy fails auth rather than silently going direct.
+    //
+    // The Flutter test runner has no platform plugins. An unserviced method
+    // channel can leave this future pending forever inside testWidgets' fake
+    // async zone, so tests must not touch the OS keyring at all.
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      try {
+        _proxyPasswordCache = await _secure
+            .read(key: 'proxy_password')
+            .timeout(_keyringTimeout);
+      } catch (_) {
+        _proxyPasswordCache = null;
+      }
     }
   }
 

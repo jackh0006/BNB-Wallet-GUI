@@ -43,7 +43,6 @@ dependencies:
   wallet: ^0.0.18
   flutter_localizations:
     sdk: flutter
-  rlp: ^2.0.0
   asn1lib: ^1.6.8
   ffi: ^2.2.0
 

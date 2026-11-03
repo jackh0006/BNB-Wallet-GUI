@@ -1,3 +1,4 @@
+import 'package:bnb_wallet_gui/models.dart';
 import 'package:bnb_wallet_gui/screens/privacy_dialogs.dart';
 import 'package:bnb_wallet_gui/storage.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,14 @@ void main() {
 
     expect(find.text('Custom proxy'), findsOneWidget);
     expect(find.textContaining('no direct fallback'), findsOneWidget);
+
+    // Options live in the dropdown menu, not in the closed field. Open it and
+    // prove the remote-DNS option is actually offered before parsing a URL.
+    await tester.tap(find.byType(DropdownButtonFormField<ProxyType>));
+    await tester.pumpAndSettle();
     expect(find.text('SOCKS5h — remote DNS (Tor-style)'), findsOneWidget);
+    await tester.tap(find.text('SOCKS5h — remote DNS (Tor-style)'));
+    await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byType(TextField).first,

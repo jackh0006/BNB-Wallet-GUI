@@ -143,6 +143,18 @@ class RpcService extends ChangeNotifier {
   /// built-in candidate, nothing else; if it is down nothing is sent.
   bool _strictFlag = false;
 
+  /// Cold-signer isolation: while true, this service refuses to open any
+  /// network connection. The cold wallet mode sets it before dropping the
+  /// current client, so an accidental UI refresh cannot leak a request.
+  bool _offline = false;
+  bool get offline => _offline;
+
+  void setOffline(bool value) {
+    _offline = value;
+    if (value) _dropClient();
+    notifyListeners();
+  }
+
   /// Raw exchanges for the transparency panel. In memory only, newest first.
   static const int exchangeCap = 50;
   final List<RpcExchange> _exchanges = [];
@@ -404,6 +416,11 @@ class RpcService extends ChangeNotifier {
   static const Duration _rpcCallTimeout = Duration(seconds: 10);
 
   Future<void> connect({bool allowFallback = true}) async {
+    if (_offline) {
+      throw StateError(
+        'This device is in cold-signer mode: all network access is disabled.',
+      );
+    }
     if (_client != null) return;
     final fallbacks = _network == 'testnet'
         ? BnbNetworks.testnetFallbacks
@@ -1407,41 +1424,6 @@ class RpcService extends ChangeNotifier {
       throw StateError('RPC error: $error');
     }
     return answer['result'];
-  }
-
-  /// Automatically selects the best node based on selection mode and makes an RPC call.
-  /// Used for read operations (balance, nonce, fee estimation, etc.) when no specific node is required.
-  Future<dynamic> _rpcPostAuto(
-    String method,
-    List<Object?> params, {
-    required bool forBroadcast,
-  }) async {
-    final (selectedNode, fallbacks) = _selectNodeForRequest(
-      forBroadcast: forBroadcast,
-    );
-    if (selectedNode == null) {
-      throw StateError('No available node for this request.');
-    }
-
-    Object? lastError;
-    // Try the selected node first
-    try {
-      return await _rpcPostFull(selectedNode.url, method, params);
-    } catch (e) {
-      lastError = e;
-    }
-
-    // Try fallbacks
-    for (final node in fallbacks) {
-      try {
-        return await _rpcPostFull(node.url, method, params);
-      } catch (e) {
-        lastError = e;
-        continue;
-      }
-    }
-
-    throw StateError('All nodes failed: $lastError');
   }
 
   /// Human-readable description of the active transport route. The Home card

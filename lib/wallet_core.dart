@@ -5,16 +5,10 @@ import 'package:bip32_plus/bip32_plus.dart';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:wallet/wallet.dart';
 import 'package:collection/collection.dart';
-import 'package:rlp/rlp.dart';
 import 'package:web3dart/web3dart.dart';
-import 'cold_wallet.dart';
 
-/// Custom RLP Address subclass to ensure correct RLP encoding of 20-byte addresses.
-/// The rlp package's Address class is used for correct RLP encoding (0x94 prefix).
-/// Note: Address constructor expects Uint8List (20 bytes), not String.
-class _RlpAddress extends Address {
-  _RlpAddress(String hex) : super(hexToBytes(hex.startsWith('0x') ? hex : '0x\$hex'));
-}
+import 'cold_tx_codec.dart';
+import 'cold_wallet.dart';
 
 /// Pure wallet helpers for the BNB Wallet GUI.
 ///
@@ -427,15 +421,35 @@ class WalletCore {
 
   /// Parses and decodes a ColdTxRequest on the cold device.
   /// Returns a human-readable summary and validates the transaction.
-  /// Throws if the transaction cannot be decoded or is invalid.
+  /// Throws if the transaction cannot be decoded, is expired, or is invalid.
   static ColdTxDecodeResult decodeTxRequest({
     required ColdTxRequest request,
     required List<String> coldAddresses,
     required Map<String, ColdTxAssetInfo> knownTokens,
     bool allowUnknownData = false,
   }) {
+    if (request.version != 1) {
+      throw ArgumentError(
+        'Unsupported cold request version: ${request.version}',
+      );
+    }
     if (request.chainId != 56 && request.chainId != 97) {
       throw ArgumentError('Unsupported chainId: ${request.chainId}');
+    }
+
+    final expiresAt = DateTime.tryParse(request.expiresAt);
+    if (expiresAt == null) {
+      throw ArgumentError('Request expiry is not a valid ISO-8601 timestamp');
+    }
+    if (DateTime.now().toUtc().isAfter(expiresAt.toUtc())) {
+      throw ArgumentError('This signing request has expired');
+    }
+    final createdAt = DateTime.tryParse(request.createdAt);
+    if (createdAt != null &&
+        createdAt.toUtc().isAfter(
+          DateTime.now().toUtc().add(const Duration(minutes: 5)),
+        )) {
+      throw ArgumentError('Request creation time is in the future');
     }
 
     final fromLower = request.from.toLowerCase();
@@ -443,31 +457,57 @@ class WalletCore {
       throw ArgumentError('From address does not belong to this cold wallet');
     }
 
+    final fields = _fieldsFromRequest(request);
+    final dataHex = _strip0x(request.data).toLowerCase();
+
     String? functionName;
     String? decodedTo;
     BigInt? decodedValue;
     String? warning;
 
-    final data = _strip0x(request.data);
-    if (data.isNotEmpty) {
-      if (data.startsWith('a9059cbb')) {
-        functionName = 'transfer';
-        try {
-          final toHex = '0x${data.substring(8, 72)}';
-          decodedTo = checksumAddress(toHex);
-          final valueHex = data.substring(72, 136);
-          decodedValue = BigInt.parse(valueHex, radix: 16);
-        } catch (_) {
-          warning = 'Could not decode transfer calldata';
+    if (dataHex.isNotEmpty) {
+      if (dataHex.startsWith('a9059cbb')) {
+        if (dataHex.length != 136) {
+          throw ArgumentError('ERC-20 transfer calldata has the wrong length');
         }
-      } else if (data.startsWith('095ea7b3')) {
+        functionName = 'transfer';
+        final toHex = '0x${dataHex.substring(8, 72)}';
+        decodedTo = checksumAddress(toHex);
+        decodedValue = BigInt.parse(dataHex.substring(72, 136), radix: 16);
+        if (request.assetInfo.isNative) {
+          throw ArgumentError(
+            'ERC-20 calldata was supplied but the asset is marked native',
+          );
+        }
+        final contract = request.assetInfo.contractAddress?.toLowerCase();
+        if (contract != null && contract != request.to.toLowerCase()) {
+          throw ArgumentError(
+            'Token contract does not match the transaction recipient',
+          );
+        }
+        if (fields.value != BigInt.zero) {
+          throw ArgumentError(
+            'ERC-20 transfer must not also carry a native value',
+          );
+        }
+      } else if (dataHex.startsWith('095ea7b3')) {
         functionName = 'approve';
+        if (dataHex.length != 136) {
+          throw ArgumentError('ERC-20 approve calldata has the wrong length');
+        }
+        decodedValue = BigInt.parse(dataHex.substring(72, 136), radix: 16);
         warning =
             'This is an APPROVE transaction — unlimited approvals are risky';
       } else if (!allowUnknownData) {
         throw ArgumentError(
-          'Unknown calldata (function 0x${data.substring(0, 8)}). '
+          'Unknown calldata (function 0x${dataHex.substring(0, 8)}). '
           'Enable "Advanced: sign unknown data" in settings to proceed.',
+        );
+      }
+    } else {
+      if (!request.assetInfo.isNative) {
+        throw ArgumentError(
+          'Native calldata is empty but the asset is marked as a token',
         );
       }
     }
@@ -498,272 +538,311 @@ class WalletCore {
       }
     }
 
-    final maxFee = BigInt.parse(_strip0x(request.maxFeePerGas));
-    final gasLimit = BigInt.parse(_strip0x(request.gasLimit));
-    final totalPossibleFee = maxFee * gasLimit;
-
     return ColdTxDecodeResult(
       chainId: request.chainId,
       from: request.from,
       to: request.to,
-      value: BigInt.parse(_strip0x(request.value)),
-      gasLimit: gasLimit,
-      maxFeePerGas: maxFee,
-      maxPriorityFeePerGas: BigInt.parse(
-        _strip0x(request.maxPriorityFeePerGas),
-      ),
+      value: fields.value,
+      gasLimit: fields.gasLimit,
+      maxFeePerGas: fields.maxFeePerGas,
+      maxPriorityFeePerGas: fields.maxPriorityFeePerGas,
       nonce: request.nonce,
       data: request.data,
       functionName: functionName,
       decodedTo: decodedTo,
       decodedValue: decodedValue,
       assetInfo: assetInfo,
-      totalPossibleFee: totalPossibleFee,
-      expiresAt: DateTime.parse(request.expiresAt),
+      totalPossibleFee: fields.maxFeePerGas * fields.gasLimit,
+      expiresAt: expiresAt.toUtc(),
       warning: warning,
     );
   }
 
   /// Signs a transaction on the cold device.
-  /// Returns the signature components (r, s, v) and the signed transaction hash.
-  /// Uses EIP-1559 transaction format with proper RLP encoding.
+  ///
+  /// The EIP-1559 signing payload is built by [ColdTxCodec]; the signature is
+  /// over `keccak256(0x02 || rlp([...]))` exactly once.  The raw transaction
+  /// is built from the same fields, so the signed bytes and the digest can
+  /// never drift apart.
   static ColdTxSignature signTransaction({
     required String phrase,
     required ColdTxRequest request,
     String passphrase = '',
     String path = defaultPath,
   }) {
+    if (request.version != 1) {
+      throw ArgumentError(
+        'Unsupported cold request version: ${request.version}',
+      );
+    }
+    if (request.id == null || request.id!.isEmpty) {
+      throw ArgumentError('Cold request is missing its unique ID');
+    }
+    if (request.chainId != 56 && request.chainId != 97) {
+      throw ArgumentError('Unsupported chainId: ${request.chainId}');
+    }
+    final expiresAt = DateTime.tryParse(request.expiresAt);
+    if (expiresAt == null ||
+        DateTime.now().toUtc().isAfter(expiresAt.toUtc())) {
+      throw ArgumentError('This signing request has expired');
+    }
+
+    final fields = _fieldsFromRequest(request);
     final privateKey = derivePrivateKey(
       phrase: phrase,
       passphrase: passphrase,
       path: path,
     );
+    if (privateKey.address.eip55With0x.toLowerCase() !=
+        request.from.toLowerCase()) {
+      throw ArgumentError(
+        'Derived address does not match the "from" address in the request',
+      );
+    }
 
-    final tx = Transaction(
-      from: EthereumAddress.fromHex(request.from),
-      to: EthereumAddress.fromHex(request.to),
-      value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value), radix: 16)),
-      nonce: request.nonce,
-      maxGas: int.parse(_strip0x(request.gasLimit), radix: 16),
-      maxFeePerGas: EtherAmount.inWei(
-        BigInt.parse(_strip0x(request.maxFeePerGas), radix: 16),
-      ),
-      maxPriorityFeePerGas: EtherAmount.inWei(
-        BigInt.parse(_strip0x(request.maxPriorityFeePerGas), radix: 16),
-      ),
-      data: hexToBytes(_strip0x(request.data)),
-    );
-
-    // Build the transaction payload for signing (EIP-1559: 0x02 || rlp([...]))
-    final txPayload = _buildTransactionPayload(tx, request.chainId);
+    final payload = fields.unsignedPayload();
     final signature = privateKey.signToEcSignature(
-      txPayload,
+      payload,
       chainId: request.chainId,
       isEIP1559: true,
     );
-
-    // Build the signed transaction RLP
-    // EIP-1559: 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList, yParity, r, s])
-    // yParity is 0 or 1 (the low bit of v for EIP-1559)
-    final yParity = signature.v & 1;
-    final toBytes = tx.to != null ? hexToBytes(_strip0x(tx.to!.eip55With0x)) : <int>[];
-    final rlpList = [
-      request.chainId,
-      tx.nonce ?? 0,
-      tx.maxPriorityFeePerGas?.getInWei ?? BigInt.zero,
-      tx.maxFeePerGas?.getInWei ?? BigInt.zero,
-      tx.maxGas ?? 0,
-      toBytes,
-      tx.value?.getInWei ?? BigInt.zero,
-      tx.data ?? <int>[],
-      <int>[], // access list
-      yParity,
-      signature.r,
-      signature.s,
-    ];
-
-    final rawTxBytes = Rlp.encode(rlpList);
-    final rawBytes = Uint8List.fromList([0x02] + rawTxBytes);
-    final rawHex = bytesToHex(rawBytes, include0x: true, padToEvenLength: true);
-    final hash = bytesToHex(keccak256(rawBytes), include0x: true);
-
-    // For EIP-1559, store the full recovery ID (0-3) from signToEcSignature
-    // This is needed for correct signature verification
-    final v = signature.v;
+    final recoveryId = signature.v;
+    if (recoveryId < 0 || recoveryId > 3) {
+      throw StateError('Invalid ECDSA recovery ID: $recoveryId');
+    }
+    final yParity = recoveryId & 1;
+    final raw = ColdTxCodec.signedPayload(
+      fields,
+      yParity: yParity,
+      r: signature.r,
+      s: signature.s,
+    );
+    final rawHex = bytesToHex(raw, include0x: true, padToEvenLength: true);
+    final txHash = bytesToHex(
+      ColdTxCodec.digestOfPayload(raw),
+      include0x: true,
+    );
 
     return ColdTxSignature(
       version: 1,
-      requestId: request.id ?? '',
+      requestId: request.id!,
+      requestHash: fields.signingDigestHex,
       chainId: request.chainId,
       from: privateKey.address.eip55With0x,
-      r: '0x${signature.r.toRadixString(16).padLeft(64, '0')}',
-      s: '0x${signature.s.toRadixString(16).padLeft(64, '0')}',
-      v: '0x${v.toRadixString(16)}',
-      signedTxHash: hash,
+      r: _hex32(signature.r),
+      s: _hex32(signature.s),
+      v: '0x${recoveryId.toRadixString(16)}',
+      yParity: yParity,
+      signedTxHash: txHash,
       signedAt: DateTime.now().toUtc().toIso8601String(),
       rawSignedTx: rawHex,
     );
   }
 
-  /// Verifies a cold signature on the online device.
-  /// Returns true if the signature is valid and matches the expected from address.
-  static bool verifyColdSignature({
+  /// Strictly verifies a cold signature on the online companion.
+  ///
+  /// It reconstructs the unsigned digest, parses the supplied raw transaction,
+  /// compares every field, checks r/s/yParity and the transaction hash, and
+  /// finally recovers the signer.  Any mismatch fails closed.
+  static ColdVerifyResult verifyColdSignatureDetailed({
     required ColdTxRequest request,
     required ColdTxSignature signature,
     required String expectedFrom,
   }) {
-    if (signature.requestId != request.id) return false;
-    if (signature.chainId != request.chainId) return false;
-
     try {
-      final tx = Transaction(
-        from: EthereumAddress.fromHex(request.from),
-        to: EthereumAddress.fromHex(request.to),
-        value: EtherAmount.inWei(BigInt.parse(_strip0x(request.value), radix: 16)),
-        nonce: request.nonce,
-        maxGas: int.parse(_strip0x(request.gasLimit), radix: 16),
-        maxFeePerGas: EtherAmount.inWei(
-          BigInt.parse(_strip0x(request.maxFeePerGas), radix: 16),
-        ),
-        maxPriorityFeePerGas: EtherAmount.inWei(
-          BigInt.parse(_strip0x(request.maxPriorityFeePerGas), radix: 16),
-        ),
-        data: hexToBytes(_strip0x(request.data)),
+      if (request.version != 1 || signature.version != 1) {
+        return const ColdVerifyResult.fail('Unsupported protocol version');
+      }
+      if (request.id == null || request.id!.isEmpty) {
+        return const ColdVerifyResult.fail('Request has no unique ID');
+      }
+      if (signature.requestId != request.id) {
+        return const ColdVerifyResult.fail('Request ID mismatch');
+      }
+      if (signature.chainId != request.chainId) {
+        return const ColdVerifyResult.fail('Chain ID mismatch');
+      }
+      if (request.from.toLowerCase() != expectedFrom.toLowerCase() ||
+          signature.from.toLowerCase() != expectedFrom.toLowerCase()) {
+        return const ColdVerifyResult.fail('Signer address mismatch');
+      }
+      if (signature.rawSignedTx == null ||
+          signature.rawSignedTx!.trim().isEmpty) {
+        return const ColdVerifyResult.fail('Raw signed transaction is missing');
+      }
+
+      final fields = _fieldsFromRequest(request);
+      final digest = fields.signingDigest();
+      final digestHex = bytesToHex(digest, include0x: true);
+      if (signature.requestHash == null ||
+          signature.requestHash!.toLowerCase() != digestHex.toLowerCase()) {
+        return const ColdVerifyResult.fail(
+          'Request hash does not match the transaction',
+        );
+      }
+
+      final raw = _parseHexBytes(signature.rawSignedTx!, 'rawSignedTx');
+      final parsed = ColdTxCodec.parseSigned(raw);
+      if (!parsed.fields.sameTransaction(fields)) {
+        return const ColdVerifyResult.fail(
+          'Raw transaction fields do not match the request',
+        );
+      }
+
+      if (signature.yParity == null || signature.yParity != parsed.yParity) {
+        return const ColdVerifyResult.fail('yParity mismatch');
+      }
+      final v = _parseHexInt(signature.v, 'v');
+      if (v < 0 || v > 3 || (v & 1) != parsed.yParity) {
+        return const ColdVerifyResult.fail(
+          'Recovery ID is invalid or does not match yParity',
+        );
+      }
+      final r = _parseHexBigInt(signature.r, 'r');
+      final s = _parseHexBigInt(signature.s, 's');
+      if (r != parsed.r || s != parsed.s) {
+        return const ColdVerifyResult.fail('Signature r/s mismatch');
+      }
+      if (signature.signedTxHash.toLowerCase() != parsed.hash.toLowerCase()) {
+        return const ColdVerifyResult.fail(
+          'Signed transaction hash does not match the raw bytes',
+        );
+      }
+
+      final matches = <String>[];
+      for (final recoveryId in {parsed.yParity, parsed.yParity + 2}) {
+        try {
+          final recoveredPublicKey = ecRecover(
+            digest,
+            MsgSignature(parsed.r, parsed.s, 27 + recoveryId),
+          );
+          final address = EthereumAddress(
+            publicKeyToAddress(recoveredPublicKey),
+          ).eip55With0x;
+          if (address.toLowerCase() == expectedFrom.toLowerCase()) {
+            matches.add(address);
+          }
+        } catch (_) {
+          // A wrong recovery candidate is expected to fail; try the next one.
+        }
+      }
+      if (matches.length != 1) {
+        return const ColdVerifyResult.fail(
+          'Signature does not recover to exactly one expected signer',
+        );
+      }
+
+      return ColdVerifyResult.ok(
+        rawSignedTx: parsed.rawHex,
+        txHash: parsed.hash,
+        from: matches.single,
       );
-
-      final recovered = _recoverSigner(tx, signature, expectedFrom: expectedFrom);
-      final recoveredAddr = recovered.eip55With0x;
-
-      if (recoveredAddr.toLowerCase() != expectedFrom.toLowerCase()) {
-        return false;
-      }
-
-      return true;
-    } catch (_) {
-      return false;
+    } catch (error) {
+      return ColdVerifyResult.fail('Verification failed: $error');
     }
   }
 
-  static EthereumAddress _recoverSigner(Transaction tx, ColdTxSignature sig, {String? expectedFrom}) {
-    // Recover the signer address from the signature
-    // Build the signing payload (same as used for signing)
-    final txPayload = _encodeTransactionForSigning(tx, sig.chainId);
-    
-    // Parse signature components (hex strings with 0x prefix)
-    final r = BigInt.parse(_strip0x(sig.r), radix: 16);
-    final s = BigInt.parse(_strip0x(sig.s), radix: 16);
-    // The v in ColdTxSignature is the full recovery ID (0-3) from signToEcSignature
-    final recoveryId = int.parse(_strip0x(sig.v), radix: 16);
-    
-    // Use the full recovery ID from the signature for ecRecover
-    final msgSig = MsgSignature(r, s, 27 + recoveryId);
-    try {
-      final recoveredPubKey = ecRecover(txPayload, msgSig);
-      final addr = EthereumAddress(publicKeyToAddress(recoveredPubKey));
-      if (expectedFrom != null && addr.eip55With0x.toLowerCase() == expectedFrom.toLowerCase()) {
-        return addr;
-      }
-      // If no expectedFrom provided, return the recovered address
-      return addr;
-    } catch (e) {
-      throw Exception('Could not recover address: $e');
-    }
+  static bool verifyColdSignature({
+    required ColdTxRequest request,
+    required ColdTxSignature signature,
+    required String expectedFrom,
+  }) => verifyColdSignatureDetailed(
+    request: request,
+    signature: signature,
+    expectedFrom: expectedFrom,
+  ).ok;
+
+  static ColdTxFields _fieldsFromRequest(ColdTxRequest request) {
+    final fields = ColdTxFields(
+      chainId: request.chainId,
+      nonce: BigInt.from(request.nonce),
+      maxPriorityFeePerGas: _parseHexBigInt(
+        request.maxPriorityFeePerGas,
+        'maxPriorityFeePerGas',
+      ),
+      maxFeePerGas: _parseHexBigInt(request.maxFeePerGas, 'maxFeePerGas'),
+      gasLimit: _parseHexBigInt(request.gasLimit, 'gasLimit'),
+      to: request.to,
+      value: _parseHexBigInt(request.value, 'value'),
+      data: _parseHexBytes(request.data, 'data'),
+      accessList: const [],
+    );
+    ColdTxCodec.validateFields(
+      chainId: fields.chainId,
+      nonce: fields.nonce,
+      maxPriorityFeePerGas: fields.maxPriorityFeePerGas,
+      maxFeePerGas: fields.maxFeePerGas,
+      gasLimit: fields.gasLimit,
+      to: fields.to,
+      value: fields.value,
+      data: fields.data,
+      accessList: fields.accessList,
+    );
+    return fields;
   }
 
-  /// Builds the transaction payload for signing (EIP-1559).
-  /// Returns the raw payload: 0x02 || rlp([chainId, nonce, maxPriorityFeePerGas,
-  // maxFeePerGas, gasLimit, to, value, data, accessList])
-  static Uint8List _buildTransactionPayload(Transaction tx, int chainId) {
-    // Manually construct RLP encoding to avoid Address class issues
-    // The 'to' address must be encoded as 0x94 + 20 bytes
-    final toBytes = tx.to != null ? hexToBytes(_strip0x(tx.to!.eip55With0x)) : List<int>.filled(20, 0);
-    final addressRlp = Uint8List.fromList([0x94] + toBytes);
-    
-    // Encode each field using Rlp.encode and strip list prefixes
-    final items = <Uint8List>[];
-    
-    // chainId
-    items.add(_stripListPrefix(Rlp.encode([chainId])));
-    // nonce
-    items.add(_stripListPrefix(Rlp.encode([tx.nonce ?? 0])));
-    // maxPriorityFeePerGas
-    items.add(_stripListPrefix(Rlp.encode([tx.maxPriorityFeePerGas?.getInWei ?? BigInt.zero])));
-    // maxFeePerGas
-    items.add(_stripListPrefix(Rlp.encode([tx.maxFeePerGas?.getInWei ?? BigInt.zero])));
-    // gasLimit
-    items.add(_stripListPrefix(Rlp.encode([tx.maxGas ?? 0])));
-    // to address (manually encoded with 0x94 prefix)
-    items.add(Uint8List.fromList([0x94] + toBytes));
-    // value
-    items.add(_stripListPrefix(Rlp.encode([tx.value?.getInWei ?? BigInt.zero])));
-    // data
-    items.add(_stripListPrefix(Rlp.encode([tx.data ?? <int>[]])));
-    // access list
-    items.add(_stripListPrefix(Rlp.encode([<int>[]])));
-    
-    // Concatenate all items
-    final concatenated = BytesBuilder();
-    for (final item in items) {
-      concatenated.add(item);
+  static BigInt _parseHexBigInt(String value, String field) {
+    final clean = _strip0x(value.trim());
+    if (clean.isEmpty || !RegExp(r'^[0-9a-fA-F]+$').hasMatch(clean)) {
+      throw ArgumentError('Invalid hex value for $field');
     }
-    final concatenatedBytes = concatenated.toBytes();
-    
-    // Add list prefix
-    final listPrefix = _encodeLength(concatenatedBytes.length, 0xc0);
-    final fullRlp = Uint8List.fromList(listPrefix + concatenatedBytes);
-    return Uint8List.fromList([0x02] + fullRlp);
+    return BigInt.parse(clean, radix: 16);
   }
 
-  /// Encodes a transaction for signing (EIP-1559).
-  /// Returns the keccak256 hash of the RLP-encoded unsigned transaction.
-  static Uint8List _encodeTransactionForSigning(Transaction tx, int chainId) {
-    final payload = _buildTransactionPayload(tx, chainId);
-    return keccak256(payload);
+  static int _parseHexInt(String value, String field) {
+    final parsed = _parseHexBigInt(value, field);
+    if (parsed > BigInt.from(0x7fffffff)) {
+      throw ArgumentError('$field is too large');
+    }
+    return parsed.toInt();
   }
 
-  /// Strips the RLP list prefix from an encoded item, returning just the item's data.
-  static Uint8List _stripListPrefix(Uint8List encoded) {
-    if (encoded.isEmpty) return Uint8List.fromList([]);
-    
-    final firstByte = encoded[0];
-    if (firstByte < 0xc0) {
-      return encoded;
-    } else if (firstByte <= 0xf7) {
-      final length = firstByte - 0xc0;
-      return encoded.sublist(1, 1 + length);
-    } else {
-      final lengthOfLength = firstByte - 0xf7;
-      var length = 0;
-      for (int i = 0; i < lengthOfLength; i++) {
-        length = (length << 8) | encoded[1 + i];
-      }
-      final valueStart = 1 + (firstByte - 0xf7);
-      return encoded.sublist(1 + (firstByte - 0xf7), 1 + (firstByte - 0xf7) + length);
+  static Uint8List _parseHexBytes(String value, String field) {
+    final clean = _strip0x(value.trim());
+    if (clean.isEmpty) return Uint8List(0);
+    if (clean.length.isOdd || !RegExp(r'^[0-9a-fA-F]+$').hasMatch(clean)) {
+      throw ArgumentError('Invalid hex bytes for $field');
     }
+    return Uint8List.fromList(hexToBytes(clean));
   }
 
-  /// Encodes an RLP length prefix.
-  static Uint8List _encodeLength(int length, int offset) {
-    if (length <= 55) {
-      return Uint8List.fromList([offset + length]);
-    } else {
-      var x = Uint32List(1);
-      x[0] = length;
-      var y = Uint8List.view(x.buffer);
-      var num = 3;
-      while (y[num] == 0) {
-        --num;
-      }
-      var e = Uint8List(num + 2);
-      e[0] = 0x80 + num + 1;
-      for (var i = 1; i < e.length; ++i) {
-        e[i] = y[num--];
-      }
-      return e;
-    }
-  }
+  static String _hex32(BigInt value) =>
+      '0x${value.toRadixString(16).padLeft(64, '0')}';
 
   static String formatFee(BigInt feeWei) => formatEther(feeWei);
+}
+
+/// Result of strict cold-signature verification.  [reason] is safe to show to
+/// the user; it never contains secret material.
+class ColdVerifyResult {
+  const ColdVerifyResult._({
+    required this.ok,
+    required this.reason,
+    this.rawSignedTx,
+    this.txHash,
+    this.from,
+  });
+
+  const ColdVerifyResult.fail(String reason)
+    : this._(ok: false, reason: reason);
+
+  factory ColdVerifyResult.ok({
+    required String rawSignedTx,
+    required String txHash,
+    required String from,
+  }) => ColdVerifyResult._(
+    ok: true,
+    reason: 'Signature matches the exact requested transaction',
+    rawSignedTx: rawSignedTx,
+    txHash: txHash,
+    from: from,
+  );
+
+  final bool ok;
+  final String reason;
+  final String? rawSignedTx;
+  final String? txHash;
+  final String? from;
 }
 
 /// One place that decides what may NEVER reach the system clipboard — the

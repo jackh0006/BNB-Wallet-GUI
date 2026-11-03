@@ -10,6 +10,7 @@ import '../security.dart';
 import '../storage.dart';
 import '../wallet_core.dart';
 import 'backup_quiz_dialog.dart';
+import 'cold_wallet_dialogs.dart';
 import 'common.dart';
 import 'logs_page.dart';
 import 'privacy_dialogs.dart';
@@ -1945,8 +1946,12 @@ class _SettingsPageState extends State<SettingsPage> {
               'or pending transactions; the app checks the chain id and '
               'double-checks receipts where it can, but it is not a full light '
               'client.\n\n'
-              '• This build is a hot wallet on Linux. Cold/offline signing '
-              'mode is not implemented yet, and there is no hardware-wallet '
+              '• Cold/offline signing is implemented as a file/paste QR flow '
+              'on this build: the online companion prepares the unsigned '
+              'transaction, the cold device signs it without networking, and '
+              'the online side verifies the exact bytes with an independent '
+              'ethers.js check before broadcasting. Camera QR scanning is not '
+              'available on Linux, and there is no hardware-wallet '
               'integration.\n\n'
               '• Token names and symbols come from the contract. A fake token '
               'can copy a real one; verify the contract address from the '
@@ -2334,57 +2339,54 @@ class _SettingsPageState extends State<SettingsPage> {
               title: const Text('Export for online device'),
               subtitle: const Text('QR / file with public addresses only'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _exportColdPairing(context),
+              onTap: () => coldExportPairing(context),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code_scanner, color: Colors.amber),
-              title: const Text('Import pairing data'),
-              subtitle: const Text('QR / file from online device'),
+              leading: const Icon(Icons.edit_document, color: Colors.amber),
+              title: const Text('Sign a request offline'),
+              subtitle: const Text('Paste / read the online device\'s request'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _importColdPairing(context),
+              onTap: () => coldSignPendingRequest(context),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.qr_code_2, color: Colors.amber),
+              title: const Text('Show last signed response'),
+              subtitle: const Text('QR / file to carry back online'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => coldShowLastSignature(context),
             ),
           ],
           if (appState.onlineMode) ...[
             const Divider(height: 24),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code_scanner, color: Colors.amber),
-              title: const Text('Scan cold device request'),
-              subtitle: const Text('QR / file from cold signer'),
+              leading: const Icon(Icons.link, color: Colors.amber),
+              title: const Text('Import cold pairing'),
+              subtitle: const Text('Verify the fingerprint, then watch only'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _scanColdRequest(context),
+              onTap: () => coldImportPairing(context),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code, color: Colors.amber),
-              title: const Text('Show signed result'),
-              subtitle: const Text('QR / file to send back to cold device'),
+              leading: const Icon(Icons.qr_code_2, color: Colors.amber),
+              title: const Text('Show pending request'),
+              subtitle: const Text('Request to carry to the cold signer'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showColdSignature(context),
+              onTap: () => coldShowPendingRequest(context),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.verified_user, color: Colors.amber),
+              title: const Text('Import signed response'),
+              subtitle: const Text('Verify strictly, then broadcast'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => coldImportAndBroadcastSignature(context),
             ),
           ],
         ],
       ),
-    );
-  }
-
-  void _exportColdPairing(BuildContext context) {
-    showInfo(context, 'Cold pairing export: QR / file UI comes next (R5 UI).');
-  }
-
-  void _importColdPairing(BuildContext context) {
-    showInfo(context, 'Cold pairing import: QR / file UI comes next (R5 UI).');
-  }
-
-  void _scanColdRequest(BuildContext context) {
-    showInfo(context, 'Cold request scan: QR / file UI comes next (R5 UI).');
-  }
-
-  void _showColdSignature(BuildContext context) {
-    showInfo(
-      context,
-      'Cold signature display: QR / file UI comes next (R5 UI).',
     );
   }
 

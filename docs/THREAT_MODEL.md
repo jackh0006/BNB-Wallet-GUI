@@ -1,4 +1,4 @@
-# Threat Model — BNB Wallet GUI v1.0.3
+# Threat Model — BNB Wallet GUI v1.0.5
 
 Created by jackh0006 (jackh109867@gmail.com)
 
@@ -17,6 +17,8 @@ grade". Software carries risk; this document describes ours.
 | App-lock PIN | Only as a salted Argon2id hash in secure storage | Exponential backoff on failures: 1 s, 2 s, 4 s … capped at 15 min |
 | BscScan API key | Secure storage | Public-but-private value; erased with "Erase all data" |
 | Transaction history | Not persisted at all | Fetched live from the explorer API; nothing on disk |
+| Cold pairing (public addresses + fingerprint) | Preferences, public | No secret; fingerprint must be compared out-of-band |
+| Cold unsigned request / signed response | Preferences, public | Bounded to 20 each; no seed or key |
 | Non-secret config (network, RPC nodes, Tor host/port, auto-lock) | SharedPreferences | No secrets by policy |
 
 ## What this wallet defends against
@@ -51,6 +53,41 @@ grade". Software carries risk; this document describes ours.
    traffic is routed through a local SOCKS5 connector (Tor). DNS travels
    inside the tunnel. If the proxy is down, calls fail — the app never
    silently falls back to a direct connection.
+11. **Cold-wallet field substitution.** A signed response is accepted only
+   if its raw EIP-1559 transaction matches the exact pending request field
+   by field (chain, nonce, fees, gas limit, recipient, value, calldata),
+   its hash matches the raw bytes, and its signature recovers to the paired
+   address. A changed request cannot reuse an old signature.
+12. **Cold-wallet replay.** A request id can be signed once; a response is
+   accepted only while its request is pending; a transaction hash already
+   broadcast is refused. The node's returned hash must equal the locally
+   computed hash, otherwise the wallet reports an unknown outcome and does
+   not resend automatically.
+13. **TLS interception with a trusted-but-wrong certificate.** Optional
+   SPKI pinning runs *after* standard CA and hostname validation. A pin can
+   never make an untrusted or wrong-host certificate acceptable. Pinned
+   HTTP CONNECT is refused rather than silently downgraded.
+
+## Cold-wallet threats (implemented flow)
+
+The cold flow separates the seed holder (offline) from the network holder
+(public pairing only). Its security depends on the user comparing the pairing
+fingerprint and reviewing the transaction on the cold screen.
+
+| Threat | Control | Residual risk |
+|---|---|---|
+| Malicious pairing replaces the recipient addresses | Pairing is public data; the fingerprint is derived from the first address and must be compared on both devices out-of-band | If the user skips the fingerprint comparison, a substituted pairing is accepted |
+| Online companion prepares a dishonest request (wrong recipient/fee) | Cold device decodes and displays the exact request; the user must approve it | A user who does not review the cold screen can sign a dishonest request |
+| Signed response substitutes fields | Full field-by-field comparison, request hash, raw parse, `r`/`s`/`yParity`, transaction hash, signer recovery | A bug in the shared codec could affect both sides; the independent ethers.js check is the cross-check |
+| Replay of a signed response | Single-use request id, pending-request requirement, broadcast-hash burn list | Reinstalling the app clears local replay state; the chain nonce still prevents a second valid transaction with the same nonce |
+| Unsigned request sits on disk too long | 30-minute default lifetime, 24-hour hard cap, expiry checked at sign and verify time | Clock skew beyond 5 minutes causes refusal, not acceptance |
+| QR/file channel is observed | Envelopes contain only public tx data and public addresses | The channel is not confidential; it does not need to be |
+| Cold device has no network but is compromised | No network code runs in cold mode; keys stay in process memory while unlocked | A compromised OS can read memory or the seed; out of scope |
+| Online companion is compromised | It never holds a key, and it cannot forge a signature for the paired address | It can refuse service, lie about fees, or withhold a response |
+
+The cold protocol is not a substitute for a hardware wallet: the seed exists
+in the cold device's process memory while unlocked, and there is no secure
+element or trusted display.
 
 ## What this wallet does NOT defend against
 
@@ -84,19 +121,32 @@ Honesty section. These are real limits, not corner cases.
   forget the vault password, the funds are gone. The app cannot fix this.
 - **User error.** Sending to the wrong (valid) address, losing the seed,
   or confirming a scam transaction is out of scope for any software.
+- **Cold-flow user checks.** The cold device must display and the user must
+  review the recipient, amount, fee cap and calldata. The software binds the
+  bytes but cannot force a human to read the screen. The pairing fingerprint
+  must be compared on both devices; skipping that check defeats the pairing
+  control.
+- **Cold-mode field testing.** The flow is covered by automated tests and a
+  fake broadcast, not by a documented two-physical-device exercise.
+- **Camera QR on Linux.** Not implemented; file and paste are the transports.
+- **Release-signing key.** The old release keystore was committed and must be
+  treated as compromised. Future APKs must use a rotated key held outside the
+  repository. This is an operational action, not a source-code fix.
+- **Memory locking is best-effort.** `prctl(PR_SET_DUMPABLE, 0)` and the core
+  limit are asserted on Linux; `mlockall` can fail under a low memlock limit.
+  Windows/macOS are not covered by the kernel-state test.
 - **Independent verification — honest status.** The cryptography sits on
   audited, published primitives (Argon2id, XChaCha20-Poly1305, HKDF — from
-  the pinned `cryptography` package; SOCKS5 from `socks5_proxy`), and this
-  repository documents and tests what it composes from them: see
-  docs/STANDARDS.md for the subsystem-by-subsystem proof map, including
-  commands you can run yourself in five minutes (verify signatures with GPG,
-  watch the app's network with strace, read the vault's public byte layout,
-  inspect the shipped deb's file layout). What no software author alone can
-  hand you is a **third-party security audit of this release** — if you plan
-  to hold serious value here, require one before doing so, and ask me for
-  the latest audit statement: **jackh109867@gmail.com**. Everything else on
-  this page is checkable, and this document says explicitly that the checks
-  it describes have been run for this build.
+  the pinned `cryptography` package; secp256k1 via `web3dart`; SOCKS5 from
+  `socks5_proxy`). The EIP-1559 serialization is project code, because the
+  available RLP helper encoded byte strings incorrectly; it is cross-checked
+  against ethers.js 6.13.2 in `verification/verify.cjs`. What no software
+  author alone can hand you is a **third-party security audit of this
+  release** — if you plan to hold serious value here, require one before
+  doing so, and ask for the latest audit statement:
+  **jackh109867@gmail.com**. The internal self-assessment is
+  [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md); it does not claim to be an
+  external audit.
 
 ## When Tor mode is useful, and when it is not
 

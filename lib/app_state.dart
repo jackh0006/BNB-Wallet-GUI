@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web3dart/web3dart.dart';
 
+import 'cold_wallet.dart' hide WalletMode, WalletModeLabel;
+import 'cold_wallet_service.dart';
 import 'encrypted_log_store.dart';
 import 'models.dart';
 import 'receipt_store.dart';
@@ -43,6 +45,7 @@ class AppState extends ChangeNotifier {
 
   // §10f Wallet mode: 0=hot, 1=cold, 2=online
   int _walletModeIndex = 0;
+  ColdPairingData? _coldPairing;
 
   WalletMode get walletMode {
     switch (_walletModeIndex) {
@@ -59,6 +62,7 @@ class AppState extends ChangeNotifier {
   bool get onlineMode => _walletModeIndex == 2;
   bool get hotMode => _walletModeIndex == 0;
   int get walletModeIndex => _walletModeIndex;
+  ColdPairingData? get coldPairing => _coldPairing;
 
   EthPrivateKey? get privateKey => _key;
   String? get mnemonic => _mnemonic;
@@ -136,14 +140,81 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// §10f Wallet mode: 0=hot, 1=cold, 2=online
+  /// §10f Wallet mode: 0=hot, 1=cold, 2=online.
+  ///
+  /// Switching into the cold signer hard-disconnects every network client and
+  /// keeps it that way until another mode is chosen. Switching into the online
+  /// companion wipes keys from memory and opens the paired watch-only address,
+  /// so no signing path can ever see a private key there.
   Future<void> setWalletMode(int value) async {
-    _walletModeIndex = value.clamp(0, 2);
+    final next = value.clamp(0, 2);
+    final previous = _walletModeIndex;
+
+    if (next == 1) {
+      rpc.setOffline(true);
+      await rpc.disconnect();
+      _watchAddress = null;
+      await AppStorage.setWatchAddress(null);
+      // A cold signer may keep its unlocked seed for offline signing. If no
+      // seed/key is in memory the user must unlock the vault again.
+      _unlocked = _key != null || _mnemonic != null;
+    } else {
+      rpc.setOffline(false);
+      if (next == 2) {
+        // Online companion: never retain a private key or seed.
+        _key = null;
+        _mnemonic = null;
+        final pairing = _coldPairing;
+        if (pairing != null && pairing.addresses.isNotEmpty) {
+          _watchAddress = pairing.addresses.first;
+          _unlocked = true;
+          await AppStorage.setWatchAddress(_watchAddress);
+        } else {
+          _watchAddress = null;
+          _unlocked = false;
+          await AppStorage.setWatchAddress(null);
+        }
+      } else if (previous == 1) {
+        // Leaving the cold signer locks it: a hot wallet must be explicitly
+        // unlocked again before it can sign or broadcast.
+        _key = null;
+        _mnemonic = null;
+        _unlocked = false;
+      }
+      if (next == 0 && _watchAddress != null) {
+        // Do not carry the companion's watch-only address into hot mode.
+        _watchAddress = null;
+        _unlocked = false;
+        await AppStorage.setWatchAddress(null);
+      }
+    }
+
+    _walletModeIndex = next;
     await AppStorage.setWalletMode(_walletModeIndex);
     rpc.note(
       'Wallet mode switched to ${walletMode.label}.',
       kind: RpcStoryKind.info,
     );
+    notifyListeners();
+    if (next != 1) {
+      unawaited(rpc.connect().catchError((_) => null));
+    }
+  }
+
+  /// Persist a pairing exported by the cold device and make its first address
+  /// the online companion's watch-only account. Never imports a secret.
+  Future<void> adoptColdPairing(ColdPairingData pairing) async {
+    await ColdWalletService.instance.savePairing(pairing);
+    _coldPairing = pairing;
+    if (onlineMode && pairing.addresses.isNotEmpty) {
+      await openWatchOnly(pairing.addresses.first);
+    }
+    notifyListeners();
+  }
+
+  Future<void> forgetColdPairing() async {
+    await ColdWalletService.instance.clearPairing();
+    _coldPairing = null;
     notifyListeners();
   }
 
@@ -193,6 +264,10 @@ class AppState extends ChangeNotifier {
     _themeModeIndex = AppStorage.themeModeIndex;
     _locale = AppStorage.locale;
     _walletModeIndex = AppStorage.walletModeIndex;
+    _coldPairing = await ColdWalletService.instance.loadPairing();
+    if (_walletModeIndex == 1) {
+      rpc.setOffline(true);
+    }
     _strictNode = AppStorage.strictNode;
     rpc.setStrictFlag(_strictNode);
     _syncNodePool();
@@ -204,11 +279,20 @@ class AppState extends ChangeNotifier {
     if (savedWatch != null && WalletCore.isValidAddress(savedWatch)) {
       _watchAddress = WalletCore.checksumAddress(savedWatch);
       _unlocked = true;
+    } else if (_walletModeIndex == 2 &&
+        _coldPairing != null &&
+        _coldPairing!.addresses.isNotEmpty) {
+      _watchAddress = _coldPairing!.addresses.first;
+      _unlocked = true;
+      await AppStorage.setWatchAddress(_watchAddress);
     }
     _initialised = true;
     notifyListeners();
-    // Connection is attempted in the background so the UI can show status.
-    rpc.connect().catchError((_) => null);
+    // The cold signer never opens a socket. Other modes connect in the
+    // background so the UI can show status without blocking startup.
+    if (_walletModeIndex != 1) {
+      rpc.connect().catchError((_) => null);
+    }
   }
 
   Future<void> unlock(EthPrivateKey key, {String? mnemonic}) async {

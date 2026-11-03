@@ -4,6 +4,39 @@ All notable changes to this wallet. Dates in 2026; version 1.0.5 is the
 release line built as a deb for Debian/Ubuntu (no APK — the deb is the
 distribution form for this device).
 
+## 2026-11-03 — cold-wallet and verification hardening (unreleased)
+
+- **Cold wallet end-to-end:** pairing/request/signature envelopes with
+  version, kind, canonical JSON, SHA-256 checksum, strict field allow-lists
+  and size limits; public-address-only pairing; runtime-offline cold signer;
+  online companion with no keys; strict verify-before-broadcast; replay and
+  already-broadcast guards; bounded public storage.
+- **EIP-1559 correctness:** new `cold_tx_codec.dart` replaces the broken
+  `rlp` package usage. One canonical codec now produces the unsigned payload,
+  digest, signed bytes and parsed transaction. The parser rejects
+  non-canonical RLP, bad scalars, high-s, wrong field counts and access lists.
+- **Independent verification:** `verification/verify.cjs` uses ethers.js
+  6.13.2 (not web3dart) to check the exact bytes, digest, fields, `r`/`s`/
+  `yParity`, hash and recovered signer, and rejects 8 substitutions.
+- **TLS pinning:** standard CA/hostname validation first, then SPKI pin;
+  corrected the v3 certificate SPKI index (extensions were hashed instead of
+  the public key); pinned HTTP CONNECT refused; 6 integration tests.
+- **Memory hardening:** FFI `prctl(PR_SET_DUMPABLE,0)`, `setrlimit(RLIMIT_CORE,0)`
+  and best-effort `mlockall`; kernel-state tests. The old `sh -c ulimit` was a
+  no-op.
+- **Release hygiene:** removed the committed keystore and hardcoded password;
+  `build-apk.sh` requires environment credentials and never creates a
+  keystore; `.gitignore` blocks signing material; `secret-scan.sh` runs in CI.
+- **Cold account index:** signer derives the matching default BIP-44 account
+  instead of always index 0.
+- **Test stability:** keyring read bounded and skipped under `FLUTTER_TEST`;
+  proxy dialog overflow fixed; realistic KDF timeouts.
+- Docs: `SECURITY_AUDIT.md`, `docs/COLD_WALLET.md`, `docs/TESTING.md`;
+  updated THREAT_MODEL, CRYPTO, SECURITY, SPEC-COMPLIANCE and README.
+- **Not changed into a claim:** no third-party audit; old release key remains
+  compromised and must be rotated; no OS-enforced air gap; no camera QR on
+  Linux; no two-device field test.
+
 ## 1.0.5 — release rounds 1–8 plus verification rounds R0–R3 (2026)
 
 ### Vault & keys

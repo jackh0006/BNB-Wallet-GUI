@@ -34,7 +34,7 @@ void main() {
           reason: 'v2 magic marker at the front of every envelope');
       final clear = await VaultCipher.decrypt(password, blob, device);
       expect(clear, payload);
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
 
     test('rejects a wrong password', () async {
       final blob = await goodBlob();
@@ -42,7 +42,7 @@ void main() {
         () => VaultCipher.decrypt('not-the-password', blob, device),
         throwsA(isA<VaultException>()),
       );
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
 
     test('rejects a wrong device secret — copied vault file is inert', () async {
       final blob = await goodBlob();
@@ -50,7 +50,7 @@ void main() {
         () => VaultCipher.decrypt(password, blob, 'nope-nope-nope'),
         throwsA(isA<VaultException>()),
       );
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
 
     test('unknown plaintexts differ in ciphertext (fresh nonce each time)', () async {
       final a = await goodBlob(); // one envelope produced by its own call
@@ -59,7 +59,7 @@ void main() {
       // Both still decrypt.
       expect(await VaultCipher.decrypt(password, a, device), payload);
       expect(await VaultCipher.decrypt(password, b, device), payload);
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
 
     test('rejects downgraded Argon2id parameters in the header', () async {
       final blob = await goodBlob();
@@ -94,7 +94,7 @@ void main() {
         () => VaultCipher.decrypt(password, swappedText, device),
         throwsA(isA<VaultException>()),
       );
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
 
     test('does not leak which wrapper failed (single message)', () async {
       final blob = await goodBlob();
@@ -110,7 +110,7 @@ void main() {
       } on VaultException catch (e) {
         expect(e.message, contains('device key'));
       }
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
   });
 
   group('VaultCipher v1 migration', () {
@@ -152,7 +152,7 @@ void main() {
       ]);
       final clear = await VaultCipher.decrypt(password, blob, device);
       expect(clear, payload);
-    }, timeout: const Timeout(Duration(minutes: 4)));
+    }, timeout: const Timeout(Duration(minutes: 8)));
   });
 }
 

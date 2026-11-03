@@ -2,10 +2,19 @@
 
 Created by jackh0006 (jackh109867@gmail.com)
 
-Implementation: `lib/vault.dart`, `lib/security.dart`, `lib/storage.dart`.
-Primitives are provided by the `cryptography` package (Argon2id,
-XChaCha20-Poly1305, HKDF-SHA256); SOCKS5 transport by `socks5_proxy`.
-Nothing crypto-primitive was hand-rolled.
+Implementation: `lib/vault.dart`, `lib/security.dart`, `lib/storage.dart`,
+`lib/cold_tx_codec.dart`, `lib/cold_wallet_protocol.dart`,
+`lib/net/privacy_client.dart`, `lib/memory_protection.dart`.
+Crypto primitives are provided by the `cryptography` package (Argon2id,
+XChaCha20-Poly1305, HKDF-SHA256), `web3dart`/`wallet` (secp256k1, keccak256,
+EIP-55), and `socks5_proxy` for SOCKS5 transport.
+
+One serialization component is project code: the canonical EIP-1559/RLP
+codec in `lib/cold_tx_codec.dart`. The available `rlp` helper encoded every
+`List<int>` as an RLP list, so addresses and calldata were serialized
+incorrectly. The replacement is not a new cryptographic primitive; it is a
+strict encoder/decoder cross-checked against ethers.js 6.13.2 in
+`verification/verify.cjs`.
 
 ## Vault envelope v2 ("BNBVL004", version byte 2)
 
@@ -98,6 +107,70 @@ the data in v2. The version byte must be 1 for the v1 path.
   re-anchors it to "now + remaining", so booting backwards/forwards does
   not reset it. Vault password attempts are already rate-limited by
   Argon2id's cost.
+
+## Cold-wallet transaction format (EIP-1559)
+
+Implemented in `lib/cold_tx_codec.dart`; used by the cold signer, the strict
+response verifier and the online broadcast gate.
+
+Unsigned payload:
+
+```
+0x02 || rlp([
+  chainId, nonce, maxPriorityFeePerGas, maxFeePerGas,
+  gasLimit, to, value, data, accessList
+])
+```
+
+Signing digest: `keccak256(unsigned payload)`. Signed payload appends
+`yParity, r, s` to the same list. `yParity` is 0 or 1. `r` and `s` must be in
+`[1, n-1]` and `s <= n/2` (low-s); the parser rejects non-canonical RLP,
+non-minimal integers, trailing bytes, wrong field counts and access lists
+(the cold protocol does not support them).
+
+The internal `ColdTxSignature.v` stores the **full ECDSA recovery id** (0–3),
+while the serialized EIP-1559 transaction contains only `yParity`. The
+verifier checks that `v & 1 == yParity`, parses the raw transaction, compares
+every field and the transaction hash, and recovers the signer with secp256k1.
+Exactly one recovery candidate must match the paired address. No private key
+or seed is stored in a request or response.
+
+The independent fixture is in `verification/fixture.json`; it uses the public
+Hardhat/Anvil test mnemonic (`test test ... junk`) and no funded key. The
+fixture values are reproduced by ethers.js, not accepted on trust from the
+Dart implementation.
+
+## TLS SPKI pinning
+
+`lib/net/privacy_client.dart` performs a normal `SecureSocket.connect` with
+standard CA and hostname validation first. If the node has pinned SPKI
+hashes, the peer certificate's SubjectPublicKeyInfo is extracted and hashed
+with SHA-256; the base64 value must match one of the pins. A wrong pin closes
+the connection. A pin cannot make an untrusted chain or wrong hostname
+acceptable, and an empty pin list fails closed.
+
+SPKI extraction follows RFC 5280: the subjectPublicKeyInfo is element 6 of
+`TBSCertificate` when the explicit `[0]` version field is present, element 5
+otherwise. The earlier code used index 7 for v3 certificates, which hashed
+the extensions block instead of the public key. `test/tls_pinning_test.dart`
+compares the Dart result with OpenSSL's independent extraction.
+
+Pinned HTTP CONNECT is refused before opening a socket; that transport does
+not yet enforce pins.
+
+## Process memory hardening (Linux)
+
+`lib/memory_protection.dart` calls the kernel through FFI:
+
+- `prctl(PR_SET_DUMPABLE, 0)` — prevents same-UID `ptrace`/core inspection
+  of the wallet process (subject to kernel policy);
+- `setrlimit(RLIMIT_CORE, 0)` — no core files;
+- `mlockall(MCL_CURRENT | MCL_FUTURE)` — best effort; may fail under a low
+  `RLIMIT_MEMLOCK`, and the app reports failure instead of claiming success.
+
+This is not a secure enclave, not encrypted memory, and does not protect
+against a compromised OS or a process running as the same user before the
+call. `test/memory_protection_test.dart` reads back the real kernel state.
 
 ## Preferences and secrets separation
 

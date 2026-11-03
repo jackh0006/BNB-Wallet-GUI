@@ -46,3 +46,24 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Release signing material — never commit. Supply via environment; see
+# scripts/build-apk.sh.
+*.keystore
+*.jks
+*.p12
+*.pfx
+key.properties
+release-signing/
+
+# Local build/release output
+/dist/
+*.apk
+*.aab
+*.deb
+
+# Debug/investigation leftovers
+*.bak
+/test_*.dart
+/bin/investigate*.dart
+/bin/verify_signature.dart

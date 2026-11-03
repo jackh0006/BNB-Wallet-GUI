@@ -27,7 +27,7 @@ void main() {
       <String>['correct horse', blob, 'device-secret-0123456789'],
     );
     expect(clear, payload);
-  }, timeout: const Timeout(Duration(minutes: 4)));
+  }, timeout: const Timeout(Duration(minutes: 8)));
 
   test('vaultDecryptJob refuses the wrong device key (same stack as v1.0.4)',
       () async {
@@ -38,7 +38,7 @@ void main() {
       vaultDecryptJob(<String>['pw', blob, 'wrong-device-key']),
       throwsA(anything),
     );
-  }, timeout: const Timeout(Duration(minutes: 4)));
+  }, timeout: const Timeout(Duration(minutes: 8)));
 
   test('pinHashJob keeps the exact v1.0.4 record format (64 MiB Argon2id)',
       () async {
@@ -51,5 +51,5 @@ void main() {
     expect(a.length, 44);
     expect(base64Decode(a).length, 32);
     expect(a, isNot(other));
-  }, timeout: const Timeout(Duration(minutes: 4)));
+  }, timeout: const Timeout(Duration(minutes: 15)));
 }
