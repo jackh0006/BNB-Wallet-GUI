@@ -17,24 +17,29 @@ import 'vault.dart';
 /// Exported for use by AppState.
 final vaultOperationLock = Lock();
 
+// Permission constants for file operations
+const int _kPermMask = 511; // 0o777
+const int _kExpectedPerm = 384; // 0o600
+
 /// Creates a secure temporary file in the same directory as [destination].
 /// Uses a cryptographically random name to prevent collision and prediction.
 /// The file is created with restrictive permissions (0600) from the start.
 /// Returns the temporary [File] handle.
 /// Throws if the destination directory doesn't exist or isn't writable.
+/// Fails if restrictive permissions cannot be established.
 Future<File> _createSecureTempFile(File destination) async {
   final parent = destination.parent;
   if (!await parent.exists()) {
     throw StateError('Destination directory does not exist: ${parent.path}');
   }
-  // Check if parent is a symlink (best effort - followLinks: false)
+  // Check if parent is a symlink
   try {
     final parentStat = await parent.stat();
     if (parentStat.type == FileSystemEntityType.link) {
       throw StateError('Destination parent directory is a symlink, refusing to write.');
     }
   } catch (_) {
-    // If stat fails, continue anyway - we'll catch write errors later
+    // If stat fails, we'll catch write errors later
   }
 
   String tempName;
@@ -49,27 +54,68 @@ Future<File> _createSecureTempFile(File destination) async {
     if (!await tempFile.exists()) break;
     if (attempt == 9) throw StateError('Could not generate unique temporary filename');
   }
-  // Create with restrictive permissions from the start
+  // Create the file first
   await tempFile!.create(exclusive: true);
+  // Set restrictive permissions (0600) on Linux/macOS
   if (Platform.isLinux || Platform.isMacOS) {
     try {
       await Process.run('chmod', ['600', tempFile.path]);
     } catch (_) {
-      // Best effort
+      await tempFile!.delete();
+      throw StateError('Failed to set restrictive permissions (0600) on temporary file');
+    }
+    // Verify permissions were set correctly
+    try {
+      final stat = await tempFile.stat();
+      if ((stat.mode & _kPermMask) != _kExpectedPerm) {
+        // Try to fix if possible
+        await Process.run('chmod', ['600', tempFile.path]);
+        final recheck = await tempFile.stat();
+        if ((recheck.mode & _kPermMask) != _kExpectedPerm) {
+          await tempFile.delete();
+          throw StateError('Failed to set restrictive permissions (0600) on temporary file');
+        }
+      }
+    } catch (_) {
+      await tempFile!.delete();
+      throw StateError('Failed to verify restrictive permissions on temporary file');
     }
   }
-  return tempFile;
+  return tempFile!;
 }
 
-/// Checks if [path] is a symlink (best effort, platform-dependent).
+/// Checks if [path] is a symlink using lstat semantics (no follow).
 /// Returns true if the path exists and is a symbolic link.
+/// Throws [StateError] if the filesystem check fails for any reason other than 'not found'.
 Future<bool> _isSymlink(String path) async {
   try {
+    // Use FileStat from lstat (File.stat() follows symlinks, but we can use
+    // the Link class which uses lstat internally on POSIX)
     final link = Link(path);
     final target = await link.target();
-    return target.isNotEmpty;
-  } catch (_) {
+    // If target is non-empty, it's a symlink. Empty target means either
+    // not a symlink or a broken symlink (which we also treat as symlink).
+    // To distinguish, we can check if the path exists at all via lstat.
+    final stat = await FileStat.stat(path); // This uses lstat on POSIX
+    if (stat.type == FileSystemEntityType.link) {
+      return true;
+    }
+    // If stat says it's not a link, but link.target() returned something,
+    // something is inconsistent - treat as symlink for safety.
+    if (target.isNotEmpty) {
+      return true;
+    }
     return false;
+  } on FileSystemException catch (e) {
+    // File not found - not a symlink
+    if (e.osError?.errorCode == 2 || e.osError?.errorCode == 0) {
+      return false;
+    }
+    // Other filesystem errors - fail closed for security
+    throw StateError('Failed to determine if path is a symlink: ${e.message}');
+  } catch (e) {
+    // Any other unexpected error - fail closed
+    throw StateError('Unexpected error checking symlink status: $e');
   }
 }
 
@@ -107,26 +153,15 @@ Future<File> atomicWrite(File destination, String data) async {
   if (!await parentDir.exists()) {
     throw StateError('Destination directory does not exist: ${parentDir.path}');
   }
-  // Validate parent directory is not a symlink (best effort)
-  try {
-    final parentStat = await parentDir.stat();
-    if (parentStat.type == FileSystemEntityType.link) {
-      throw StateError('Destination parent directory is a symlink, refusing to write.');
-    }
-  } catch (_) {
-    // If stat fails, we'll catch write errors later
+  // Validate parent directory is not a symlink (using lstat via _isSymlink)
+  if (await _isSymlink(parentDir.path)) {
+    throw StateError('Destination parent directory is a symlink, refusing to write.');
   }
 
-  // Ensure destination is not a symlink (best effort, race window exists)
+  // Ensure destination is not a symlink (using lstat via _isSymlink)
   if (await destination.exists()) {
-    try {
-      final link = Link(destination.path);
-      final target = await link.target();
-      if (target.isNotEmpty) {
-        throw StateError('Destination is a symbolic link, refusing to overwrite.');
-      }
-    } catch (_) {
-      // Not a symlink or cannot determine, continue
+    if (await _isSymlink(destination.path)) {
+      throw StateError('Destination is a symbolic link, refusing to overwrite.');
     }
   }
 

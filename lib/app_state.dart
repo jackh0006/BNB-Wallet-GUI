@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File, Link, Platform, Process, FileSystemEntityType;
+import 'dart:io' show File, Link, Platform, Process, FileSystemEntityType, FileStat, FileSystemException;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1331,16 +1331,34 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Helper to check if a path is a symlink (best effort).
-  static Future<bool> _isSymlink(String path) async {
-    try {
-      final link = Link(path);
-      final target = await link.target();
-      return target.isNotEmpty;
-    } catch (_) {
+  /// Helper to check if a path is a symlink (using lstat).
+/// Returns true if the path exists and is a symbolic link.
+/// Throws [StateError] if the filesystem check fails for any reason other than 'not found'.
+static Future<bool> _isSymlink(String path) async {
+  try {
+    final stat = await FileStat.stat(path);
+    if (stat.type == FileSystemEntityType.link) {
+      return true;
+    }
+    // As a fallback, also check using Link (handles broken symlinks on some platforms)
+    final link = Link(path);
+    final target = await link.target();
+    if (target.isNotEmpty) {
+      return true;
+    }
+    return false;
+  } on FileSystemException catch (e) {
+    // File not found - not a symlink
+    if (e.osError?.errorCode == 2 || e.osError?.errorCode == 0) {
       return false;
     }
+    // Other filesystem errors - fail closed for security
+    throw StateError('Failed to determine if path is a symlink: ${e.message}');
+  } catch (e) {
+    // Any other unexpected error - fail closed
+    throw StateError('Unexpected error checking symlink status: $e');
   }
+}
 
   /// Move the encrypted vault to a custom path.
   ///
