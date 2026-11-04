@@ -1,9 +1,9 @@
 # PROJECT_STATUS.md — Current Project State
 
-**Last Updated**: 2026-11-03
-**Baseline Commit**: `77112b036d024b652c13f305d407ffb43e213756`
-**Current Milestone**: M4 — Wallet Core
-**Previous Milestone**: M3 — Local Encrypted Storage (COMPLETE)
+**Last Updated**: 2026-11-04
+**Baseline Commit**: `9a057fc005ecfe7df7946bf747497c5ebd03d87b`
+**Current Milestone**: M3 — Local Encrypted Storage (INCOMPLETE)
+**Previous Milestone**: M2 — Linux Application Foundation (COMPLETE)
 
 ---
 
@@ -45,7 +45,13 @@
 | **M3-16** | Secure temp file permissions verification | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile` verification) |
 | **M3-16** | Symlink detection with lstat semantics | ✅ DONE | `lib/storage.dart` (`_isSymlink` using `FileStat.stat`) |
 | **M3-17** | Secure temp file collision handling | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile` with 10 attempts) |
-| **M2-01**: Verify `flutter build linux --release` | ✅ DONE | Built `build/linux/x64/release/bundle/bnb_wallet_gui` |
+| **M3-18** | Errno-aware symlink classification (Linux) | ✅ DONE | `lib/posix_fs.dart`, `test/filesystem_security_test.dart` cases 1–7 |
+| **M3-19** | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
+| **M3-20** | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
+| **M3-21** | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
+| **M3-22** | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| **M3-06** | Storage usage display | ⏳ PENDING | M2 |
+| **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
@@ -59,7 +65,8 @@
 
 | Suite | Count | Result | Notes |
 |-------|-------|--------|-------|
-| **Non-KDF full suite** | 209 | ✅ PASS | `flutter test --exclude-tags kdf --concurrency=2` |
+| **Non-KDF full suite** | 238 | ✅ PASS | `flutter test --exclude-tags kdf --concurrency=2` |
+| **filesystem_security_test** | 20 | ✅ PASS | Linux errno-aware, descriptor-based, race tests |
 | **cold_tx_codec_test** | 4 | ✅ PASS | Canonical EIP-1559 codec |
 | **cold_wallet_protocol_test** | 15 | ✅ PASS | Envelopes, checksums, expiry, substitutions |
 | **cold_wallet_service_test** | 15 | ✅ PASS | Persistence, replay, broadcast, verification |
@@ -69,8 +76,8 @@
 | **privacy_dialogs_test** | 2 | ✅ PASS | Proxy/Tor dialogs |
 | **widget_test** | 3 | ✅ PASS | App launch, home tab |
 | **verification/verify.cjs** | 1 script | ✅ PASS | 8 field substitutions rejected |
-| **secret-scan.sh** | 1 scan | ✅ PASS | No tracked keystores/PKs/passwords |
-| **flutter analyze** | — | ✅ NO ERRORS | 1 unused_element warning |
+| **secret-scan.sh** | 1 scan | ⚠️ DESIGNED FAIL | BLK-06 (old keystore in git history) |
+| **flutter analyze** | — | ✅ NO ERRORS | 124 issues (all pre-existing at HEAD) |
 
 ---
 
@@ -112,35 +119,49 @@
 |--------|-------|
 | **Flutter Version** | 3.47.6 (stable) |
 | **Dart Version** | 3.13.5 |
-| **Last Clean Build** | 2026-11-03 — `flutter build linux --release` ✅ |
-| **Last .deb Build** | 2026-11-03 — `bnb-wallet-1.0.7-amd64.deb` (9.5 MB) |
+| **Last Clean Build** | 2026-11-04 — `flutter build linux --release` ✅ |
+| **Last .deb Build** | 2026-11-04 — `bnb-wallet-1.0.7-amd64.deb` (9.5 MB) |
 | **Package Verify** | `dpkg -c` — no secrets, correct perms ✅ |
-| **Checksum** | `c668ebdfdcb948fadcc4e0f722e323a17e357e37934033353d886296cda1158f` |
+| **Checksum** | `b5c6aaa4eee70f53ce7596c9da43b6129fb1391a65b510c4d9c2bc68489317dc` |
 | **GPG Signature** | Verified (EDDSA key CC819EF5E109A1518E840379D8C0CEC84BCCE06B) |
-| **Last Test Run** | 2026-11-03 (non-KDF: 209 pass) |
-| **Analyzer** | No errors |
-| **Secret Scan** | Clean |
+| **Last Test Run** | 2026-11-04 (non-KDF: 238 pass; filesystem_security: 20 pass; KDF: vault +7, workers +3, rollback +9/−1) |
+| **Analyzer** | No errors (124 issues, all pre-existing) |
+| **Secret Scan** | BLK-06 (designed fail: old keystore in git history) |
 
 ---
 
-## Latest Test Results (2026-11-03)
+## Latest Test Results (2026-11-04)
 
 ```
 flutter test --exclude-tags kdf --concurrency=2
-→ 209 tests passed (0 failed, 0 skipped)
+→ 238 tests passed (0 failed, 0 skipped)
 Exit code: 0
 
-flutter test --tags kdf --concurrency=1
-→ Resource exhaustion (OOM) after ~2.5 hours on 2-core 4GB
-→ Individual tests pass with generous timeouts (8-15 min)
-→ Documented in BASELINE.md and SECURITY_AUDIT.md
+flutter test test/filesystem_security_test.dart
+→ 20 tests passed (0 failed, 0 skipped)
+Exit code: 0
+
+flutter test test/vault_test.dart --timeout 600s
+→ 7 tests passed (0 failed, 0 skipped)
+Exit code: 0
+
+flutter test test/workers_test.dart --timeout 900s
+→ 3 tests passed (0 failed, 0 skipped)
+Exit code: 0
+
+flutter test test/vault_import_rollback_kdf_test.dart --timeout 900s
+→ 9 passed, 1 failed (pre-existing test-construction artifact identical to HEAD)
+Exit code: 1
 
 cd verification && npm ci && node verify.cjs
 → PASS: payload, digest, fields, r/s/yParity, hash, recovered signer
 → 8 substitution cases rejected (recipient, value, chain, nonce, gas, fees, calldata)
 
 bash scripts/secret-scan.sh
-→ PASS: No tracked keystores, PEM private keys, old password, inline Android passwords, hardcoded 32-byte keys
+→ FAIL (designed): BLK-06 old release keystore in git history
+
+flutter analyze --no-pub
+→ 124 issues (0 errors); all remaining in changed files pre-existing at HEAD
 ```
 
 ---

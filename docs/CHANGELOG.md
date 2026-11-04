@@ -1,8 +1,36 @@
 # CHANGELOG.md
 
-All notable changes to this wallet. Dates in 2026; version 1.0.5 is the
+All notable changes to this wallet. Dates in 2026; version 1.0.7 is the
 release line built as a deb for Debian/Ubuntu (no APK — the deb is the
 distribution form for this device).
+
+## 2026-11-04 — M3 Filesystem Security Corrections (v1.0.7)
+
+- **Errno-aware symlink classification (Linux):**
+  - New `lib/posix_fs.dart` (dart:ffi libc helper): `classifyNoFollow`/`classifyChildNoFollow` via `lstat`/`fstatat` with `AT_SYMLINK_NOFOLLOW`; real errno distinguishes missing, regular file, directory, symlink (valid or broken), special file, and inaccessible.
+  - `isSymlink()` fails closed on `inaccessible` (EACCES/EPERM/ELOOP/EIO…) instead of answering "not a symlink".
+  - Non-Linux platforms: documented `FileSystemEntity.type(followLinks:false)` ambiguity — `notFound` conflates missing + lookup errors; fail-closed where possible.
+
+- **`atomicWrite` destination hardening:**
+  - Classification independent of `exists()`: valid AND broken symlinks refused through fstatat; directories/special files refused; missing = distinct expected fresh case.
+  - Linux descriptor pipeline: canonical parent check (realpath equality) → pinned dirfd (O_DIRECTORY|O_NOFOLLOW) → initial no-follow child classification → `mkstempSecure` (0600 O_CREAT|O_EXCL, umask-proof) → write+fsync+verify through fd → beforeCommit hook → **use-time recheck** (fresh+missing = PROCEED; fresh+present = REFUSE) → `renameCommit` (RENAME_NOREPLACE + `renameat` ENOSYS→`rename` fallback) → fsync(dirfd) → final statFd (fchmod→unlink+throw only if still bad).
+  - Portable non-Linux fallback with unconditional no-follow symlink check.
+
+- **Pre-existing log append race fixed:**
+  - `unlock()` → `unawaited(logEvent(...))` raced test append → two concurrent `writeAsBytes` on `bnb-wallet-log.bin` interleaving ciphertext → `SecretBoxAuthenticationError`.
+  - Fixed by `static final Lock _fileLock` (package:synchronized) around `append`/`readAll`/`clear` in `encrypted_log_store.dart`.
+
+- **Dedicated Linux integration tests** (`test/filesystem_security_test.dart`): 20 tests covering all 11 required cases + 3 race regressions (11a/11b/11c) + 6 mechanism guarantees (0600 at creation under umask 0002, cleanup, replacement, mkstemp vs stat(1), read caps, fd roundtrip).
+
+- **Process umask(077) at startup** (`linux/runner/main.cc`) protects all plugin-created files/dirs; verified by staged `.deb` first-run under desktop umask 0002 → dirs 0700, files 0600.
+
+- **No regression** of: creation-time 0600 perms, vault contents on failed writes, import validation, explicit replacement confirmation, vault operation locking, temp-file cleanup, atomic replacement.
+
+- **Honest documentation**: non-Linux ambiguity, crash safety non-claim (persistent recovery journal = outstanding limitation), `renameat` ENOSYS fallback residual.
+
+- **Verdict**: **M3 INCOMPLETE** — M3-06 (vault-version test-construction fix) and M3-08 (import-rollback write-failure injection) deferred; crash-recovery journal remains pending.
+
+- **Full verification battery**: non-KDF +238 pass (exit 0); KDF suites individually (vault_test +7, workers_test +3, rollback +9/−1 pre-existing); analyzer 124 issues (all pre-existing at HEAD); Linux release build; `.deb` build + SHA256 + GPG verify + `dpkg -c` secret check (clean); ethers.js verify PASS (8 substitutions); staged `.deb` install test (dirs 0700, files 0600).
 
 ## 2026-11-03 — M3 Security Fixes: Vault Backup/Restore Hardening
 

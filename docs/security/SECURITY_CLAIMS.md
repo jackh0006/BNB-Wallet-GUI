@@ -1,7 +1,7 @@
 # SECURITY_CLAIMS.md — Honest Security Claims and Verification Status
 
-**Date**: 2026-11-03
-**Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
+**Date**: 2026-11-04
+**Baseline Commit**: `9a057fc005ecfe7df7946bf747497c5ebd03d87b`
 **Classification**: **Self-assessed Testnet-ready — NOT production-ready — NO third-party audit**
 
 ---
@@ -66,17 +66,35 @@
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED** | `lib/storage.dart::writeVaultAtomic` |
+| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (20 tests) |
 | Vault double AEAD (password KEK + device KEK) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
 | Device secret in platform secure storage | **TESTED** | `lib/storage.dart` (flutter_secure_storage) |
-| Desktop: device secret in owner-only drawer file (0600) | **IMPLEMENTED** | `lib/storage.dart` (Linux keyring avoided) |
+| Desktop: device secret in owner-only drawer file (0600) | **TESTED** | `lib/storage.dart::atomicWrite` for drawer; staged `.deb` first-run |
 | Crypto-erasure on "Erase All Data" (delete device secret) | **TESTED** | `lib/storage.dart`, `test/erase_flow_test.dart` |
-| Best-effort overwrite before unlink | **IMPLEMENTED** | `lib/storage.dart` |
+| Best-effort overwrite before unlink | **TESTED** | `lib/storage.dart::_shredAndUnlink`, `test/filesystem_security_test.dart` |
 | Preferences: public config only (no secrets) | **TESTED** | `lib/storage.dart` (SharedPreferences) |
 | Secure storage: only device_secret, PIN hash, backoff, BscScan key | **TESTED** | `lib/storage.dart` |
 | Activity logs encrypted at rest (BNBLOG01) | **TESTED** | `lib/encrypted_log_store.dart`, `test/encrypted_log_store_test.dart` |
 | Receipts encrypted at rest (BNBRCPT1, capped 200) | **TESTED** | `lib/receipt_store.dart`, `test/receipt_store_test.dart` |
 | No cloud sync, no telemetry, no analytics | **IMPLEMENTED** | No network calls for these features |
+
+---
+
+## Filesystem Security Claims (Linux)
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| Errno-aware symlink classification (lstat/fstatat AT_SYMLINK_NOFOLLOW) | **TESTED** | `lib/posix_fs.dart`, `test/filesystem_security_test.dart` cases 1–7 |
+| `atomicWrite` destination classification independent of `exists()` | **TESTED** | `lib/storage.dart::atomicWrite`; valid & broken symlinks refused; missing = expected fresh case |
+| Descriptor-based operations (openat, O_NOFOLLOW, O_CREAT|O_EXCL, dirfds) | **TESTED** | `lib/posix_fs.dart`, `lib/storage.dart::atomicWrite` Linux pipeline |
+| Temporary files created on same filesystem as destination | **TESTED** | `mkstempSecure` in destination dir; `renameat` replace/NOREPLACE |
+| Atomic replacement via `renameat` (RENAME_NOREPLACE + ENOSYS fallback) | **TESTED** | `PosixFs.renameCommit`, `test/filesystem_security_test.dart` case 11c |
+| Use-time recheck closes validate→use race window | **TESTED** | `StorageDebugHooks.beforeCommit` drives cases 11a/11b/11c |
+| Creation-time 0600 permissions (mkstemp mode argument; umask cannot add bits) | **TESTED** | `test/filesystem_security_test.dart` mechanism test under umask 0002 |
+| Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |
+| Vault operation locking (`vaultOperationLock`) serializes all vault ops | **TESTED** | `lib/storage.dart`, `lib/app_state.dart`, existing vault tests |
+| Process umask(077) set before Flutter init protects plugin-created files/dirs | **TESTED** | Staged `.deb` first-run under desktop umask 0002 → dirs 0700, files 0600 |
+| Non-Linux platforms: dart:io `FileSystemEntity.type(followLinks:false)` ambiguity documented | **DOCUMENTED** | "notFound" conflates missing + lookup errors; fail-closed where possible |
 
 ---
 
@@ -138,6 +156,8 @@
 | OS-enforced air gap (no INTERNET permission) | Runtime offline only; APK still carries INTERNET |
 | Reproducible builds verified | Toolchain pin not finalized; marked NOT TESTED |
 | Third-party audit completed | **No** — internal self-audit only (SECURITY_AUDIT.md) |
+| Crash safety / persistent recovery journal | **No** — atomic write + fsync is best-effort; power loss between fsync and directory fsync can lose data; no write-ahead log |
+| `renameat` ENOSYS fallback on old kernels | **Documented residual** — `rename` used as fallback; atomic directory update not guaranteed |
 
 ---
 
