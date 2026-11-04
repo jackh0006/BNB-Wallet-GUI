@@ -1,3 +1,6 @@
+@Tags(['sequential'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -20,7 +23,6 @@ class _MockPathProvider extends PathProviderPlatform {
   Future<String?> getApplicationSupportPath() async => dir;
 }
 
-@Tags(['sequential'])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

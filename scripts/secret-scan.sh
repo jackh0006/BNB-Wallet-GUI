@@ -6,6 +6,14 @@
 # for every occurrence of the words "password" or "secret" in documentation.
 set -euo pipefail
 
+scan_history=false
+if [[ "${1:-}" == "--history" ]]; then
+  scan_history=true
+elif [[ "$#" -ne 0 ]]; then
+  echo "Usage: $0 [--history]" >&2
+  exit 2
+fi
+
 cd "$(git rev-parse --show-toplevel)"
 
 fail=0
@@ -27,9 +35,11 @@ while IFS= read -r file; do
   fi
 done < <(git ls-files | grep -vE '^(docs/SBOM\.json|verification/package-lock\.json)$')
 
-# 3. Known leaked release credential from v1.0.2–v1.0.5.
+# 3. Known leaked release credential. This is deliberately a current-tree
+# scan: documentation must describe the historical exposure without embedding
+# the matching secret-shaped string.
 if git grep -nI -E 'BnbWalletRelease-[0-9]{4}' -- . >/dev/null 2>&1; then
-  report "history/current tree" "old hardcoded release keystore password"
+  report "current tree" "old hardcoded release keystore password pattern"
 fi
 
 # 4. Android signing config with inline credentials.
@@ -47,4 +57,27 @@ if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 
-echo "Secret scan: no tracked keystores, private key blocks, or known leaked credentials."
+if "$scan_history"; then
+  # Never print matching blob contents: history is public and the credential
+  # is compromised, but CI output must not amplify it. Commit IDs establish
+  # evidence for the required operational rotation.
+  historical_keystore=false
+  historical_credential=false
+  if git log --all --format='%H' -- scripts/release.keystore | grep -q .; then
+    historical_keystore=true
+  fi
+  if git log --all -p -- scripts/build-apk.sh | grep -qE 'storePassword|keyPassword|BnbWalletRelease'; then
+    historical_credential=true
+  fi
+  if "$historical_keystore" || "$historical_credential"; then
+    # This is an inventory/reporting mode, not a current-tree gate.  The
+    # public-history finding is expected until an authorized history rewrite
+    # (which is explicitly out of scope) and must not be mistaken for proof
+    # that the exposed credential has been rotated or invalidated.
+    echo "Historical secret scan: Android signing material or credential pattern found in public history; current credential validity and rotation status are unknown." >&2
+  else
+    echo "Historical secret scan: no matching Android signing material or credential pattern found." >&2
+  fi
+fi
+
+echo "Secret scan: current tree has no tracked keystores, private key blocks, or known leaked credentials."

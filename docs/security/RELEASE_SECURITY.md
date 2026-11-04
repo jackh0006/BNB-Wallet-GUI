@@ -12,16 +12,39 @@
 | Artifact | Status | Action Required |
 |----------|--------|-----------------|
 | `scripts/release.keystore` | **REMOVED from tree** (commit `68091b0`) | **TREAT AS COMPROMISED** |
-| Hardcoded password `BnbWalletRelease-2026-<user>` | **REMOVED** | **TREAT AS COMPROMISED** |
+| Predictable hardcoded release password (year and local username) | **REMOVED** | **TREAT AS COMPROMISED** |
 | Git history | **CANNOT REWRITE** (public, no force-push) | Document; rotate key |
 
-**Impact**: Any APK signed with the old key can be replaced by an attacker with a differently-signed APK only if users uninstall first. The old key cannot be used for future releases.
+**Status of rotation**: **NOT VERIFIED.** A clean current-tree scan proves only
+that the tracked source tree no longer contains the material. It does not
+prove the exposed credential has been invalidated, that the private key is no
+longer usable elsewhere, or that any published artifact has been replaced.
+
+**Android update implication**: Android accepts an in-place update only when
+the signing lineage is accepted for the installed package. Replacing a
+standalone signing key generally prevents users of APKs signed by the old key
+from upgrading in place; they must uninstall (which removes app data) and
+install the newly signed APK. Verify the actual signing certificate and any
+Play App Signing lineage before making user-facing claims.
 
 **Required Operational Action**:
-1. Generate new keystore **outside the repository** (secure machine, offline preferred)
-2. Store in secret manager (not Git)
-3. Use `scripts/build-apk.sh` with env vars: `BNB_KEYSTORE`, `BNB_KEY_ALIAS`, `BNB_STORE_PASS`, `BNB_KEY_PASS`
-4. Inform users: next APK requires fresh install (cannot upgrade in place)
+1. Inventory the public commits and release artifacts: identify the old
+   certificate fingerprint with `keytool`/`apksigner`, and map every
+   distributed APK to that certificate. Do not print passwords or private
+   material while doing so.
+2. On an isolated trusted machine, determine whether the old keystore can
+   still sign a test artifact; record only a yes/no result and certificate
+   fingerprint. Do not place the credential in commands, logs, CI output, or
+   reports.
+3. Obtain explicit release-owner approval, then generate a replacement key
+   outside this repository, back it up under the release-owner's recovery
+   controls, and store its path/passwords only in a local protected
+   configuration or CI secret store.
+4. Sign a controlled release with the replacement, record its public
+   certificate fingerprint, verify it with `apksigner`, and publish a clear
+   migration notice after confirming the package/update-lineage consequences.
+5. Run both scan modes and confirm no private signing artifact is tracked.
+   Do not generate or commit a replacement key from this repository.
 
 ---
 
@@ -86,11 +109,13 @@ gpg --batch --yes --digest-algo SHA256 \
 **Checks**:
 1. **Tracked keystores**: `*.jks`, `*.keystore`, `*.p12`, `*.pfx`, `*.pem`, `*.key`
 2. **PEM private key blocks**: `-----BEGIN *PRIVATE KEY-----` in tracked files
-3. **Old password pattern**: `BnbWalletRelease-[0-9]{4}` in history/current tree
+3. **Old password pattern**: current-tree scan; `bash scripts/secret-scan.sh --history` separately reports the historical exposure without printing it
 4. **Inline Android signing passwords**: `storePassword`/`keyPassword` with values
 5. **Hardcoded 32-byte keys**: `privateKey`/`secretKey`/`seedPhrase` = 64 hex chars
 
-**Pass Criteria**: Zero matches
+**Pass Criteria**: The default current-tree mode has zero matches. The
+`--history` inventory may report the known public exposure and is not evidence
+of credential rotation.
 
 ### `.gitignore` Protection
 
