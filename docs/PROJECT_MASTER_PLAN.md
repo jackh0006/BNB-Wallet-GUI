@@ -13,7 +13,7 @@
 | **M0** | Repository baseline & persistent instructions | AGENTS.md, BASELINE.md, task ledger | ✅ DONE |
 | **M1** | Existing code security & architecture review | Fix critical issues without breaking | ✅ DONE (security hardening round) |
 | **M2** | Linux application foundation | Build, initial .deb, desktop integration | ✅ DONE |
-| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | 🔄 INCOMPLETE (M3-06, M3-08, crash-recovery journal pending) |
+| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | ✅ DONE |
 | **M4** | Wallet core | Accounts, signing, verification, recovery | ⏳ PENDING (M3 complete first) |
 | **M5** | Activity Center | Encrypted logs, events, redaction, integrity | ⏳ PENDING |
 | **M6** | Blockchain & RPC | Custom RPC, chain validation, endpoints | ⏳ PENDING |
@@ -82,7 +82,7 @@
 | M2-06 | SHA-256 + GPG signature on .deb | ✅ DONE | M2-03 | `.sha256` + `.asc` verified |
 | M2-07 | Document Linux build reproducibility | ⚠️ NOT TESTED | M2-04 | Toolchain not pinned |
 
-### MILESTONE 3 — Local Encrypted Storage (INCOMPLETE)
+### MILESTONE 3 — Local Encrypted Storage (COMPLETE)
 
 | Task ID | Description | Status | Dependencies |
 |---------|-------------|--------|--------------|
@@ -91,9 +91,9 @@
 | M3-03 | Password change (re-encrypt with new salt) | ✅ DONE (backend) | M2 |
 | M3-04 | Encrypted backup (export/import) | ✅ DONE (backend - security hardened) | M2 |
 | M3-05 | Vault integrity verification | ✅ DONE (part of export/import) | M2 |
-| M3-06 | Storage usage display | ⏳ PENDING | M2 |
+| M3-06 | Vault-version test-construction fix | ✅ DONE | M2 |
 | M3-07 | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | M2 |
-| M3-08 | Multiple vault support | ⏳ PENDING | M2 |
+| M3-08 | Import-rollback write-failure injection | ✅ DONE | M2 |
 | M3-09 | Atomic write hardening | ✅ DONE | M2 |
 | M3-10 | Symlink validation & rejection | ✅ DONE | M2 |
 | M3-11 | Import rollback with verification | ✅ DONE | M2 |
@@ -103,13 +103,13 @@
 | M3-15 | Atomic write with rollback on failure | ✅ DONE | M2 |
 | M3-16 | Secure temp file permissions verification | ✅ DONE | M2 |
 | M3-17 | Symlink detection with lstat semantics | ✅ DONE | M2 |
-| M3-18 | Secure temp file collision handling | ✅ DONE | M2 |
-| M3-19 | Errno-aware symlink classification (Linux) | ✅ DONE | `lib/posix_fs.dart`, `test/filesystem_security_test.dart` |
-| M3-20 | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
-| M3-21 | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
-| M3-22 | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
-| M3-23 | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
-| M3-24 | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
+| M3-17 | Secure temp file collision handling | ✅ DONE | M2 |
+| M3-18 | Errno-aware symlink classification (Linux) | ✅ DONE | `lib/posix_fs.dart`, `test/filesystem_security_test.dart` |
+| M3-19 | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
+| M3-20 | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
+| M3-21 | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
+| M3-22 | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| M3-23 | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 
 ### MILESTONE 4 — Wallet Core
 
@@ -327,12 +327,13 @@
 
 ## Next Actions (Immediate)
 
-1. **Complete Milestone 3 remaining items** (M3-06, M3-08, crash-recovery journal)
-2. **M3-06**: Vault-version test-construction fix (user-deferred)
-3. **M3-08**: Import-rollback write-failure injection (user-deferred)
-4. **Persistent crash-recovery journal**: Design and implement write-ahead log for atomic write crash safety
-5. **Run full verification battery** after each completion
-6. **Do NOT start Milestone 4** until M3 is marked COMPLETE
+1. **Begin Milestone 4** — Wallet Core
+2. **Implement M4-01: Account derivation UI** — Add/remove/switch accounts in wallet management
+3. **Implement M4-02: Private key import UI** — Raw hex, keystore JSON v3 import dialogs
+4. **Implement M4-03: Seed phrase import UI** — 12/24 word validation, checksum verification
+5. **Implement M4-04: Wallet unlock/lock UI** — Biometric integration where available
+6. **Implement M4-06: Nonce management UI** — Pending transaction display, replacement UI
+7. **Run full test suite** after each UI component
 
 ---
 

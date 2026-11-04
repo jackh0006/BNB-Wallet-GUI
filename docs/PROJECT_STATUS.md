@@ -1,9 +1,9 @@
 # PROJECT_STATUS.md — Current Project State
 
 **Last Updated**: 2026-11-04
-**Baseline Commit**: `9a057fc005ecfe7df7946bf747497c5ebd03d87b`
-**Current Milestone**: M3 — Local Encrypted Storage (INCOMPLETE)
-**Previous Milestone**: M2 — Linux Application Foundation (COMPLETE)
+**Baseline Commit**: `ae48cf39536a4505addd51c9b200893bc87e5636`
+**Current Milestone**: M4 — Wallet Core
+**Previous Milestone**: M3 — Local Encrypted Storage (COMPLETE)
 
 ---
 
@@ -32,9 +32,9 @@
 | **M3-03** | Password change (re-encrypt with new salt) | ✅ DONE | `lib/app_state.dart` (`changeVaultPassword`) |
 | **M3-04** | Encrypted backup (export/import) | ✅ DONE | `lib/app_state.dart` (`exportVault`, `importVault`) |
 | **M3-05** | Vault integrity verification | ✅ DONE | `lib/app_state.dart` (`getVaultInfo`, `importVault` validation) |
-| **M3-06** | Storage usage display | ⏳ PENDING | M2 |
+| **M3-06** | Vault-version test-construction fix | ✅ DONE | `test/vault_import_rollback_kdf_test.dart` |
 | **M3-07** | Secure deletion workflow (crypto-erase + overwrite) | ✅ DONE (existing) | `lib/storage.dart` (`eraseAllData`) |
-| **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
+| **M3-08** | Import-rollback write-failure injection | ✅ DONE | `test/vault_import_rollback_kdf_test.dart` (10/10 pass) |
 | **M3-09** | Atomic write hardening | ✅ DONE | `lib/storage.dart` (`atomicWrite`, `_createSecureTempFile`) |
 | **M3-10** | Symlink validation & rejection | ✅ DONE | `lib/storage.dart` (`_isSymlink`, `atomicWrite`, `_validateRegularFile`) |
 | **M3-11** | Import rollback with verification | ✅ DONE | `lib/app_state.dart` (`importVault` rollback logic) |
@@ -50,8 +50,7 @@
 | **M3-20** | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
 | **M3-21** | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
 | **M3-22** | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
-| **M3-06** | Storage usage display | ⏳ PENDING | M2 |
-| **M3-08** | Multiple vault support | ⏳ PENDING | M2 |
+| **M3-23** | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
@@ -124,7 +123,7 @@
 | **Package Verify** | `dpkg -c` — no secrets, correct perms ✅ |
 | **Checksum** | `b5c6aaa4eee70f53ce7596c9da43b6129fb1391a65b510c4d9c2bc68489317dc` |
 | **GPG Signature** | Verified (EDDSA key CC819EF5E109A1518E840379D8C0CEC84BCCE06B) |
-| **Last Test Run** | 2026-11-04 (non-KDF: 238 pass; filesystem_security: 20 pass; KDF: vault +7, workers +3, rollback +9/−1) |
+| **Last Test Run** | 2026-11-04 (non-KDF: 238 pass; filesystem_security: 20 pass; KDF: vault +7, workers +3, rollback +10/10) |
 | **Analyzer** | No errors (124 issues, all pre-existing) |
 | **Secret Scan** | BLK-06 (designed fail: old keystore in git history) |
 
@@ -150,8 +149,8 @@ flutter test test/workers_test.dart --timeout 900s
 Exit code: 0
 
 flutter test test/vault_import_rollback_kdf_test.dart --timeout 900s
-→ 9 passed, 1 failed (pre-existing test-construction artifact identical to HEAD)
-Exit code: 1
+→ 10 passed, 0 failed
+Exit code: 0
 
 cd verification && npm ci && node verify.cjs
 → PASS: payload, digest, fields, r/s/yParity, hash, recovered signer

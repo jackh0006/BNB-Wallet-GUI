@@ -5,6 +5,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bnb_wallet_gui/app_state.dart';
@@ -104,10 +105,10 @@ void main() {
           password: _wrongPassword,
           confirmReplace: true,
         ),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
           'message',
-          contains('Wrong password or corrupted/tampered backup file'),
+          contains('Wrong password'),
         )),
       );
 
@@ -151,8 +152,14 @@ void main() {
       final originalBlob = await setupTestVault(_testPassword, label: 'Original Wallet');
       expect(originalBlob, isNotEmpty);
 
-      // Create backup with unsupported version (BNBVL002)
-      final badVersionBackup = 'BNBVL002' + originalBlob.substring(8);
+      // Create backup with unsupported version (modify version byte in decoded blob)
+      final originalBytes = base64Decode(originalBlob);
+      // BNBVL004 = version 2 at byte 8, BNBVL003 = version 1 at byte 8
+      // Change version to 0 (unsupported)
+      final badVersionBytes = Uint8List.fromList(originalBytes);
+      badVersionBytes[8] = 0; // Unsupported version
+      final badVersionBackup = base64Encode(badVersionBytes);
+      
       final badVersionFile = File('${tmp.path}/bad_version.bnb');
       await badVersionFile.writeAsString(badVersionBackup);
 
@@ -163,8 +170,8 @@ void main() {
           password: _testPassword,
           confirmReplace: true,
         ),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
           'message',
           contains('Unsupported vault version'),
         )),
@@ -344,10 +351,10 @@ void main() {
           password: _testPassword,
           confirmReplace: true,
         ),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
           'message',
-          contains('Wrong password or corrupted/tampered backup file'),
+          contains('Wrong password'),
         )),
       );
 

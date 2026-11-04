@@ -40,27 +40,43 @@ class AppState extends ChangeNotifier {
     if (bytes.length < 8) {
       throw StateError('Not a valid vault file (too short).');
     }
+    const magicPrefix = 'BNBVL';
+    final prefixBytes = utf8.encode(magicPrefix);
+    // Check that the blob starts with BNBVL prefix (any version)
+    var valid = true;
+    for (var i = 0; i < prefixBytes.length; i++) {
+      if (bytes[i] != prefixBytes[i]) {
+        valid = false;
+        break;
+      }
+    }
+    if (!valid) {
+      throw StateError('Not a valid vault file (missing magic marker BNBVL).');
+    }
+    // Check for supported versions
     const magicV2 = 'BNBVL004';
     const magicV1 = 'BNBVL003';
     final magicBytesV2 = utf8.encode(magicV2);
-    var valid = true;
+    var validV2 = true;
     for (var i = 0; i < magicBytesV2.length; i++) {
       if (bytes[i] != magicBytesV2[i]) {
-        valid = false;
+        validV2 = false;
         break;
       }
     }
-    if (valid) return magicV2;
+    if (validV2) return magicV2;
     final magicBytesV1 = utf8.encode(magicV1);
-    valid = true;
+    var validV1 = true;
     for (var i = 0; i < magicBytesV1.length; i++) {
       if (bytes[i] != magicBytesV1[i]) {
-        valid = false;
+        validV1 = false;
         break;
       }
     }
-    if (valid) return magicV1;
-    throw StateError('Not a valid vault file (missing magic marker BNBVL).');
+    if (validV1) return magicV1;
+    // Recognized BNBVL prefix but unsupported version - let decryption handle it
+    // so the error message is "Unsupported vault version."
+    return utf8.decode(bytes.sublist(0, 8));
   }
 
   final RpcService rpc = RpcService();
@@ -1582,7 +1598,7 @@ class AppState extends ChangeNotifier {
           }
         }
       } catch (e) {
-        if (e is StateError || e is ArgumentError) rethrow;
+        if (e is StateError || e is ArgumentError || e is VaultException) rethrow;
         throw StateError('Wrong password or corrupted/tampered backup file.');
       }
 
