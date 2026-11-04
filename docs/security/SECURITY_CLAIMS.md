@@ -66,7 +66,7 @@
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (20 tests) |
+| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED (Linux)** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (21 tests in current audit run); Linux refuses native-helper unavailability rather than silently using the portable pipeline. |
 | Vault double AEAD (password KEK + device KEK) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
 | Device secret in platform secure storage | **TESTED** | `lib/storage.dart` (flutter_secure_storage) |
 | Desktop: device secret in owner-only drawer file (0600) | **TESTED** | `lib/storage.dart::atomicWrite` for drawer; staged `.deb` first-run |
@@ -94,6 +94,8 @@
 | Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |
 | Vault operation locking (`vaultOperationLock`) serializes all vault ops | **TESTED** | `lib/storage.dart`, `lib/app_state.dart`, existing vault tests |
 | Process umask(077) set before Flutter init protects plugin-created files/dirs | **TESTED** | Staged `.deb` first-run under desktop umask 0002 → dirs 0700, files 0600 |
+| Rollback after a post-commit verification failure | **TESTED** | `test/rollback_injection_test.dart`: valid replacement reaches rename, then a controlled verification failure invokes the actual rollback and restores exact original bytes. |
+| Rollback-write failure is distinguishable from successful restore | **TESTED** | `test/rollback_injection_test.dart`: explicit rollback-boundary failure returns non-committed result; replacement remains valid and unrelated/source files are preserved. |
 | Non-Linux platforms: dart:io `FileSystemEntity.type(followLinks:false)` ambiguity documented | **DOCUMENTED** | "notFound" conflates missing + lookup errors; fail-closed where possible |
 
 ---

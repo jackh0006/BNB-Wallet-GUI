@@ -5,7 +5,6 @@ import 'dart:io' show File;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web3dart/web3dart.dart';
-import 'package:synchronized/synchronized.dart';
 
 import 'cold_wallet.dart' hide WalletMode, WalletModeLabel;
 import 'cold_wallet_service.dart';
@@ -1396,7 +1395,8 @@ class AppState extends ChangeNotifier {
   /// - Verifies written content after move
   Future<void> moveVault(String password, String newPath) async {
     if (!hasVault) throw StateError('No vault exists to move.');
-    if (newPath.trim().isEmpty) throw ArgumentError('New path cannot be empty.');
+    if (newPath.trim().isEmpty)
+      throw ArgumentError('New path cannot be empty.');
 
     await vaultOperationLock.synchronized(() async {
       final json = await _readVaultJson(password);
@@ -1428,10 +1428,7 @@ class AppState extends ChangeNotifier {
       if (verifyBlob != blob) {
         throw StateError('Vault move verification failed.');
       }
-      rpc.note(
-        'Vault moved to $newPath.',
-        kind: RpcStoryKind.info,
-      );
+      rpc.note('Vault moved to $newPath.', kind: RpcStoryKind.info);
       notifyListeners();
     });
   }
@@ -1486,7 +1483,9 @@ class AppState extends ChangeNotifier {
 
       // Refuse to overwrite an existing backup without explicit user action.
       if (await exportFile.exists()) {
-        throw StateError('Export file already exists. Remove it first or choose a different path.');
+        throw StateError(
+          'Export file already exists. Remove it first or choose a different path.',
+        );
       }
 
       await AppStorage.ensureParentDir(exportFile);
@@ -1517,10 +1516,7 @@ class AppState extends ChangeNotifier {
         throw StateError('Exported file validation failed.');
       }
 
-      rpc.note(
-        'Vault exported to $exportPath.',
-        kind: RpcStoryKind.info,
-      );
+      rpc.note('Vault exported to $exportPath.', kind: RpcStoryKind.info);
     });
   }
 
@@ -1592,28 +1588,39 @@ class AppState extends ChangeNotifier {
           if (item is! Map<String, dynamic>) {
             throw StateError('Invalid vault account record format.');
           }
-          if (item['label'] == null || item['address'] == null || item['privateKeyHex'] == null) {
-            throw StateError('Incomplete vault account record (missing label/address/key).');
+          if (item['label'] == null ||
+              item['address'] == null ||
+              item['privateKeyHex'] == null) {
+            throw StateError(
+              'Incomplete vault account record (missing label/address/key).',
+            );
           }
         }
       } catch (e) {
-        if (e is StateError || e is ArgumentError || e is VaultException) rethrow;
+        if (e is StateError || e is ArgumentError || e is VaultException)
+          rethrow;
         throw StateError('Wrong password or corrupted/tampered backup file.');
       }
 
       // Require explicit user confirmation before replacing an existing vault
       if (!confirmReplace) {
-        throw StateError('Explicit confirmation required to replace the active vault.');
+        throw StateError(
+          'Explicit confirmation required to replace the active vault.',
+        );
       }
 
       // Check for existing vault and symlink destination
       final vaultFile = await AppStorage.vaultFile();
       if (hasVault) {
         if (!confirmReplace) {
-          throw StateError('A vault already exists. Explicit confirmation required to replace it.');
+          throw StateError(
+            'A vault already exists. Explicit confirmation required to replace it.',
+          );
         }
         if (await isSymlink(vaultFile.path)) {
-          throw StateError('Active vault destination is a symbolic link, refusing to replace.');
+          throw StateError(
+            'Active vault destination is a symbolic link, refusing to replace.',
+          );
         }
       }
 
@@ -1634,35 +1641,52 @@ class AppState extends ChangeNotifier {
         if (!writeResult.committed) {
           throw StateError('Import write failed: ${writeResult.error}');
         }
+        if (writeResult.requiresRecovery) {
+          throw StateError(
+            'Import commit could not be verified: ${writeResult.error}',
+          );
+        }
         if (writeResult.error != null) {
-        rpc.note(
-          'Import write completed with durability warning: ${writeResult.error}',
-          kind: RpcStoryKind.info,
-        );
-      }
+          rpc.note(
+            'Import write completed with durability warning: ${writeResult.error}',
+            kind: RpcStoryKind.info,
+          );
+        }
 
         // Final validation: ensure the new vault can be opened with the password
         try {
           await _readVaultJson(password);
         } catch (_) {
-          throw StateError('Imported vault cannot be opened with the provided password after import.');
+          throw StateError(
+            'Imported vault cannot be opened with the provided password after import.',
+          );
         }
 
         _vaultExists = true;
         notifyListeners();
 
-        rpc.note(
-          'Vault imported from $importPath.',
-          kind: RpcStoryKind.info,
-        );
+        rpc.note('Vault imported from $importPath.', kind: RpcStoryKind.info);
       } catch (e) {
         // ROLLBACK: Restore original vault on any failure
         if (originalBlob != null) {
           // Hook: before rollback write - for test injection
-          StorageDebugHooks.beforeRollbackWrite?.call(vaultFile.path, originalBlob);
+          StorageDebugHooks.beforeRollbackWrite?.call(
+            vaultFile.path,
+            originalBlob,
+          );
           try {
-            final rollbackResult = await atomicWrite(vaultFile, originalBlob);
-            StorageDebugHooks.afterRollbackWrite?.call(vaultFile.path, rollbackResult);
+            final injectRollbackFailure =
+                StorageDebugHooks.injectRollbackWriteFailure;
+            StorageDebugHooks.injectRollbackWriteFailure = false;
+            final rollbackResult = await atomicWrite(
+              vaultFile,
+              originalBlob,
+              injectPreCommitFailure: injectRollbackFailure,
+            );
+            StorageDebugHooks.afterRollbackWrite?.call(
+              vaultFile.path,
+              rollbackResult,
+            );
             if (!rollbackResult.committed) {
               rpc.note(
                 'CRITICAL: Rollback failed - ${rollbackResult.error}. Manual recovery may be needed.',
@@ -1702,7 +1726,11 @@ class AppState extends ChangeNotifier {
 
   /// Decrypts and validates a vault blob directly without touching the active vault.
   /// Used for validating imported backups with the provided password.
-  Future<String> _decryptVaultBlob(String encoded, String password, String deviceSecret) async {
+  Future<String> _decryptVaultBlob(
+    String encoded,
+    String password,
+    String deviceSecret,
+  ) async {
     return VaultCipher.validateAndDecrypt(encoded, password, deviceSecret);
   }
 
@@ -1716,7 +1744,10 @@ class AppState extends ChangeNotifier {
   /// - Generates new salt and re-encrypts with new password
   /// - Uses atomic write
   /// - Prevents concurrent vault operations
-  Future<void> changeVaultPassword(String oldPassword, String newPassword) async {
+  Future<void> changeVaultPassword(
+    String oldPassword,
+    String newPassword,
+  ) async {
     if (!hasVault) throw StateError('No vault exists.');
     if (oldPassword == newPassword) {
       throw ArgumentError('New password must be different from the old one.');
@@ -1730,13 +1761,14 @@ class AppState extends ChangeNotifier {
       if (json == null) throw StateError('Wrong password or vault not found.');
 
       final device = await AppStorage.getOrGenerateDeviceSecret();
-      final blob = await _runVaultEncrypt(newPassword, jsonEncode(json), device);
+      final blob = await _runVaultEncrypt(
+        newPassword,
+        jsonEncode(json),
+        device,
+      );
 
       await AppStorage.writeVaultAtomic(blob);
-      rpc.note(
-        'Vault password changed.',
-        kind: RpcStoryKind.info,
-      );
+      rpc.note('Vault password changed.', kind: RpcStoryKind.info);
     });
   }
 
@@ -1765,10 +1797,7 @@ class AppState extends ChangeNotifier {
       await AppStorage.setVaultPath(null);
       _vaultExists = await AppStorage.vaultExists();
       notifyListeners();
-      rpc.note(
-        'Vault path reset to default.',
-        kind: RpcStoryKind.info,
-      );
+      rpc.note('Vault path reset to default.', kind: RpcStoryKind.info);
     });
   }
 

@@ -1,9 +1,22 @@
 # PROJECT_STATUS.md — Current Project State
 
 **Last Updated**: 2026-11-04
-**Baseline Commit**: `ae48cf39536a4505addd51c9b200893bc87e5636`
-**Current Milestone**: M4 — Wallet Core
-**Previous Milestone**: M3 — Local Encrypted Storage (COMPLETE)
+**Baseline Commit**: `dc8732f` (working-tree audit in progress)
+**Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)
+**Previous Milestone**: M3 was previously declared complete; that declaration is not accepted as verification evidence.
+
+## 2026-11-04 Independent M3 Audit Update
+
+| Requirement | Status | Evidence / finding |
+|---|---|---|
+| M3-08 rollback write-failure injection | **TESTED** | `test/rollback_injection_test.dart`: two valid, decryptable vaults; replacement rename is observed; forced post-commit verification failure reaches real rollback; both rollback success and rollback-write failure assert exact final bytes. |
+| M3-09 Linux fail-closed native storage | **TESTED** | `atomicWrite` now refuses a portable fallback when `PosixFs` is unavailable on Linux; filesystem case 00 proves destination bytes remain untouched. |
+| M3-15 post-commit outcome handling | **IMPLEMENTED, TESTED** | `AtomicWriteState` distinguishes verified commit, durability uncertainty, and verification failure. Import rolls back only on the latter; directory-fsync uncertainty remains an explicit warning. |
+| M3 overall | **IN PROGRESS** | Failure modes such as rename/cleanup/interruption and all callers still require independent review. Do not treat historical “COMPLETE” rows below as current verification. |
+
+**Current test evidence (2026-11-04, Linux, Flutter 3.47.6/Dart 3.13.5):**
+`bash scripts/test-suite.sh` passed: 239 non-KDF tests in 1m09s and 22
+KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 
 ---
 

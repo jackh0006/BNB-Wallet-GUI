@@ -16,6 +16,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The production Linux launcher starts with a restrictive umask.  Tests that
+# exercise real storage must run under the same invariant; otherwise temp
+# application directories are deliberately rejected as group-readable.
+umask 0077
+
 if [ "$#" -gt 0 ]; then
   exec flutter test --concurrency=1 "$@"
 fi

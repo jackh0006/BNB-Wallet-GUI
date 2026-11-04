@@ -2,7 +2,7 @@
 
 **Version**: 1.0 (2026-11-03)
 **Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
-**Status**: Milestone 3 complete; entering Milestone 4 (Wallet Core)
+**Status**: Milestone 3 re-opened on 2026-11-04 for independent filesystem and rollback audit. Historical completion claims are retained below, but are not verification evidence.
 
 ---
 
@@ -13,7 +13,7 @@
 | **M0** | Repository baseline & persistent instructions | AGENTS.md, BASELINE.md, task ledger | ✅ DONE |
 | **M1** | Existing code security & architecture review | Fix critical issues without breaking | ✅ DONE (security hardening round) |
 | **M2** | Linux application foundation | Build, initial .deb, desktop integration | ✅ DONE |
-| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | ✅ DONE |
+| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | 🔄 IN PROGRESS (independent audit) |
 | **M4** | Wallet core | Accounts, signing, verification, recovery | ⏳ PENDING (M3 complete first) |
 | **M5** | Activity Center | Encrypted logs, events, redaction, integrity | ⏳ PENDING |
 | **M6** | Blockchain & RPC | Custom RPC, chain validation, endpoints | ⏳ PENDING |
