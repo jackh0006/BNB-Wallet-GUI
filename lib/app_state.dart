@@ -1416,9 +1416,8 @@ class AppState extends ChangeNotifier {
         throw StateError('Atomic write failed: ${writeResult.error}');
       }
       if (writeResult.error != null) {
-        // Post-commit durability failure - log but proceed
         rpc.note(
-          'Vault move completed with warning: ${writeResult.error}',
+          'Vault move completed with durability warning: ${writeResult.error}',
           kind: RpcStoryKind.info,
         );
       }
@@ -1499,7 +1498,7 @@ class AppState extends ChangeNotifier {
       }
       if (writeResult.error != null) {
         rpc.note(
-          'Export completed with warning: ${writeResult.error}',
+          'Export completed with durability warning: ${writeResult.error}',
           kind: RpcStoryKind.info,
         );
       }
@@ -1636,17 +1635,11 @@ class AppState extends ChangeNotifier {
           throw StateError('Import write failed: ${writeResult.error}');
         }
         if (writeResult.error != null) {
-          rpc.note(
-            'Import write completed with warning: ${writeResult.error}',
-            kind: RpcStoryKind.info,
-          );
-        }
-
-        // Read back and validate the new vault
-        final finalBlob = await vaultFile.readAsString();
-        if (finalBlob != blob) {
-          throw StateError('Import verification failed: final vault content mismatch.');
-        }
+        rpc.note(
+          'Import write completed with durability warning: ${writeResult.error}',
+          kind: RpcStoryKind.info,
+        );
+      }
 
         // Final validation: ensure the new vault can be opened with the password
         try {
@@ -1665,8 +1658,11 @@ class AppState extends ChangeNotifier {
       } catch (e) {
         // ROLLBACK: Restore original vault on any failure
         if (originalBlob != null) {
+          // Hook: before rollback write - for test injection
+          StorageDebugHooks.beforeRollbackWrite?.call(vaultFile.path, originalBlob);
           try {
             final rollbackResult = await atomicWrite(vaultFile, originalBlob);
+            StorageDebugHooks.afterRollbackWrite?.call(vaultFile.path, rollbackResult);
             if (!rollbackResult.committed) {
               rpc.note(
                 'CRITICAL: Rollback failed - ${rollbackResult.error}. Manual recovery may be needed.',

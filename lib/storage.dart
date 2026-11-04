@@ -79,20 +79,44 @@ class StorageDebugHooks {
 
   /// Invoked immediately after the secure temporary file is created (its
   /// descriptor is still open and unlocked). Receives the temp file path.
-  @visibleForTesting
   static void Function(String tempPath)? afterTempCreation;
 
   /// Invoked after all validations passed, immediately before the commit
   /// rename. Receives the destination path.
-  @visibleForTesting
   static void Function(String destinationPath)? beforeCommit;
 
-  /// Clears both hooks. Tests must call this in teardown so no callback can
-  /// leak into other suites.
-  @visibleForTesting
+  /// Invoked immediately after the rename commit succeeds. Receives the
+  /// destination path. Useful for injecting post-commit failures.
+  static void Function(String destinationPath)? afterRenameCommit;
+
+  /// Invoked before a rollback atomic write is attempted. Receives the
+  /// destination path and the original blob being restored.
+  static void Function(String destinationPath, String originalBlob)? beforeRollbackWrite;
+
+  /// Invoked after a rollback atomic write completes (regardless of outcome).
+  /// Receives the destination path and the rollback result.
+  static void Function(String destinationPath, AtomicWriteResult result)? afterRollbackWrite;
+
+  /// If set to true, the next directory fsync will fail with EIO.
+  static bool injectFsyncFailure = false;
+
+  /// If set to true, the next post-commit read-back verification will fail.
+  static bool injectReadbackVerificationFailure = false;
+
+  /// If set to true, the next rollback atomic write will fail before commit.
+  static bool injectRollbackWriteFailure = false;
+
+  /// Clears all hooks and injection flags. Tests must call this in teardown
+  /// so no callback or flag can leak into other suites.
   static void reset() {
     afterTempCreation = null;
     beforeCommit = null;
+    afterRenameCommit = null;
+    beforeRollbackWrite = null;
+    afterRollbackWrite = null;
+    injectFsyncFailure = false;
+    injectReadbackVerificationFailure = false;
+    injectRollbackWriteFailure = false;
   }
 }
 
@@ -517,13 +541,8 @@ Future<AtomicWriteResult> atomicWrite(File destination, String data) async {
   final destBase = _basenameOf(destination.path);
 
   if (!Platform.isLinux || !PosixFs.available) {
-    // Portable fallback returns File on success or throws
-    try {
-      final result = await _atomicWritePortable(destination, data);
-      return AtomicWriteResult.success(result);
-    } on StateError catch (e) {
-      return AtomicWriteResult.preCommitFailure(e.message);
-    }
+    // Portable fallback returns AtomicWriteResult
+    return _atomicWritePortable(destination, data);
   }
 
   // Canonical parent directory check: the parent must be a real directory on
@@ -667,9 +686,16 @@ Future<AtomicWriteResult> atomicWrite(File destination, String data) async {
         replace: replaceExisting,
       );
 
+      // Hook: after rename commit - useful for injecting post-commit failures
+      StorageDebugHooks.afterRenameCommit?.call(destination.path);
+
       // Persist the directory entry itself (crash of the *directory* update
       // after an fsynced file is otherwise possible).
       try {
+        if (StorageDebugHooks.injectFsyncFailure) {
+          StorageDebugHooks.injectFsyncFailure = false;
+          throw PosixFsError('fsync(injected)', 'dirfd', errnoEio);
+        }
         PosixFs.fsyncFd(dirfd);
       } on PosixFsError catch (e) {
         // Directory fsync failed: the rename succeeded but the directory
@@ -701,6 +727,16 @@ Future<AtomicWriteResult> atomicWrite(File destination, String data) async {
           );
         }
       }
+
+      // Inject read-back verification failure for testing
+      if (StorageDebugHooks.injectReadbackVerificationFailure) {
+        StorageDebugHooks.injectReadbackVerificationFailure = false;
+        return AtomicWriteResult.postCommitFailure(
+          destination,
+          'Injected read-back verification failure: content mismatch after commit.',
+        );
+      }
+
       committed = true;
       return AtomicWriteResult.success(destination);
     } finally {
@@ -726,26 +762,26 @@ Future<AtomicWriteResult> atomicWrite(File destination, String data) async {
 
 /// Portable (non-Linux) atomic write: dart:io pipeline with no-follow
 /// symlink classification applied independently of `exists()`.
-Future<File> _atomicWritePortable(File destination, String data) async {
+Future<AtomicWriteResult> _atomicWritePortable(File destination, String data) async {
   final parentDir = destination.parent;
   if (!await parentDir.exists()) {
-    throw StateError('Destination directory does not exist: ${parentDir.path}');
+    return AtomicWriteResult.preCommitFailure('Destination directory does not exist: ${parentDir.path}');
   }
   if (await isSymlink(parentDir.path)) {
-    throw StateError('Destination parent directory is a symlink, refusing to write.');
+    return AtomicWriteResult.preCommitFailure('Destination parent directory is a symlink, refusing to write.');
   }
 
   // Destination classification is independent of exists(): a BROKEN symlink
   // makes exists() false but must be refused exactly like a valid one.
   final destType = await FileSystemEntity.type(destination.path, followLinks: false);
   if (destType == FileSystemEntityType.link) {
-    throw StateError('Destination is a symbolic link, refusing to overwrite.');
+    return AtomicWriteResult.preCommitFailure('Destination is a symbolic link, refusing to overwrite.');
   }
   if (destType == FileSystemEntityType.directory) {
-    throw StateError('Destination is a directory, refusing to overwrite: ${destination.path}');
+    return AtomicWriteResult.preCommitFailure('Destination is a directory, refusing to overwrite: ${destination.path}');
   }
   if (destType != FileSystemEntityType.notFound && destType != FileSystemEntityType.file) {
-    throw StateError('Destination is not a regular file, refusing to overwrite: ${destination.path}');
+    return AtomicWriteResult.preCommitFailure('Destination is not a regular file, refusing to overwrite: ${destination.path}');
   }
 
   final tempFile = await _createSecureTempFile(destination);
@@ -756,20 +792,20 @@ Future<File> _atomicWritePortable(File destination, String data) async {
     final written = await tempFile.readAsString();
     if (written != data) {
       await tempFile.delete();
-      throw StateError('Atomic write verification failed: content mismatch');
+      return AtomicWriteResult.preCommitFailure('Atomic write verification failed: content mismatch');
     }
     // Permissions were verified at temp creation (fail closed there); on
     // POSIX rename receives the same inode, preserving the mode.
     StorageDebugHooks.beforeCommit?.call(destination.path);
     // Atomic rename on POSIX — same directory, same filesystem.
     await tempFile.rename(destination.path);
-    return destination;
+    return AtomicWriteResult.success(destination);
   } catch (e) {
     // Cleanup on any error - NEVER touch the destination file
     if (await tempFile.exists()) {
       await tempFile.delete();
     }
-    rethrow;
+    return AtomicWriteResult.preCommitFailure(e.toString());
   }
 }
 
