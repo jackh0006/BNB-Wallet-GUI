@@ -9,3 +9,8 @@ that items are complete.
 - [ ] Fresh install, upgrade, uninstall, user-data preservation, permissions and offline-routing behavior verified.
 - [ ] Release signing key rotation/history exposure response documented and completed.
 - [ ] Threat model, security claims, known limitations and traceability reflect the release commit.
+# M3 storage acceptance addendum
+
+- [ ] Full two-phase test-suite command has a recorded terminal exit status; focused test passes are not a substitute.
+- [ ] Cross-process storage coordination is either implemented and tested, or explicitly remains unsupported for release.
+- [ ] Process-kill and power-loss limitations remain documented; no crash-recovery journal is currently implemented.

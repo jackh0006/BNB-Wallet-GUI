@@ -20,10 +20,8 @@ class EncryptedLogStore {
   static const _maxBytes = 5 * 1024 * 1024; // 5 MB cap
   static const _maxEntries = 10000;
 
-  /// Serializes read-modify-write cycles on the log file. Without this, two
-  /// concurrent append() calls (e.g. a fire-and-forget logEvent racing an
-  /// awaited one) can interleave writeAsBytes buffers on the same file and
-  /// corrupt the envelope (observed: SecretBoxAuthenticationError).
+  /// Serializes read-modify-write cycles within this Dart process. This is
+  /// not a cross-process lock; a second app instance can still lose an append.
   static final Lock _fileLock = Lock();
 
   static Future<File> _file() async {
@@ -56,15 +54,25 @@ class EncryptedLogStore {
       final key = await _deriveKey();
       final file = await _file();
 
-      // Read existing
+      // Read existing through the same no-follow boundary as vault state.
+      // Stored envelopes are base64 text so they can use atomicWrite without
+      // a second binary-write implementation.
       List<String> lines = [];
-      if (await file.exists()) {
-        try {
-          final blob = await file.readAsBytes();
-          lines = (await _decrypt(key, blob)).split('\n').where((l) => l.isNotEmpty).toList();
-        } catch (_) {
-          lines = [];
+      try {
+        final stored = await readRegularFileNoFollow(
+          file.path,
+          maxBytes: _maxBytes * 2,
+        );
+        if (stored != null) {
+          final blob = base64Decode(stored);
+          lines = (await _decrypt(
+            key,
+            blob,
+          )).split('\n').where((l) => l.isNotEmpty).toList();
         }
+      } catch (_) {
+        // Corrupt logs are noncritical. Do not follow a path or fail the app.
+        lines = [];
       }
 
       // Add new entry with timestamp
@@ -79,7 +87,8 @@ class EncryptedLogStore {
       }
       final joined = lines.join('\n');
       if (utf8.encode(joined).length > _maxBytes) {
-        while (utf8.encode(lines.join('\n')).length > _maxBytes && lines.length > 1) {
+        while (utf8.encode(lines.join('\n')).length > _maxBytes &&
+            lines.length > 1) {
           lines.removeAt(0);
         }
       }
@@ -93,9 +102,13 @@ class EncryptedLogStore {
     return _fileLock.synchronized(() async {
       final key = await _deriveKey();
       final file = await _file();
-      if (!await file.exists()) return [];
       try {
-        final blob = await file.readAsBytes();
+        final stored = await readRegularFileNoFollow(
+          file.path,
+          maxBytes: _maxBytes * 2,
+        );
+        if (stored == null) return [];
+        final blob = base64Decode(stored);
         final text = await _decrypt(key, blob);
         return text
             .split('\n')
@@ -140,13 +153,15 @@ class EncryptedLogStore {
     if (json) {
       return const JsonEncoder.withIndent('  ').convert(entries);
     }
-    return entries.map((e) {
-      final ts = e['ts'] ?? '';
-      final cat = e['category'] ?? '';
-      final lvl = e['level'] ?? '';
-      final msg = e['msg'] ?? '';
-      return '$ts [$lvl] [$cat] $msg';
-    }).join('\n');
+    return entries
+        .map((e) {
+          final ts = e['ts'] ?? '';
+          final cat = e['category'] ?? '';
+          final lvl = e['level'] ?? '';
+          final msg = e['msg'] ?? '';
+          return '$ts [$lvl] [$cat] $msg';
+        })
+        .join('\n');
   }
 
   static Future<void> _write(Uint8List key, File file, String plaintext) async {
@@ -162,7 +177,8 @@ class EncryptedLogStore {
     out.add(Uint8List.fromList(box.nonce));
     out.add(Uint8List.fromList(box.cipherText));
     out.add(Uint8List.fromList(box.mac.bytes));
-    await file.writeAsBytes(out.toBytes(), flush: true, mode: FileMode.writeOnly);
+    final result = await atomicWrite(file, base64Encode(out.toBytes()));
+    result.getOrThrow();
   }
 
   static Future<String> _decrypt(Uint8List key, List<int> blob) async {
@@ -191,9 +207,7 @@ class EncryptedLogStore {
   static Future<void> clear() async {
     await _fileLock.synchronized(() async {
       final file = await _file();
-      if (await file.exists()) {
-        await file.delete();
-      }
+      await deletePathEntryNoFollow(file);
     });
   }
 
@@ -217,12 +231,7 @@ enum LogCategory {
 }
 
 /// Log levels.
-enum LogLevel {
-  debug,
-  info,
-  warn,
-  error,
-}
+enum LogLevel { debug, info, warn, error }
 
 /// Helper to log a structured entry.
 Future<void> logEvent({

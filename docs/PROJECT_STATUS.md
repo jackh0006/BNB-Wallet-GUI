@@ -14,6 +14,7 @@
 | M3-15 post-commit outcome handling | **IMPLEMENTED, TESTED** | `AtomicWriteState` distinguishes verified commit, durability uncertainty, and verification failure. Import rolls back only on the latter; directory-fsync uncertainty remains an explicit warning. |
 | M3-24 post-rename destination identity verification | **IMPLEMENTED, TESTED** | `fstatat(AT_SYMLINK_NOFOLLOW)` under the pinned parent compares destination device/inode with the open committed descriptor. Filesystem cases 11d/11e prove a post-rename pathname replacement is not reported as success and reused temp names are preserved. |
 | M3-25 atomic-write caller outcome audit | **IMPLEMENTED, TESTED (focused)** | Vault/account/password/receipt wrappers use `getOrThrow` (verified-only). Move and export now require verified commit and no-follow readback; import rollback requires a verified rollback and no-follow readback. Broader interruption/concurrency coverage remains open. |
+| M3-26 drawer and encrypted-log persistent-state audit | **IMPLEMENTED, TESTED (focused)** | Drawer now requires `committedVerified`. Encrypted logs use atomic base64 envelopes, no-follow reads/deletes, and a process-local append lock; `log_canary_test.dart` verifies same-process concurrent append retention. |
 | M3 overall | **IN PROGRESS** | Failure modes such as rename/cleanup/interruption and all callers still require independent review. Do not treat historical “COMPLETE” rows below as current verification. |
 
 **Current test evidence (2026-11-04, Linux, Flutter 3.47.6/Dart 3.13.5):**
@@ -68,6 +69,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M3-23** | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 | **M3-24** | Post-rename destination identity verification and safe post-commit cleanup | ✅ TESTED | `lib/posix_fs.dart`, `lib/storage.dart`; `filesystem_security_test.dart` cases 11d/11e (2026-11-04, 23/23 pass) |
 | **M3-25** | Atomic-write caller outcome audit | ✅ TESTED (focused) | `lib/app_state.dart`, `lib/storage.dart`; all `atomicWrite` callers inventoried with `rg`; focused filesystem and rollback suites pass (2026-11-04) |
+| **M3-26** | Drawer and encrypted-log atomic persistence | ✅ TESTED (focused) | `lib/encrypted_log_store.dart`, `lib/storage.dart`; `log_canary_test.dart` plus filesystem suite (26/26 combined pass, 2026-11-04) |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |

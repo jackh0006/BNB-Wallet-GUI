@@ -112,6 +112,7 @@
 | M3-23 | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 | M3-24 | Post-rename destination identity verification and post-commit cleanup safety | ✅ TESTED | M3-19; `statChildNoFollow` identity comparison; filesystem cases 11d/11e (23/23 focused suite pass, 2026-11-04) |
 | M3-25 | Atomic-write caller outcome audit | ✅ TESTED (focused) | M3-15/M3-24; wrapper saves require verified result; move/export/import rollback no-follow readbacks |
+| M3-26 | Drawer and encrypted-log atomic persistence | ✅ TESTED (focused) | M3-19; drawer rejects unverified result; log envelope is atomic/no-follow with process-local concurrency test |
 
 ### MILESTONE 4 — Wallet Core
 

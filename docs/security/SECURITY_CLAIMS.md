@@ -90,6 +90,8 @@
 | Temporary files created on same filesystem as destination | **TESTED** | `mkstempSecure` in destination dir; `renameat` replace/NOREPLACE |
 | Atomic replacement via `renameat` (RENAME_NOREPLACE + ENOSYS fallback) | **TESTED** | `PosixFs.renameCommit`, `test/filesystem_security_test.dart` case 11c |
 | Post-rename destination identity check | **TESTED (bounded)** | `fstatat(AT_SYMLINK_NOFOLLOW)` compares destination device/inode to the still-open committed descriptor; case 11d detects a deterministic replacement. This proves identity only at the check boundary, not against a later same-UID replacement. |
+| Device-secret drawer writes | **TESTED (bounded)** | Drawer rejects every result except `committedVerified`; it does not represent durability uncertainty as successful key persistence. |
+| Encrypted activity-log persistence | **TESTED (same process)** | Base64-wrapped `BNBLOG01` envelopes are written via `atomicWrite` and read/delete no-follow. `_fileLock` serializes one Dart process only; cross-process append safety is not claimed. |
 | Use-time recheck closes validate→use race window | **TESTED** | `StorageDebugHooks.beforeCommit` drives cases 11a/11b/11c |
 | Creation-time 0600 permissions (mkstemp mode argument; umask cannot add bits) | **TESTED** | `test/filesystem_security_test.dart` mechanism test under umask 0002 |
 | Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |

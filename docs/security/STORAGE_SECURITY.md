@@ -149,7 +149,7 @@ Single AEAD box: nonce || ciphertext || MAC, keyed by Argon2id(password, salt)
 
 ## Encrypted Activity Logs (BNBLOG01)
 
-- **Envelope**: `BNBLOG01` magic + version + AEAD (XChaCha20-Poly1305)
+- **Envelope**: Base64 text containing the `BNBLOG01` magic + AEAD (XChaCha20-Poly1305), written through the Linux atomic-write path and read no-follow. Old raw-binary logs are treated as noncritical unreadable history rather than migrated in place.
 - **Key**: Derived from wallet key + device drawer secret
 - **Content**: Structured events (wallet, network, tx, security, cold, hardware)
 - **Retention**: In-memory ring buffer; persisted encrypted on interval

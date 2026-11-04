@@ -885,6 +885,40 @@ Future<AtomicWriteResult> atomicWrite(
   }
 }
 
+/// Removes the final path entry without following it. This is intended for
+/// non-vault state such as encrypted logs: it avoids dart:io's `exists` then
+/// `delete` path race, but deliberately does not claim cross-process locking.
+///
+/// Linux uses a pinned parent descriptor and unlinkat. On other platforms the
+/// documented portable fallback remains best effort.
+Future<void> deletePathEntryNoFollow(File file) async {
+  if (!file.isAbsolute) {
+    throw ArgumentError('deletePathEntryNoFollow requires an absolute path');
+  }
+  if (Platform.isLinux) {
+    if (!PosixFs.available) {
+      throw StateError(
+        'POSIX filesystem helper unavailable on Linux; refusing insecure '
+        'portable fallback: ${PosixFs.loadError}',
+      );
+    }
+    final parentPath = _lexicalNormalize(_parentOf(file.path));
+    final parentCanonical = PosixFs.resolveCanonical(parentPath);
+    if (parentCanonical != parentPath) {
+      throw StateError('Destination parent directory is a symbolic link.');
+    }
+    final dirfd = _openDestDirNoFollow(parentCanonical);
+    try {
+      PosixFs.unlinkChild(dirfd, _basenameOf(file.path));
+    } finally {
+      PosixFs.closeFd(dirfd);
+    }
+    return;
+  }
+  final type = await FileSystemEntity.type(file.path, followLinks: false);
+  if (type != FileSystemEntityType.notFound) await file.delete();
+}
+
 /// Portable (non-Linux) atomic write: dart:io pipeline with no-follow
 /// symlink classification applied independently of `exists()`.
 Future<AtomicWriteResult> _atomicWritePortable(
@@ -1790,7 +1824,7 @@ class AppStorage {
     // the same mkstemp-0600-at-creation + rename commit pipeline as the vault
     // (no-FOLLOW destination refusal, pinned recheck, atomic replacement).
     final result = await atomicWrite(file, encoded);
-    if (!result.committed) {
+    if (result.state != AtomicWriteState.committedVerified) {
       throw StateError('Drawer write failed: ${result.error}');
     }
     if (result.destination?.path != file.path) {
