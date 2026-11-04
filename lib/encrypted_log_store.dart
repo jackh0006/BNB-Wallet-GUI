@@ -20,8 +20,8 @@ class EncryptedLogStore {
   static const _maxBytes = 5 * 1024 * 1024; // 5 MB cap
   static const _maxEntries = 10000;
 
-  /// Serializes read-modify-write cycles within this Dart process. This is
-  /// not a cross-process lock; a second app instance can still lose an append.
+  /// Serializes read-modify-write cycles within this Dart process. Linux also
+  /// takes the shared descriptor-based advisory lock for each protected cycle.
   static final Lock _fileLock = Lock();
 
   static Future<File> _file() async {
@@ -51,75 +51,79 @@ class EncryptedLogStore {
   /// Truncates to cap if needed.
   static Future<void> append(Map<String, dynamic> entry) async {
     await _fileLock.synchronized(() async {
-      final key = await _deriveKey();
-      final file = await _file();
+      await withProcessStorageLock(() async {
+        final key = await _deriveKey();
+        final file = await _file();
 
-      // Read existing through the same no-follow boundary as vault state.
-      // Stored envelopes are base64 text so they can use atomicWrite without
-      // a second binary-write implementation.
-      List<String> lines = [];
-      try {
-        final stored = await readRegularFileNoFollow(
-          file.path,
-          maxBytes: _maxBytes * 2,
-        );
-        if (stored != null) {
-          final blob = base64Decode(stored);
-          lines = (await _decrypt(
-            key,
-            blob,
-          )).split('\n').where((l) => l.isNotEmpty).toList();
+        // Read existing through the same no-follow boundary as vault state.
+        // Stored envelopes are base64 text so they can use atomicWrite without
+        // a second binary-write implementation.
+        List<String> lines = [];
+        try {
+          final stored = await readRegularFileNoFollow(
+            file.path,
+            maxBytes: _maxBytes * 2,
+          );
+          if (stored != null) {
+            final blob = base64Decode(stored);
+            lines = (await _decrypt(
+              key,
+              blob,
+            )).split('\n').where((l) => l.isNotEmpty).toList();
+          }
+        } catch (_) {
+          // Corrupt logs are noncritical. Do not follow a path or fail the app.
+          lines = [];
         }
-      } catch (_) {
-        // Corrupt logs are noncritical. Do not follow a path or fail the app.
-        lines = [];
-      }
 
-      // Add new entry with timestamp
-      final entryWithMeta = Map<String, dynamic>.from(entry);
-      entryWithMeta['ts'] = DateTime.now().toUtc().toIso8601String();
-      final jsonLine = jsonEncode(entryWithMeta);
-      lines.add(jsonLine);
+        // Add new entry with timestamp
+        final entryWithMeta = Map<String, dynamic>.from(entry);
+        entryWithMeta['ts'] = DateTime.now().toUtc().toIso8601String();
+        final jsonLine = jsonEncode(entryWithMeta);
+        lines.add(jsonLine);
 
-      // Truncate to cap
-      if (lines.length > _maxEntries) {
-        lines = lines.sublist(lines.length - _maxEntries);
-      }
-      final joined = lines.join('\n');
-      if (utf8.encode(joined).length > _maxBytes) {
-        while (utf8.encode(lines.join('\n')).length > _maxBytes &&
-            lines.length > 1) {
-          lines.removeAt(0);
+        // Truncate to cap
+        if (lines.length > _maxEntries) {
+          lines = lines.sublist(lines.length - _maxEntries);
         }
-      }
+        final joined = lines.join('\n');
+        if (utf8.encode(joined).length > _maxBytes) {
+          while (utf8.encode(lines.join('\n')).length > _maxBytes &&
+              lines.length > 1) {
+            lines.removeAt(0);
+          }
+        }
 
-      await _write(key, file, lines.join('\n'));
+        await _write(key, file, lines.join('\n'));
+      });
     });
   }
 
   /// Reads all log entries (newest first).
   static Future<List<Map<String, dynamic>>> readAll() async {
     return _fileLock.synchronized(() async {
-      final key = await _deriveKey();
-      final file = await _file();
-      try {
-        final stored = await readRegularFileNoFollow(
-          file.path,
-          maxBytes: _maxBytes * 2,
-        );
-        if (stored == null) return [];
-        final blob = base64Decode(stored);
-        final text = await _decrypt(key, blob);
-        return text
-            .split('\n')
-            .where((l) => l.isNotEmpty)
-            .map((l) => jsonDecode(l) as Map<String, dynamic>)
-            .toList()
-            .reversed
-            .toList();
-      } catch (_) {
-        return [];
-      }
+      return withProcessStorageLock(() async {
+        final key = await _deriveKey();
+        final file = await _file();
+        try {
+          final stored = await readRegularFileNoFollow(
+            file.path,
+            maxBytes: _maxBytes * 2,
+          );
+          if (stored == null) return [];
+          final blob = base64Decode(stored);
+          final text = await _decrypt(key, blob);
+          return text
+              .split('\n')
+              .where((l) => l.isNotEmpty)
+              .map((l) => jsonDecode(l) as Map<String, dynamic>)
+              .toList()
+              .reversed
+              .toList();
+        } catch (_) {
+          return [];
+        }
+      });
     });
   }
 
@@ -206,8 +210,10 @@ class EncryptedLogStore {
   /// Clears the log file (for "Erase everything" / privacy).
   static Future<void> clear() async {
     await _fileLock.synchronized(() async {
-      final file = await _file();
-      await deletePathEntryNoFollow(file);
+      await withProcessStorageLock(() async {
+        final file = await _file();
+        await deletePathEntryNoFollow(file);
+      });
     });
   }
 

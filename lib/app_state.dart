@@ -1398,7 +1398,7 @@ class AppState extends ChangeNotifier {
     if (newPath.trim().isEmpty)
       throw ArgumentError('New path cannot be empty.');
 
-    await vaultOperationLock.synchronized(() async {
+    await withVaultOperationLock(() async {
       final json = await _readVaultJson(password);
       if (json == null) throw StateError('Vault not found or wrong password.');
 
@@ -1456,7 +1456,7 @@ class AppState extends ChangeNotifier {
     if (password.isEmpty) throw ArgumentError('Password cannot be empty.');
 
     // Acquire lock to prevent concurrent vault operations
-    await vaultOperationLock.synchronized(() async {
+    await withVaultOperationLock(() async {
       // Verify the password against the active vault BEFORE exporting.
       // This prevents exporting with a wrong password and ensures the user
       // knows the correct password for the exported vault.
@@ -1551,7 +1551,7 @@ class AppState extends ChangeNotifier {
     }
 
     // Acquire lock to prevent concurrent vault operations
-    await vaultOperationLock.synchronized(() async {
+    await withVaultOperationLock(() async {
       // No-follow classification first: a symlink entry (valid or broken) at
       // the import path is refused BEFORE any read. The descriptor-pinned
       // re-refusal and O_NOFOLLOW open inside readRegularFileNoFollow close
@@ -1762,7 +1762,7 @@ class AppState extends ChangeNotifier {
       throw ArgumentError('Use at least 16 characters for the new password.');
     }
 
-    await vaultOperationLock.synchronized(() async {
+    await withVaultOperationLock(() async {
       final json = await _readVaultJson(oldPassword);
       if (json == null) throw StateError('Wrong password or vault not found.');
 
@@ -1799,7 +1799,7 @@ class AppState extends ChangeNotifier {
 
   /// Reset vault path to default (system app data directory).
   Future<void> resetVaultPath() async {
-    await vaultOperationLock.synchronized(() async {
+    await withVaultOperationLock(() async {
       await AppStorage.setVaultPath(null);
       _vaultExists = await AppStorage.vaultExists();
       notifyListeners();

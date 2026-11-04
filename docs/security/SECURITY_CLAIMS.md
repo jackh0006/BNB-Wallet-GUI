@@ -91,11 +91,11 @@
 | Atomic replacement via `renameat` (RENAME_NOREPLACE + ENOSYS fallback) | **TESTED** | `PosixFs.renameCommit`, `test/filesystem_security_test.dart` case 11c |
 | Post-rename destination identity check | **TESTED (bounded)** | `fstatat(AT_SYMLINK_NOFOLLOW)` compares destination device/inode to the still-open committed descriptor; case 11d detects a deterministic replacement. This proves identity only at the check boundary, not against a later same-UID replacement. |
 | Device-secret drawer writes | **TESTED (bounded)** | Drawer rejects every result except `committedVerified`; it does not represent durability uncertainty as successful key persistence. |
-| Encrypted activity-log persistence | **TESTED (same process)** | Base64-wrapped `BNBLOG01` envelopes are written via `atomicWrite` and read/delete no-follow. `_fileLock` serializes one Dart process only; cross-process append safety is not claimed. |
+| Encrypted activity-log persistence | **PARTIALLY TESTED** | Base64-wrapped `BNBLOG01` envelopes are written via `atomicWrite` and read/delete no-follow. Linux wraps each read/append/delete cycle in a shared nonblocking `flock(2)` advisory lock; independent-process append/rotation/delete races remain unverified. |
 | Use-time recheck closes validate→use race window | **TESTED** | `StorageDebugHooks.beforeCommit` drives cases 11a/11b/11c |
 | Creation-time 0600 permissions (mkstemp mode argument; umask cannot add bits) | **TESTED** | `test/filesystem_security_test.dart` mechanism test under umask 0002 |
 | Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |
-| Vault operation locking (`vaultOperationLock`) serializes all vault ops | **TESTED** | `lib/storage.dart`, `lib/app_state.dart`, existing vault tests |
+| Vault operation locking | **PARTIALLY TESTED** | `withVaultOperationLock` orders the VM lock before a shared Linux `flock(2)` lock. Contention fails closed and descriptor close releases it; full independent-process vault-operation coverage remains required. |
 | Process umask(077) set before Flutter init protects plugin-created files/dirs | **TESTED** | Staged `.deb` first-run under desktop umask 0002 → dirs 0700, files 0600 |
 | Rollback after a post-commit verification failure | **TESTED** | `test/rollback_injection_test.dart`: valid replacement reaches rename, then a controlled verification failure invokes the actual rollback and restores exact original bytes. |
 | Rollback-write failure is distinguishable from successful restore | **TESTED** | `test/rollback_injection_test.dart`: explicit rollback-boundary failure returns non-committed result; replacement remains valid and unrelated/source files are preserved. |

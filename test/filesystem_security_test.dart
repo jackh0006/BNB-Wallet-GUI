@@ -263,6 +263,59 @@ void main() {
     );
   });
 
+  group('Linux advisory lock object', () {
+    test('refuses a symlink lock object without following it', () async {
+      final base = await Directory.systemTemp.createTemp('fslock-');
+      try {
+        final target = File('${base.path}/target');
+        await target.writeAsString('not a lock');
+        await Link('${base.path}/.bnb-wallet-storage.lock').create(target.path);
+        final dirfd = PosixFs.openDirNoFollow(base.path);
+        try {
+          expect(
+            () => PosixFs.openLockFileAt(dirfd, '.bnb-wallet-storage.lock'),
+            throwsA(isA<PosixFsError>()),
+          );
+        } finally {
+          PosixFs.closeFd(dirfd);
+        }
+      } finally {
+        await base.delete(recursive: true);
+      }
+    });
+
+    test(
+      'contention fails closed and close releases the descriptor lock',
+      () async {
+        final base = await Directory.systemTemp.createTemp('fslock-');
+        try {
+          final dirfd = PosixFs.openDirNoFollow(base.path);
+          var first = -1;
+          var second = -1;
+          try {
+            first = PosixFs.openLockFileAt(dirfd, '.bnb-wallet-storage.lock');
+            expect(PosixFs.tryExclusiveLock(first), isTrue);
+            second = PosixFs.openLockFileAt(dirfd, '.bnb-wallet-storage.lock');
+            expect(PosixFs.tryExclusiveLock(second), isFalse);
+            PosixFs.closeFd(first);
+            first = -1;
+            expect(PosixFs.tryExclusiveLock(second), isTrue);
+            final lock = File('${base.path}/.bnb-wallet-storage.lock');
+            final stat = await lock.stat();
+            expect(stat.mode & 0x1ff, 0x180);
+            expect(await lock.readAsBytes(), isEmpty);
+          } finally {
+            if (first >= 0) PosixFs.closeFd(first);
+            if (second >= 0) PosixFs.closeFd(second);
+            PosixFs.closeFd(dirfd);
+          }
+        } finally {
+          await base.delete(recursive: true);
+        }
+      },
+    );
+  });
+
   group('atomicWrite destination handling (required cases 8–10)', () {
     test('case 08 — symlink destination in atomicWrite is refused, original preserved', () async {
       final base = await Directory.systemTemp.createTemp('fssec-');

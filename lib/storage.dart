@@ -17,6 +17,55 @@ import 'rpc_service.dart';
 /// Exported for use by AppState.
 final vaultOperationLock = Lock();
 
+/// Serializes use of the descriptor-based advisory lock inside this VM.
+/// `flock(2)` itself is cooperative and process-scoped; this local lock also
+/// prevents two in-VM operations from opening distinct lock descriptors.
+final _processStorageLock = Lock();
+const _processStorageLockName = '.bnb-wallet-storage.lock';
+
+/// Runs a vault/log mutation while holding the shared Linux advisory lock.
+///
+/// The lock object is a stable, 0600 regular file inside the validated app
+/// data directory. Acquisition is nonblocking: a second wallet process gets
+/// a fail-closed [StateError] and must retry after the first operation ends.
+/// The lock is released by descriptor close on normal completion, exceptions,
+/// and process termination. This is advisory only: a same-UID program that
+/// ignores `flock` (or can replace the pathname after verification) is outside
+/// its security claim.
+Future<T> withProcessStorageLock<T>(Future<T> Function() operation) async {
+  if (!Platform.isLinux) return operation();
+  if (!PosixFs.available) {
+    throw StateError(
+      'Linux advisory storage lock unavailable; refusing concurrent mutation: '
+      '${PosixFs.loadError}',
+    );
+  }
+  return _processStorageLock.synchronized(() async {
+    final directory = await AppStorage.getDataDirectory();
+    final dirfd = PosixFs.openDirNoFollow(directory.path);
+    var lockfd = -1;
+    try {
+      lockfd = PosixFs.openLockFileAt(dirfd, _processStorageLockName);
+      if (!PosixFs.tryExclusiveLock(lockfd)) {
+        throw StateError(
+          'Another BNB Wallet process is modifying protected storage; retry '
+          'after it completes.',
+        );
+      }
+      return await operation();
+    } finally {
+      if (lockfd >= 0) PosixFs.closeFd(lockfd);
+      PosixFs.closeFd(dirfd);
+    }
+  });
+}
+
+/// Acquires locks in the only permitted order: VM vault lock, then Linux
+/// process lock. Vault operations use this wrapper so they cannot invert the
+/// ordering used by other protected storage mutations.
+Future<T> withVaultOperationLock<T>(Future<T> Function() operation) =>
+    vaultOperationLock.synchronized(() => withProcessStorageLock(operation));
+
 // Permission constants for file operations
 const int _kPermMask = 511; // 0o777
 const int _kNoGroupOtherPerms = 63; // 0o077 - no group/other permissions

@@ -113,6 +113,7 @@ const int errnoEnotdir = 20;
 const int errnoEnametoolong = 36;
 const int errnoEnosys = 38;
 const int errnoEloop = 40;
+const int errnoEwouldblock = 11;
 
 String? errnoName(int code) {
   switch (code) {
@@ -159,6 +160,11 @@ const int posixRenameNoreplace = 1 << 0;
 
 /// Mode bits: S_IRUSR | S_IWUSR (0600).
 const int posixMode0600 = 0x180;
+
+/// flock(2) flags.  This project uses an advisory, nonblocking exclusive
+/// lock; a busy peer is an explicit failure rather than a UI-thread block.
+const int posixLockExclusive = 2;
+const int posixLockNonBlocking = 4;
 
 /// S_IFMT file-type classes (Linux).
 const int posixSIfifo = 0x1000;
@@ -271,6 +277,11 @@ class _PosixBindings {
   late final int Function(int) close = libc
       .lookupFunction<Int32 Function(Int32), int Function(int)>('close');
 
+  late final int Function(int, int) flock = libc
+      .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
+        'flock',
+      );
+
   late final int Function(int, Pointer<Uint8>, int) unlinkat = libc
       .lookupFunction<
         Int32 Function(Int32, Pointer<Uint8>, Int32),
@@ -355,6 +366,7 @@ class PosixFs {
       b.fsync;
       b.fchmod;
       b.close;
+      b.flock;
       b.realpath;
       b.umask;
       b.read;
@@ -595,6 +607,62 @@ class PosixFs {
     } finally {
       calloc.free(native);
     }
+  }
+
+  /// Opens the persistent advisory-lock object [name] in a pinned,
+  /// security-validated directory.  The final component is never followed;
+  /// an existing malformed, linked, non-0600, or substituted object fails
+  /// closed rather than becoming a lock target.  The caller owns the returned
+  /// descriptor and must close it to release any acquired flock lock.
+  static int openLockFileAt(int dirfd, String name) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    final native = _toNative(name);
+    try {
+      final fd = _b.openat(
+        dirfd,
+        native,
+        posixORdwr | posixOCreat | posixONofollow | posixOCloexec,
+        posixMode0600,
+      );
+      if (fd < 0) {
+        throw PosixFsError('openat(lock,O_NOFOLLOW)', name, _errno());
+      }
+      try {
+        final opened = statFd(fd);
+        final named = statChildNoFollow(dirfd, name);
+        if (!opened.isRegular ||
+            opened.permissions != posixMode0600 ||
+            opened.size != 0 ||
+            named == null ||
+            !named.isRegular ||
+            named.device != opened.device ||
+            named.inode != opened.inode) {
+          throw StateError('Refusing malformed or replaced lock object: $name');
+        }
+        return fd;
+      } catch (_) {
+        closeFd(fd);
+        rethrow;
+      }
+    } finally {
+      calloc.free(native);
+    }
+  }
+
+  /// Attempts a cooperative process-scoped exclusive lock. Returns false
+  /// only for EWOULDBLOCK/EAGAIN; other kernel failures are surfaced.
+  static bool tryExclusiveLock(int fd) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    if (_b.flock(fd, posixLockExclusive | posixLockNonBlocking) == 0) {
+      return true;
+    }
+    final errno = _errno();
+    if (errno == errnoEwouldblock) return false;
+    throw PosixFsError('flock(LOCK_EX|LOCK_NB)', 'fd=$fd', errno);
   }
 
   /// Creates a 0600 O_CREAT|O_EXCL temporary file inside the pinned directory
