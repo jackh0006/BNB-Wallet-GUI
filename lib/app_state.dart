@@ -1395,7 +1395,17 @@ class AppState extends ChangeNotifier {
         throw StateError('Destination is a symbolic link, refusing to write.');
       }
       await AppStorage.ensureParentDir(newFile);
-      await atomicWrite(newFile, blob);
+      final writeResult = await atomicWrite(newFile, blob);
+      if (!writeResult.committed) {
+        throw StateError('Atomic write failed: ${writeResult.error}');
+      }
+      if (writeResult.error != null) {
+        // Post-commit durability failure - log but proceed
+        rpc.note(
+          'Vault move completed with warning: ${writeResult.error}',
+          kind: RpcStoryKind.info,
+        );
+      }
 
       // Update stored path and verify
       await AppStorage.setVaultPath(newPath);
@@ -1467,7 +1477,16 @@ class AppState extends ChangeNotifier {
       await AppStorage.ensureParentDir(exportFile);
 
       // Atomic write with restrictive permissions using secure temp file
-      await atomicWrite(exportFile, blob);
+      final writeResult = await atomicWrite(exportFile, blob);
+      if (!writeResult.committed) {
+        throw StateError('Export failed: ${writeResult.error}');
+      }
+      if (writeResult.error != null) {
+        rpc.note(
+          'Export completed with warning: ${writeResult.error}',
+          kind: RpcStoryKind.info,
+        );
+      }
 
       // Read back and validate the exported file
       final verifyBlob = await exportFile.readAsString();
@@ -1596,7 +1615,16 @@ class AppState extends ChangeNotifier {
 
       try {
         // Write the imported vault to a secure temporary location first, validate, then atomically replace
-        await atomicWrite(vaultFile, blob);
+        final writeResult = await atomicWrite(vaultFile, blob);
+        if (!writeResult.committed) {
+          throw StateError('Import write failed: ${writeResult.error}');
+        }
+        if (writeResult.error != null) {
+          rpc.note(
+            'Import write completed with warning: ${writeResult.error}',
+            kind: RpcStoryKind.info,
+          );
+        }
 
         // Read back and validate the new vault
         final finalBlob = await vaultFile.readAsString();
@@ -1622,19 +1650,31 @@ class AppState extends ChangeNotifier {
         // ROLLBACK: Restore original vault on any failure
         if (originalBlob != null) {
           try {
-            await atomicWrite(vaultFile, originalBlob);
-            // Verify rollback succeeded
-            final rollbackBlob = await vaultFile.readAsString();
-            if (rollbackBlob != originalBlob) {
+            final rollbackResult = await atomicWrite(vaultFile, originalBlob);
+            if (!rollbackResult.committed) {
               rpc.note(
-                'CRITICAL: Rollback failed - original vault may be corrupted!',
+                'CRITICAL: Rollback failed - ${rollbackResult.error}. Manual recovery may be needed.',
                 kind: RpcStoryKind.fail,
               );
             } else {
-              rpc.note(
-                'Import failed, original vault restored successfully.',
-                kind: RpcStoryKind.info,
-              );
+              // Verify rollback succeeded
+              final rollbackBlob = await vaultFile.readAsString();
+              if (rollbackBlob != originalBlob) {
+                rpc.note(
+                  'CRITICAL: Rollback failed - original vault may be corrupted!',
+                  kind: RpcStoryKind.fail,
+                );
+              } else if (rollbackResult.error != null) {
+                rpc.note(
+                  'Import failed, original vault restored with warning: ${rollbackResult.error}',
+                  kind: RpcStoryKind.info,
+                );
+              } else {
+                rpc.note(
+                  'Import failed, original vault restored successfully.',
+                  kind: RpcStoryKind.info,
+                );
+              }
             }
           } catch (rollbackError) {
             rpc.note(

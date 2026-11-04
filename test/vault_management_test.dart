@@ -15,7 +15,8 @@ void main() {
         final dest = File('${tempDir.path}/test_vault.bnb');
         const data = 'test vault data';
 
-        await atomicWrite(dest, data);
+        final result = await atomicWrite(dest, data);
+        result.getOrThrow();
 
         expect(await dest.exists(), true);
         expect(await dest.readAsString(), data);
@@ -32,7 +33,8 @@ void main() {
         final dest = File('${tempDir.path}/test_perms.bnb');
         const data = 'permission test';
 
-        await atomicWrite(dest, data);
+        final result = await atomicWrite(dest, data);
+        result.getOrThrow();
 
         final stat = await dest.stat();
         expect((stat.mode & 511), 384);
@@ -48,17 +50,13 @@ void main() {
         final link = Link('${tempDir.path}/link.bnb');
         const data = 'test data';
 
-        await atomicWrite(dest, 'original');
+        final r1 = await atomicWrite(dest, 'original');
+        r1.getOrThrow();
         await link.create(dest.path);
 
-        await expectLater(
-          atomicWrite(File(link.path), data),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('symbolic link'),
-          )),
-        );
+        final result = await atomicWrite(File(link.path), data);
+        expect(result.committed, false);
+        expect(result.error, contains('symbolic link'));
 
         expect(await dest.readAsString(), 'original');
       } finally {
@@ -78,14 +76,9 @@ void main() {
         final dest = File('${linkDir.path}/test.txt');
         const data = 'test data';
 
-        await expectLater(
-          atomicWrite(dest, data),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('parent directory is a symlink'),
-          )),
-        );
+        final result = await atomicWrite(dest, data);
+        expect(result.committed, false);
+        expect(result.error, contains('parent directory is a symlink'));
       } finally {
         await tempDir.delete(recursive: true);
       }
@@ -97,7 +90,8 @@ void main() {
         final dest = File('${tempDir.path}/fail_test.bnb');
         const original = 'original content';
 
-        await atomicWrite(dest, original);
+        final result = await atomicWrite(dest, original);
+        result.getOrThrow();
 
         expect(await dest.readAsString(), original);
       } finally {
@@ -111,7 +105,8 @@ void main() {
         final dest = File('${tempDir.path}/cleanup_test.bnb');
         const data = 'test data';
 
-        await atomicWrite(dest, data);
+        final result = await atomicWrite(dest, data);
+        result.getOrThrow();
 
         final files = tempDir.listSync().whereType<File>().toList();
         expect(files.length, 1);
@@ -127,19 +122,15 @@ void main() {
       final tempDir = await Directory.systemTemp.createTemp('bnb-symlink-dest-test-');
       try {
         final originalFile = File('${tempDir.path}/original.txt');
-        await atomicWrite(originalFile, 'original');
+        final r1 = await atomicWrite(originalFile, 'original');
+        r1.getOrThrow();
 
         final link = Link('${tempDir.path}/link.txt');
         await link.create(originalFile.path);
 
-        await expectLater(
-          atomicWrite(File(link.path), 'new content'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('symbolic link'),
-          )),
-        );
+        final result = await atomicWrite(File(link.path), 'new content');
+        expect(result.committed, false);
+        expect(result.error, contains('symbolic link'));
       } finally {
         await tempDir.delete(recursive: true);
       }
@@ -156,14 +147,9 @@ void main() {
 
         final dest = File('${linkDir.path}/test.txt');
 
-        await expectLater(
-          atomicWrite(dest, 'test'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('parent directory is a symlink'),
-          )),
-        );
+        final result = await atomicWrite(dest, 'test');
+        expect(result.committed, false);
+        expect(result.error, contains('parent directory is a symlink'));
       } finally {
         await tempDir.delete(recursive: true);
       }
@@ -177,15 +163,19 @@ void main() {
         const password = 'correct_password';
         const wrongPassword = 'wrong_password';
 
-        await atomicWrite(File('${tempDir.path}/vault.bnb'), 'test_blob');
+        final r1 = await atomicWrite(File('${tempDir.path}/vault.bnb'), 'test_blob');
+        r1.getOrThrow();
 
         final testVaultFile = File('${tempDir.path}/test_vault.bnb');
-        await atomicWrite(testVaultFile, 'original_vault_data');
+        final r2 = await atomicWrite(testVaultFile, 'original_vault_data');
+        r2.getOrThrow();
 
         final tempImport = File('${tempDir.path}/bad_import.bnb');
-        await atomicWrite(tempImport, 'invalid_vault_format');
+        final r3 = await atomicWrite(tempImport, 'invalid_vault_format');
+        r3.getOrThrow();
 
-        expect(await atomicWrite(File('${tempDir.path}/test.bnb'), 'test'), isA<File>());
+        final r4 = await atomicWrite(File('${tempDir.path}/test.bnb'), 'test');
+        r4.getOrThrow();
       } finally {
         await tempDir.delete(recursive: true);
       }

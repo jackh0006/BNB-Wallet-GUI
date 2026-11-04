@@ -31,6 +31,44 @@ const int _kMaxVaultBytes = 5 * 1024 * 1024;
 /// still unlinked; overwriting flash is best-effort anyway).
 const int _kMaxShredBytes = 64 * 1024 * 1024;
 
+/// Result of an atomic write operation.
+/// Distinguishes between pre-commit failures (destination untouched)
+/// and post-commit durability failures (destination may be visible).
+class AtomicWriteResult {
+  const AtomicWriteResult._(this.committed, this.destination, this.error);
+  
+  /// Whether the rename commit actually occurred.
+  final bool committed;
+  
+  /// The destination file (only meaningful if committed == true).
+  final File? destination;
+  
+  /// Error message if the operation failed.
+  final String? error;
+  
+  /// Pre-commit failure: destination is guaranteed unchanged.
+  factory AtomicWriteResult.preCommitFailure(String error) =>
+      AtomicWriteResult._(false, null, error);
+  
+  /// Post-commit durability failure: rename succeeded but directory fsync or
+  /// final verification failed. The new file may be visible but crash
+  /// durability is uncertain.
+  factory AtomicWriteResult.postCommitFailure(File destination, String error) =>
+      AtomicWriteResult._(true, destination, error);
+  
+  /// Success: destination committed and verified.
+  factory AtomicWriteResult.success(File destination) =>
+      AtomicWriteResult._(true, destination, null);
+  
+  /// Throws if the operation failed, otherwise returns the destination file.
+  File getOrThrow() {
+    if (committed && destination != null && error == null) {
+      return destination!;
+    }
+    throw StateError(error ?? 'Atomic write failed');
+  }
+}
+
 /// Test-only synchronization hooks for filesystem race regression tests.
 ///
 /// Production code never assigns these. Tests install a callback, drive a
@@ -448,21 +486,30 @@ int _openDestDirNoFollow(String dirPath) {
 ///     racing entry swap);
 ///   * an existing regular destination is replaced by renameat which never
 ///     FOLLOWS a symlink destination — it swaps the entry atomically;
-///   * the temporary file is created by mkstemp with mode 0600 AT CREATION
-///     (umask cannot add bits), on the SAME filesystem as the destination;
+///   * the temporary file is created by openat(O_CREAT|O_EXCL) with mode 0600
+///     AT CREATION (umask cannot add bits), anchored to the pinned directory
+///     descriptor — NO path components beyond the pinned descriptor are ever
+///     resolved;
 ///   * content is written and verified through the descriptor, then fsynced
 ///     before the commit, and the directory is fsynced after it;
 ///   * the destination state is RECHECKED with fstatat immediately before the
 ///     commit rename — closing the validate→use window that path prechecks
 ///     alone can never close;
-///   * on any failure the temp file is unlinked and the destination is never
-///     touched; the ONLY case in which the new file is removed after a
-///     successful commit is unfixable insecure permissions (fail closed).
+///   * pre-commit failures (write, fsync, verification, recheck) leave the
+///     destination UNALTERED;
+///   * post-commit failures (directory fsync, final stat) mean the new file
+///     MAY be visible but crash durability is uncertain — the old destination
+///     is NOT restored (that would require a second atomic operation).
+///
+/// Returns an [AtomicWriteResult] that distinguishes:
+///   - pre-commit failures (destination unchanged)
+///   - post-commit failures (destination may be visible but not durable)
+///   - success (committed and verified)
 ///
 /// Non-Linux platforms use the portable dart:io pipeline with the symlink
 /// check unconditional of `exists()`; the dart:io "notFound" ambiguity and
 /// the non-descriptor commit are documented platform limitations.
-Future<File> atomicWrite(File destination, String data) async {
+Future<AtomicWriteResult> atomicWrite(File destination, String data) async {
   if (!destination.isAbsolute) {
     throw ArgumentError('atomicWrite requires an absolute destination path: ${destination.path}');
   }
@@ -470,7 +517,13 @@ Future<File> atomicWrite(File destination, String data) async {
   final destBase = _basenameOf(destination.path);
 
   if (!Platform.isLinux || !PosixFs.available) {
-    return _atomicWritePortable(destination, data);
+    // Portable fallback returns File on success or throws
+    try {
+      final result = await _atomicWritePortable(destination, data);
+      return AtomicWriteResult.success(result);
+    } on StateError catch (e) {
+      return AtomicWriteResult.preCommitFailure(e.message);
+    }
   }
 
   // Canonical parent directory check: the parent must be a real directory on
@@ -480,19 +533,25 @@ Future<File> atomicWrite(File destination, String data) async {
     parentCanonical = PosixFs.resolveCanonical(parentPath);
   } on PosixFsError catch (e) {
     if (e.errno == errnoEnoent) {
-      throw StateError('Destination directory does not exist: $parentPath');
+      return AtomicWriteResult.preCommitFailure('Destination directory does not exist: $parentPath');
     }
-    throw StateError(
+    return AtomicWriteResult.preCommitFailure(
       'Cannot establish state of destination directory $parentPath: '
       '$e (${e.meaning}).',
     );
   }
   if (parentCanonical != parentPath) {
-    throw StateError('Destination parent directory is a symlink, refusing to write.');
+    return AtomicWriteResult.preCommitFailure('Destination parent directory is a symlink, refusing to write.');
   }
 
-  final dirfd = _openDestDirNoFollow(parentCanonical);
+  int dirfd;
+  try {
+    dirfd = _openDestDirNoFollow(parentCanonical);
+  } on StateError catch (e) {
+    return AtomicWriteResult.preCommitFailure(e.message);
+  }
   int tempFd = -1;
+  String? tempBase;
   try {
     // No-follow destination classification that does NOT depend on exists().
     final initial = PosixFs.classifyChildNoFollow(dirfd, destBase);
@@ -500,13 +559,13 @@ Future<File> atomicWrite(File destination, String data) async {
     switch (initial) {
       case PosixPathClass.symlink:
         // Valid or broken — every symlink entry is refused.
-        throw StateError('Destination is a symbolic link, refusing to overwrite.');
+        return AtomicWriteResult.preCommitFailure('Destination is a symbolic link, refusing to overwrite.');
       case PosixPathClass.directory:
-        throw StateError('Destination is a directory, refusing to overwrite: ${destination.path}');
+        return AtomicWriteResult.preCommitFailure('Destination is a directory, refusing to overwrite: ${destination.path}');
       case PosixPathClass.special:
-        throw StateError('Destination is not a regular file, refusing to overwrite: ${destination.path}');
+        return AtomicWriteResult.preCommitFailure('Destination is not a regular file, refusing to overwrite: ${destination.path}');
       case PosixPathClass.inaccessible:
-        throw StateError('Cannot establish state of destination ${destination.path}; refusing to write.');
+        return AtomicWriteResult.preCommitFailure('Cannot establish state of destination ${destination.path}; refusing to write.');
       case PosixPathClass.missing:
         replaceExisting = false;
         break;
@@ -515,16 +574,17 @@ Future<File> atomicWrite(File destination, String data) async {
         break;
     }
 
-    // The temp file lives in the very directory the destination lives in:
-    // same filesystem for renameat, pinned by the dirfd for every later
-    // operation on it.
-      final (fd, tempName) = PosixFs.mkstempSecure(
-      parentCanonical,
+    // Create temp file anchored to the pinned directory descriptor.
+    // Uses openat(O_CREAT|O_EXCL) with mode 0600 - no path components
+    // beyond the pinned descriptor are ever resolved.
+    final (fd, tempName) = PosixFs.mkstempAt(
+      dirfd,
       _sanitizeTempPrefix(destBase),
     );
     tempFd = fd;
-    final tempBase = _basenameOf(tempName);
-    StorageDebugHooks.afterTempCreation?.call(tempName);
+    tempBase = tempName;
+    // Pass full path to hook for test verification
+    StorageDebugHooks.afterTempCreation?.call('$parentCanonical/$tempName');
 
     var committed = false;
     try {
@@ -545,24 +605,24 @@ Future<File> atomicWrite(File destination, String data) async {
         }
       }
       if (mismatch) {
-        throw StateError('Atomic write verification failed: content mismatch');
+        return AtomicWriteResult.preCommitFailure('Atomic write verification failed: content mismatch');
       }
 
-      // Permissions are created 0600 by mkstemp; verify through the fd and
+      // Permissions are created 0600 by mkstempAt; verify through the fd and
       // fail closed if the filesystem did something unexpected.
       var st = PosixFs.statFd(tempFd);
       if (st.permissions != posixMode0600) {
         PosixFs.fchmodFd(tempFd, posixMode0600); // tightening only
         st = PosixFs.statFd(tempFd);
         if (st.permissions != posixMode0600) {
-          throw StateError(
+          return AtomicWriteResult.preCommitFailure(
             'Temporary file created with insecure permissions (mode: '
             '${st.permissions.toRadixString(8)}); refusing to commit.',
           );
         }
       }
       if (!st.isRegular) {
-        throw StateError('Temporary path is not a regular file; refusing to commit.');
+        return AtomicWriteResult.preCommitFailure('Temporary path is not a regular file; refusing to commit.');
       }
 
       // Race-simulation hook: tests swap directory entries here to prove the
@@ -574,9 +634,9 @@ Future<File> atomicWrite(File destination, String data) async {
       final recheck = PosixFs.classifyChildNoFollow(dirfd, destBase);
       switch (recheck) {
         case PosixPathClass.symlink:
-          throw StateError('Destination is a symbolic link, refusing to overwrite.');
+          return AtomicWriteResult.preCommitFailure('Destination is a symbolic link, refusing to overwrite.');
         case PosixPathClass.inaccessible:
-          throw StateError('Cannot establish state of destination ${destination.path}; refusing to write.');
+          return AtomicWriteResult.preCommitFailure('Cannot establish state of destination ${destination.path}; refusing to write.');
         case PosixPathClass.missing:
           // Fresh path absent: the expected state, commit=NOREPLACE gets it.
           // An EXISTING destination that vanished mid-write: replacing an
@@ -587,27 +647,42 @@ Future<File> atomicWrite(File destination, String data) async {
             // Fresh-destination race: an entry appeared under a name we
             // verified as missing. RENAME_NOREPLACE refuses it anyway; the
             // explicit refusal gives the precise message.
-            throw StateError(
+            return AtomicWriteResult.preCommitFailure(
               'Destination appeared during write, refusing to overwrite fresh destination: ${destination.path}',
             );
           }
           break;
         case PosixPathClass.directory:
         case PosixPathClass.special:
-          throw StateError(
+          return AtomicWriteResult.preCommitFailure(
             'Destination is no longer a regular file, refusing to overwrite: ${destination.path}',
           );
       }
 
+      // Atomic commit
       PosixFs.renameCommit(
         dirfd,
         tempBase,
         destBase,
         replace: replaceExisting,
       );
+
       // Persist the directory entry itself (crash of the *directory* update
       // after an fsynced file is otherwise possible).
-      PosixFs.fsyncFd(dirfd);
+      try {
+        PosixFs.fsyncFd(dirfd);
+      } on PosixFsError catch (e) {
+        // Directory fsync failed: the rename succeeded but the directory
+        // metadata may not be durable. The new file MAY be visible but
+        // crash durability is uncertain. We do NOT attempt to unlink the
+        // destination (that would require a second atomic operation and
+        // could delete a replacement by another process).
+        return AtomicWriteResult.postCommitFailure(
+          destination,
+          'Directory fsync failed after commit: $e (${e.meaning}). '
+          'The new file may be visible but crash durability is uncertain.',
+        );
+      }
 
       // The temp fd still references the committed inode — verify from it.
       final finalStat = PosixFs.statFd(tempFd);
@@ -619,17 +694,18 @@ Future<File> atomicWrite(File destination, String data) async {
           try {
             PosixFs.unlinkChild(dirfd, destBase);
           } catch (_) {}
-          throw StateError(
+          return AtomicWriteResult.postCommitFailure(
+            destination,
             'Atomic write result has insecure permissions (mode: '
             '${tightened.permissions.toRadixString(8)})',
           );
         }
       }
       committed = true;
-      return destination;
+      return AtomicWriteResult.success(destination);
     } finally {
       // Cleanup: remove ONLY the temp entry, never the destination.
-      if (!committed) {
+      if (!committed && tempBase != null) {
         try {
           PosixFs.unlinkChild(dirfd, tempBase);
         } catch (_) {}
@@ -1083,7 +1159,8 @@ class AppStorage {
   /// Uses secure temporary file with restrictive permissions from creation.
   static Future<void> writeVault(String base64) async {
     final file = await vaultFile();
-    await atomicWrite(file, base64);
+    final result = await atomicWrite(file, base64);
+    result.getOrThrow();
   }
 
   static Future<void> deleteVault() async {
@@ -1112,7 +1189,8 @@ class AppStorage {
   /// Uses secure temporary file with restrictive permissions from creation.
   static Future<void> writeVaultAtomic(String base64) async {
     final file = await vaultFile();
-    await atomicWrite(file, base64);
+    final result = await atomicWrite(file, base64);
+    result.getOrThrow();
   }
 
   // ---- encrypted local receipts (key from wallet + drawer, see receipt_store) ----
@@ -1142,7 +1220,8 @@ class AppStorage {
   /// Uses secure temporary file with restrictive permissions from creation.
   static Future<void> writeReceiptsAtomic(String base64) async {
     final file = await _receiptsFile();
-    await atomicWrite(file, base64);
+    final result = await atomicWrite(file, base64);
+    result.getOrThrow();
   }
 
   /// Erases everything the app can reach: shredded vault, preferences,
@@ -1568,8 +1647,11 @@ class AppStorage {
     // Replaces the former in-place writeAsString: the drawer now goes through
     // the same mkstemp-0600-at-creation + rename commit pipeline as the vault
     // (no-FOLLOW destination refusal, pinned recheck, atomic replacement).
-    final written = await atomicWrite(file, encoded);
-    if (written.path != file.path) {
+    final result = await atomicWrite(file, encoded);
+    if (!result.committed) {
+      throw StateError('Drawer write failed: ${result.error}');
+    }
+    if (result.destination?.path != file.path) {
       throw StateError('Drawer write verification failed.');
     }
     return encoded;

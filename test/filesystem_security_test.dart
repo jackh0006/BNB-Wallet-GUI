@@ -74,14 +74,9 @@ void main() {
         expect(await isSymlink(p), false);
 
         // atomicWrite refuses to clobber a directory destination.
-        await expectLater(
-          atomicWrite(File(p), 'data'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('Destination is a directory'),
-          )),
-        );
+        final result = await atomicWrite(File(p), 'data');
+        expect(result.committed, false);
+        expect(result.error, contains('Destination is a directory'));
         expect(await Directory(p).exists(), true, reason: 'directory survives');
       } finally {
         await base.delete(recursive: true);
@@ -138,7 +133,8 @@ void main() {
         // readRegularFileNoFollow: missing => null (clean absence).
         expect(await readRegularFileNoFollow(p, maxBytes: 1024), null);
         // atomicWrite: missing destination is the expected FRESH case.
-        final written = await atomicWrite(File(p), 'fresh content');
+        final result = await atomicWrite(File(p), 'fresh content');
+        final written = result.getOrThrow();
         expect(written.path, p);
         expect(await File(p).readAsString(), 'fresh content');
       } finally {
@@ -178,14 +174,9 @@ void main() {
 
           // atomicWrite with the destination INSIDE an inaccessible
           // directory cannot even open it.
-          await expectLater(
-            atomicWrite(File('${base.path}/priv/fresh.bnb'), 'data'),
-            throwsA(isA<StateError>().having(
-              (e) => e.message,
-              'message',
-              anyOf(contains('inaccessible'), contains('Cannot')),
-            )),
-          );
+          final result = await atomicWrite(File('${base.path}/priv/fresh.bnb'), 'data');
+          expect(result.committed, false);
+          expect(result.error, anyOf(contains('inaccessible'), contains('Cannot')));
         } finally {
           restoreAccess(priv);
         }
@@ -223,18 +214,14 @@ void main() {
       final base = await Directory.systemTemp.createTemp('fssec-');
       try {
         final victim = File('${base.path}/victim.bnb');
-        await atomicWrite(victim, 'victim original');
+        final r1 = await atomicWrite(victim, 'victim original');
+        r1.getOrThrow();
         final link = File('${base.path}/link.bnb');
         await Link(link.path).create(victim.path);
 
-        await expectLater(
-          atomicWrite(File(link.path), 'overwrite attempt'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('symbolic link'),
-          )),
-        );
+        final result = await atomicWrite(File(link.path), 'overwrite attempt');
+        expect(result.committed, false);
+        expect(result.error, contains('symbolic link'));
         // The symlink's TARGET is untouched and the link entry survives
         // (never deleted, never followed).
         expect(await victim.readAsString(), 'victim original');
@@ -260,14 +247,9 @@ void main() {
         expect(await dest.exists(), false,
             reason: 'precondition: exists() is false over a broken link');
 
-        await expectLater(
-          atomicWrite(dest, 'should never land'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('symbolic link'),
-          )),
-        );
+        final result = await atomicWrite(dest, 'should never land');
+        expect(result.committed, false);
+        expect(result.error, contains('symbolic link'));
         expect(await dest.exists(), false,
             reason: 'broken link entry itself must survive');
         // No temp leftovers (broken links list as Link, temps would too).
@@ -287,14 +269,9 @@ void main() {
         final linkDir = Link('${base.path}/link_parent');
         await linkDir.create(realDir.path);
 
-        await expectLater(
-          atomicWrite(File('${linkDir.path}/dest.txt'), 'x'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('parent directory is a symlink'),
-          )),
-        );
+        final result = await atomicWrite(File('${linkDir.path}/dest.txt'), 'x');
+        expect(result.committed, false);
+        expect(result.error, contains('parent directory is a symlink'));
       } finally {
         await base.delete(recursive: true);
       }
@@ -304,14 +281,13 @@ void main() {
       final base = await Directory.systemTemp.createTemp('fssec-');
       try {
         final dest = File('${base.path}/dest.bnb');
-        await atomicWrite(dest, 'original');
+        final r1 = await atomicWrite(dest, 'original');
+        r1.getOrThrow();
         // Make the parent unreadable right before a second write.
         makeInaccessible(base.path);
         try {
-          await expectLater(
-            atomicWrite(dest, 'second'),
-            throwsA(anything),
-          );
+          final result = await atomicWrite(dest, 'second');
+          expect(result.committed, false);
         } finally {
           restoreAccess(base.path);
         }
@@ -338,14 +314,9 @@ void main() {
           released.add(true);
         };
 
-        await expectLater(
-          atomicWrite(File('${base.path}/fresh.bnb'), 'our data'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('symbolic link'),
-          )),
-        );
+        final result = await atomicWrite(File('${base.path}/fresh.bnb'), 'our data');
+        expect(result.committed, false);
+        expect(result.error, contains('symbolic link'));
         expect(released.length, 1, reason: 'hook actually ran');
         // The attacker's symlink and its target are untouched, and our data
         // cannot be found through it.
@@ -372,14 +343,9 @@ void main() {
           File(destPath).writeAsStringSync('possum');
         };
 
-        await expectLater(
-          atomicWrite(File('${base.path}/fresh.bnb'), 'our data'),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('appeared during write'),
-          )),
-        );
+        final result = await atomicWrite(File('${base.path}/fresh.bnb'), 'our data');
+        expect(result.committed, false);
+        expect(result.error, contains('appeared during write'));
         // The possum file was NOT overwritten by us.
         expect(await File('${base.path}/fresh.bnb').readAsString(), 'possum');
         // No temp leftovers.
@@ -394,12 +360,14 @@ void main() {
       final base = await Directory.systemTemp.createTemp('fssec-');
       try {
         final dest = File('${base.path}/dest.bnb');
-        await atomicWrite(dest, 'old data');
+        final r1 = await atomicWrite(dest, 'old data');
+        r1.getOrThrow();
         StorageDebugHooks.beforeCommit = (destPath) {
           // Attacker unlinks the destination between validation and commit.
           File(destPath).deleteSync();
         };
-        final written = await atomicWrite(dest, 'new data');
+        final result = await atomicWrite(dest, 'new data');
+        final written = result.getOrThrow();
         expect(written.path, dest.path);
         expect(await dest.readAsString(), 'new data');
         // Exactly one regular file remains — no temp leftovers.
@@ -439,7 +407,8 @@ void main() {
       final base = await Directory.systemTemp.createTemp('fssec-');
       try {
         final dest = File('${base.path}/dest.bnb');
-        await atomicWrite(dest, 'one');
+        final r1 = await atomicWrite(dest, 'one');
+        r1.getOrThrow();
         // (a) Successful write leaves exactly the destination.
         expect((await base.list().toList()).length, 1);
 
@@ -447,10 +416,8 @@ void main() {
         StorageDebugHooks.beforeCommit = (destPath) {
           File(destPath).writeAsStringSync('possum');
         };
-        await expectLater(
-          atomicWrite(File('${base.path}/other.bnb'), 'two'),
-          throwsA(anything),
-        );
+        final result = await atomicWrite(File('${base.path}/other.bnb'), 'two');
+        expect(result.committed, false);
         expect(await File('${base.path}/other.bnb').readAsString(), 'possum',
             reason: 'the racing entry was not overwritten');
         StorageDebugHooks.reset();
@@ -465,9 +432,11 @@ void main() {
       final base = await Directory.systemTemp.createTemp('fssec-');
       try {
         final dest = File('${base.path}/dest.bnb');
-        await atomicWrite(dest, 'version 1');
+        final r1 = await atomicWrite(dest, 'version 1');
+        r1.getOrThrow();
         expect(await File('${base.path}/dest.bnb').stat().then((s) => s.mode & 511), 384);
-        await atomicWrite(dest, 'version 2');
+        final r2 = await atomicWrite(dest, 'version 2');
+        r2.getOrThrow();
         expect(await dest.readAsString(), 'version 2');
         expect(await File(dest.path).stat().then((s) => s.mode & 511), 384);
         expect((await base.list().toList()).length, 1);

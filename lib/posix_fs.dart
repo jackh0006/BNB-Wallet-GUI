@@ -64,6 +64,7 @@
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
@@ -140,6 +141,7 @@ String? errnoName(int code) {
 /// octal, O_NOFOLLOW = 00400000 octal, O_CLOEXEC = 02000000 octal).
 const int posixORdonly = 0;
 const int posixOWronly = 1;
+const int posixORdwr = 2;
 const int posixOCreat = 0x40;
 const int posixOExclusive = 0x80;
 const int posixONonblock = 0x800;
@@ -526,10 +528,63 @@ class PosixFs {
     }
   }
 
+  /// Creates a 0600 O_CREAT|O_EXCL temporary file inside the pinned directory
+  /// [dirfd] using openat(). Returns (fd, basename). The name is unique
+  /// inside the directory — same filesystem as the destination, as the atomic
+  /// rename requires. Uses cryptographically secure random name component with
+  /// bounded collision retries. No path components beyond the pinned descriptor
+  /// are ever resolved.
+  static (int, String) mkstempAt(int dirfd, String prefix) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    final random = math.Random.secure();
+    // Try up to 10 times with fresh random names
+    for (var attempt = 0; attempt < 10; attempt++) {
+      final randomPart = List<int>.generate(
+        16,
+        (_) => random.nextInt(256),
+      );
+      final hex = randomPart.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      final tempBase = '.$prefix-$hex';
+      final native = _toNative(tempBase);
+      try {
+        final fd = _b.openat(
+          dirfd,
+          native,
+          posixORdwr | posixOCreat | posixOExclusive | posixOCloexec | posixONofollow,
+          posixMode0600,
+        );
+        if (fd >= 0) {
+          // Verify the created descriptor is a regular file with exact 0600 permissions
+          final st = statFd(fd);
+          if (!st.isRegular) {
+            closeFd(fd);
+            throw PosixFsError('mkstempAt', tempBase, errnoEexist);
+          }
+          if (st.permissions != posixMode0600) {
+            closeFd(fd);
+            throw PosixFsError('mkstempAt', tempBase, errnoEexist);
+          }
+          return (fd, tempBase);
+        }
+        // EEXIST means name collision — retry with new random name
+        final errno = _errno();
+        if (errno != errnoEexist) {
+          throw PosixFsError('openat(O_CREAT|O_EXCL)', tempBase, errno);
+        }
+      } finally {
+        calloc.free(native);
+      }
+    }
+    throw StateError('Could not generate unique temporary filename after 10 attempts');
+  }
+
   /// Creates a 0600 O_CREAT|O_EXCL temporary file inside [directory] via
   /// mkstemp(). Returns (fd, absolutePath). The name is unique inside the
   /// directory — same filesystem as the destination, as the atomic rename
   /// requires.
+  /// @deprecated Use [mkstempAt] for descriptor-anchored creation.
   static (int, String) mkstempSecure(String directory, String prefix) {
     if (!available) {
       throw StateError('PosixFs is not available: $loadError');
@@ -637,6 +692,14 @@ class PosixFs {
         if (existed == 0) {
           throw PosixFsError(
               'renameat(no-replace fallback)', newName, errnoEexist);
+        }
+        // fstatat failed - check errno
+        final probeErrno = _errno();
+        if (probeErrno != errnoEnoent) {
+          // Any error other than ENOENT means we cannot establish state;
+          // fail closed instead of silently treating as absent.
+          throw PosixFsError(
+              'renameat(no-replace fallback): fstatat', newName, probeErrno);
         }
         final rc2 = _b.renameat(dirfd, oldNative, dirfd, newNative);
         if (rc2 < 0) {
