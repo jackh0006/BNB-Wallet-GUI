@@ -465,6 +465,68 @@ void main() {
         await base.delete(recursive: true);
       }
     });
+
+    test('case 11d — destination replacement after rename is reported, never success', () async {
+      final base = await Directory.systemTemp.createTemp('fssec-');
+      try {
+        final dest = File('${base.path}/dest.bnb');
+        StorageDebugHooks.afterRenameCommit = (destPath) {
+          // This runs after the real renameat but before production's
+          // destination-name verification. A still-open temp descriptor
+          // would continue to look correct here, so replace the pathname
+          // with a distinct regular inode.
+          File(destPath).deleteSync();
+          File(destPath).writeAsStringSync('attacker replacement');
+        };
+
+        final result = await atomicWrite(dest, 'our committed payload');
+        expect(result.committed, true, reason: 'rename boundary was crossed');
+        expect(result.requiresRecovery, true);
+        expect(
+          result.error,
+          contains('no longer refers to the committed inode'),
+        );
+        expect(await dest.readAsString(), 'attacker replacement');
+        expect(
+          (await base.list().toList()).length,
+          1,
+          reason: 'post-commit handling leaves no temp files',
+        );
+      } finally {
+        await base.delete(recursive: true);
+      }
+    });
+
+    test(
+      'case 11e — post-commit cleanup never unlinks a reused temp name',
+      () async {
+        final base = await Directory.systemTemp.createTemp('fssec-');
+        try {
+          String? formerTempPath;
+          StorageDebugHooks.afterTempCreation = (tempPath) {
+            formerTempPath = tempPath;
+          };
+          StorageDebugHooks.afterRenameCommit = (_) {
+            // The rename removed this name. Simulate a concurrent writer
+            // reusing it before atomicWrite returns.
+            File(formerTempPath!).writeAsStringSync('unrelated file');
+          };
+
+          final result = await atomicWrite(
+            File('${base.path}/dest.bnb'),
+            'our committed payload',
+          );
+          expect(result.state, AtomicWriteState.committedVerified);
+          expect(
+            await File('${base.path}/dest.bnb').readAsString(),
+            'our committed payload',
+          );
+          expect(await File(formerTempPath!).readAsString(), 'unrelated file');
+        } finally {
+          await base.delete(recursive: true);
+        }
+      },
+    );
   });
 
   group('mechanism guarantees', () {

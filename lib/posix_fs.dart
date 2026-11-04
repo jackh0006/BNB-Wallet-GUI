@@ -175,10 +175,17 @@ const int _statBufSize = 256;
 const int _stModeOffset = 24;
 const int _stSizeOffset = 48;
 
-/// The fields we parse from struct stat: mode and size.
+/// The `stat` fields needed for object identity, type/permission checks and
+/// bounded reads.
 class PosixStat {
-  PosixStat._(this.mode, this.size);
+  PosixStat._(this.device, this.inode, this.mode, this.size);
 
+  /// Device and inode identify the object named by a directory entry.  They
+  /// are deliberately retained for post-rename verification: fstat() on the
+  /// old temporary descriptor alone cannot prove that the destination name
+  /// still resolves to that committed object.
+  final int device;
+  final int inode;
   final int mode;
   final int size;
 
@@ -395,8 +402,17 @@ class PosixFs {
     return v.toSigned(64);
   }
 
+  static int _u64At(Pointer<Uint8> buf, int offset) {
+    final bytes = buf.asTypedList(_statBufSize);
+    var v = 0;
+    for (var i = 0; i < 8; i++) {
+      v |= bytes[offset + i] << (8 * i);
+    }
+    return v;
+  }
+
   static PosixStat _statFromBuffer(Pointer<Uint8> buf) =>
-      PosixStat._(_modeOf(buf), _sizeOf(buf));
+      PosixStat._(_u64At(buf, 0), _u64At(buf, 8), _modeOf(buf), _sizeOf(buf));
 
   static PosixPathClass _classFrom(PosixStat? stat) {
     if (stat == null) return PosixPathClass.missing;
@@ -467,6 +483,28 @@ class PosixFs {
       if (errno == errnoEacces || errno == errnoEperm) {
         return PosixPathClass.inaccessible;
       }
+      throw PosixFsError('fstatat', name, errno);
+    } finally {
+      calloc.free(native);
+      calloc.free(buf);
+    }
+  }
+
+  /// Returns no-follow metadata for [name] under the pinned [dirfd], or null
+  /// when it is absent.  Unlike [classifyChildNoFollow], this retains device
+  /// and inode identity so callers can prove that a post-rename destination
+  /// entry still names their already-open committed inode.
+  static PosixStat? statChildNoFollow(int dirfd, String name) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    final native = _toNative(name);
+    final buf = calloc<Uint8>(_statBufSize);
+    try {
+      final rc = _b.fstatat(dirfd, native, buf, posixAtSymlinkNofollow);
+      if (rc == 0) return _statFromBuffer(buf);
+      final errno = _errno();
+      if (errno == errnoEnoent) return null;
       throw PosixFsError('fstatat', name, errno);
     } finally {
       calloc.free(native);

@@ -12,6 +12,8 @@
 | M3-08 rollback write-failure injection | **TESTED** | `test/rollback_injection_test.dart`: two valid, decryptable vaults; replacement rename is observed; forced post-commit verification failure reaches real rollback; both rollback success and rollback-write failure assert exact final bytes. |
 | M3-09 Linux fail-closed native storage | **TESTED** | `atomicWrite` now refuses a portable fallback when `PosixFs` is unavailable on Linux; filesystem case 00 proves destination bytes remain untouched. |
 | M3-15 post-commit outcome handling | **IMPLEMENTED, TESTED** | `AtomicWriteState` distinguishes verified commit, durability uncertainty, and verification failure. Import rolls back only on the latter; directory-fsync uncertainty remains an explicit warning. |
+| M3-24 post-rename destination identity verification | **IMPLEMENTED, TESTED** | `fstatat(AT_SYMLINK_NOFOLLOW)` under the pinned parent compares destination device/inode with the open committed descriptor. Filesystem cases 11d/11e prove a post-rename pathname replacement is not reported as success and reused temp names are preserved. |
+| M3-25 atomic-write caller outcome audit | **IMPLEMENTED, TESTED (focused)** | Vault/account/password/receipt wrappers use `getOrThrow` (verified-only). Move and export now require verified commit and no-follow readback; import rollback requires a verified rollback and no-follow readback. Broader interruption/concurrency coverage remains open. |
 | M3 overall | **IN PROGRESS** | Failure modes such as rename/cleanup/interruption and all callers still require independent review. Do not treat historical “COMPLETE” rows below as current verification. |
 
 **Current test evidence (2026-11-04, Linux, Flutter 3.47.6/Dart 3.13.5):**
@@ -64,6 +66,8 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M3-21** | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
 | **M3-22** | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
 | **M3-23** | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
+| **M3-24** | Post-rename destination identity verification and safe post-commit cleanup | ✅ TESTED | `lib/posix_fs.dart`, `lib/storage.dart`; `filesystem_security_test.dart` cases 11d/11e (2026-11-04, 23/23 pass) |
+| **M3-25** | Atomic-write caller outcome audit | ✅ TESTED (focused) | `lib/app_state.dart`, `lib/storage.dart`; all `atomicWrite` callers inventoried with `rg`; focused filesystem and rollback suites pass (2026-11-04) |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
@@ -78,7 +82,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | Suite | Count | Result | Notes |
 |-------|-------|--------|-------|
 | **Non-KDF full suite** | 238 | ✅ PASS | `flutter test --exclude-tags kdf --concurrency=2` |
-| **filesystem_security_test** | 20 | ✅ PASS | Linux errno-aware, descriptor-based, race tests |
+| **filesystem_security_test** | 23 | ✅ PASS | Linux errno-aware, descriptor-based, pre/post-rename race tests (2026-11-04) |
 | **cold_tx_codec_test** | 4 | ✅ PASS | Canonical EIP-1559 codec |
 | **cold_wallet_protocol_test** | 15 | ✅ PASS | Envelopes, checksums, expiry, substitutions |
 | **cold_wallet_service_test** | 15 | ✅ PASS | Persistence, replay, broadcast, verification |

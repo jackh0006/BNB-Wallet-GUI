@@ -66,7 +66,7 @@
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED (Linux)** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (21 tests in current audit run); Linux refuses native-helper unavailability rather than silently using the portable pipeline. |
+| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED (Linux)** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (23 focused tests, 2026-11-04); Linux refuses native-helper unavailability rather than silently using the portable pipeline. |
 | Vault double AEAD (password KEK + device KEK) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
 | Device secret in platform secure storage | **TESTED** | `lib/storage.dart` (flutter_secure_storage) |
 | Desktop: device secret in owner-only drawer file (0600) | **TESTED** | `lib/storage.dart::atomicWrite` for drawer; staged `.deb` first-run |
@@ -89,6 +89,7 @@
 | Descriptor-based operations (openat, O_NOFOLLOW, O_CREAT|O_EXCL, dirfds) | **TESTED** | `lib/posix_fs.dart`, `lib/storage.dart::atomicWrite` Linux pipeline |
 | Temporary files created on same filesystem as destination | **TESTED** | `mkstempSecure` in destination dir; `renameat` replace/NOREPLACE |
 | Atomic replacement via `renameat` (RENAME_NOREPLACE + ENOSYS fallback) | **TESTED** | `PosixFs.renameCommit`, `test/filesystem_security_test.dart` case 11c |
+| Post-rename destination identity check | **TESTED (bounded)** | `fstatat(AT_SYMLINK_NOFOLLOW)` compares destination device/inode to the still-open committed descriptor; case 11d detects a deterministic replacement. This proves identity only at the check boundary, not against a later same-UID replacement. |
 | Use-time recheck closes validate→use race window | **TESTED** | `StorageDebugHooks.beforeCommit` drives cases 11a/11b/11c |
 | Creation-time 0600 permissions (mkstemp mode argument; umask cannot add bits) | **TESTED** | `test/filesystem_security_test.dart` mechanism test under umask 0002 |
 | Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |

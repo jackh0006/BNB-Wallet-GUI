@@ -134,15 +134,16 @@ Single AEAD box: nonce || ciphertext || MAC, keyed by Argon2id(password, salt)
 ```dart
 // AppStorage.writeVaultAtomic
 1. Serialize vault JSON → base64
-2. Write to `<vault_path>.tmp`
-3. Flush + fsync
-4. rename(tmp, vault_path)  // atomic on POSIX
-5. chmod 0600 (Linux/macOS)
+2. Create a 0600 exclusive temporary inode beneath a pinned parent-directory descriptor
+3. Write, descriptor-readback verify, and fsync that inode
+4. Recheck destination state then `renameat`/`renameat2` through the pinned descriptor
+5. Compare no-follow destination `st_dev`/`st_ino` with the still-open committed descriptor, then fsync the parent directory
 ```
 
 - **Crash before rename**: Original vault intact
-- **Crash after rename**: New vault complete
+- **Crash after rename**: New vault may be visible; durability is uncertain until parent-directory fsync succeeds
 - **No partial writes**: Rename is atomic
+- **Same-user concurrent writer**: identity is checked immediately after rename, but a writer with directory access can replace the pathname after that check; no pathname API can make a lasting race-free claim.
 
 ---
 

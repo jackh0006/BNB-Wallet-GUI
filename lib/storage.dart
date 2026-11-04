@@ -699,7 +699,11 @@ Future<AtomicWriteResult> atomicWrite(
     // Pass full path to hook for test verification
     StorageDebugHooks.afterTempCreation?.call('$parentCanonical/$tempName');
 
-    var committed = false;
+    // This tracks the irreversible rename boundary, rather than whether the
+    // final outcome is verified success.  Once renameat succeeds the old temp
+    // name may be reused by another process; unlinking it during post-commit
+    // error cleanup could then delete an unrelated file.
+    var renameCommitted = false;
     try {
       if (injectPreCommitFailure) {
         return AtomicWriteResult.preCommitFailure(
@@ -787,9 +791,27 @@ Future<AtomicWriteResult> atomicWrite(
 
       // Atomic commit
       PosixFs.renameCommit(dirfd, tempBase, destBase, replace: replaceExisting);
+      renameCommitted = true;
 
       // Hook: after rename commit - useful for injecting post-commit failures
       StorageDebugHooks.afterRenameCommit?.call(destination.path);
+
+      // Verify the destination *name*, not merely tempFd.  tempFd continues
+      // to identify our inode after rename even if another writer replaces
+      // destBase immediately afterwards.  fstatat(AT_SYMLINK_NOFOLLOW) under
+      // the pinned parent lets us reject that false-success case.
+      final committedStat = PosixFs.statFd(tempFd);
+      final namedStat = PosixFs.statChildNoFollow(dirfd, destBase);
+      if (namedStat == null ||
+          !namedStat.isRegular ||
+          namedStat.device != committedStat.device ||
+          namedStat.inode != committedStat.inode) {
+        return AtomicWriteResult.postCommitFailure(
+          destination,
+          'Destination pathname no longer refers to the committed inode '
+          'after rename; another process may have replaced it.',
+        );
+      }
 
       // Persist the directory entry itself (crash of the *directory* update
       // after an fsynced file is otherwise possible).
@@ -813,7 +835,9 @@ Future<AtomicWriteResult> atomicWrite(
         );
       }
 
-      // The temp fd still references the committed inode — verify from it.
+      // The temp fd still references the committed inode. The identity check
+      // above additionally proved that the destination name referred to it at
+      // the post-rename verification boundary.
       final finalStat = PosixFs.statFd(tempFd);
       if (finalStat.permissions != posixMode0600) {
         PosixFs.fchmodFd(tempFd, posixMode0600); // tighten, then recheck
@@ -839,11 +863,10 @@ Future<AtomicWriteResult> atomicWrite(
         );
       }
 
-      committed = true;
       return AtomicWriteResult.success(destination);
     } finally {
       // Cleanup: remove ONLY the temp entry, never the destination.
-      if (!committed) {
+      if (!renameCommitted) {
         try {
           PosixFs.unlinkChild(dirfd, tempBase);
         } catch (_) {}

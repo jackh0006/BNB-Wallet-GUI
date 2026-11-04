@@ -1412,22 +1412,25 @@ class AppState extends ChangeNotifier {
       }
       await AppStorage.ensureParentDir(newFile);
       final writeResult = await atomicWrite(newFile, blob);
-      if (!writeResult.committed) {
-        throw StateError('Atomic write failed: ${writeResult.error}');
-      }
-      if (writeResult.error != null) {
-        rpc.note(
-          'Vault move completed with durability warning: ${writeResult.error}',
-          kind: RpcStoryKind.info,
+      if (writeResult.state != AtomicWriteState.committedVerified) {
+        throw StateError(
+          'Vault move was not verified; active vault path was not changed: '
+          '${writeResult.error}',
         );
       }
 
       // Update stored path and verify
-      await AppStorage.setVaultPath(newPath);
-      final verifyBlob = await newFile.readAsString();
-      if (verifyBlob != blob) {
+      final verifyBlob = await readRegularFileNoFollow(
+        newFile.path,
+        maxBytes: 5 * 1024 * 1024,
+        missingMessage: 'Moved vault disappeared before verification.',
+        symlinkMessage:
+            'Moved vault became a symbolic link before verification.',
+      );
+      if (verifyBlob == null || verifyBlob != blob) {
         throw StateError('Vault move verification failed.');
       }
+      await AppStorage.setVaultPath(newPath);
       rpc.note('Vault moved to $newPath.', kind: RpcStoryKind.info);
       notifyListeners();
     });
@@ -1492,27 +1495,24 @@ class AppState extends ChangeNotifier {
 
       // Atomic write with restrictive permissions using secure temp file
       final writeResult = await atomicWrite(exportFile, blob);
-      if (!writeResult.committed) {
-        throw StateError('Export failed: ${writeResult.error}');
-      }
-      if (writeResult.error != null) {
-        rpc.note(
-          'Export completed with durability warning: ${writeResult.error}',
-          kind: RpcStoryKind.info,
-        );
+      if (writeResult.state != AtomicWriteState.committedVerified) {
+        throw StateError('Export was not verified: ${writeResult.error}');
       }
 
       // Read back and validate the exported file
-      final verifyBlob = await exportFile.readAsString();
-      if (verifyBlob != blob) {
-        await exportFile.delete();
+      final verifyBlob = await readRegularFileNoFollow(
+        exportFile.path,
+        maxBytes: 5 * 1024 * 1024,
+        missingMessage: 'Export disappeared before verification.',
+        symlinkMessage: 'Export became a symbolic link before verification.',
+      );
+      if (verifyBlob == null || verifyBlob != blob) {
         throw StateError('Export verification failed: file content mismatch.');
       }
 
       // Validate the exported file can be parsed as a valid vault envelope
       _validateVaultMagic(verifyBlob);
       if (verifyBlob.length > 5 * 1024 * 1024) {
-        await exportFile.delete();
         throw StateError('Exported file validation failed.');
       }
 
@@ -1687,15 +1687,21 @@ class AppState extends ChangeNotifier {
               vaultFile.path,
               rollbackResult,
             );
-            if (!rollbackResult.committed) {
+            if (rollbackResult.state != AtomicWriteState.committedVerified) {
               rpc.note(
-                'CRITICAL: Rollback failed - ${rollbackResult.error}. Manual recovery may be needed.',
+                'CRITICAL: Rollback was not verified - ${rollbackResult.error}. Manual recovery may be needed.',
                 kind: RpcStoryKind.fail,
               );
             } else {
               // Verify rollback succeeded
-              final rollbackBlob = await vaultFile.readAsString();
-              if (rollbackBlob != originalBlob) {
+              final rollbackBlob = await readRegularFileNoFollow(
+                vaultFile.path,
+                maxBytes: 5 * 1024 * 1024,
+                missingMessage:
+                    'Rollback destination disappeared before verification.',
+                symlinkMessage: 'Rollback destination became a symbolic link before verification.',
+              );
+              if (rollbackBlob == null || rollbackBlob != originalBlob) {
                 rpc.note(
                   'CRITICAL: Rollback failed - original vault may be corrupted!',
                   kind: RpcStoryKind.fail,
