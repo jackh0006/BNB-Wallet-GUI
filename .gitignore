@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Independent ethers.js verification workspace (npm artifacts, never committed)
+verification/node_modules/
+
 # Symbolication related
 app.*.symbols
 

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:synchronized/synchronized.dart';
 
 import 'app_state.dart';
 import 'storage.dart';
@@ -18,6 +19,12 @@ class EncryptedLogStore {
   static const _envelopeMagic = 'BNBLOG01';
   static const _maxBytes = 5 * 1024 * 1024; // 5 MB cap
   static const _maxEntries = 10000;
+
+  /// Serializes read-modify-write cycles on the log file. Without this, two
+  /// concurrent append() calls (e.g. a fire-and-forget logEvent racing an
+  /// awaited one) can interleave writeAsBytes buffers on the same file and
+  /// corrupt the envelope (observed: SecretBoxAuthenticationError).
+  static final Lock _fileLock = Lock();
 
   static Future<File> _file() async {
     final dir = await AppStorage.getDataDirectory();
@@ -38,64 +45,69 @@ class EncryptedLogStore {
       nonce: utf8.encode(device),
       info: utf8.encode('bnb-wallet/log-v1'),
     );
-    return Uint8List.fromList(await key.extractBytes());
+    final derived = Uint8List.fromList(await key.extractBytes());
+    return derived;
   }
 
   /// Appends a log line (JSON object) to the encrypted ring buffer.
   /// Truncates to cap if needed.
   static Future<void> append(Map<String, dynamic> entry) async {
-    final key = await _deriveKey();
-    final file = await _file();
+    await _fileLock.synchronized(() async {
+      final key = await _deriveKey();
+      final file = await _file();
 
-    // Read existing
-    List<String> lines = [];
-    if (await file.exists()) {
-      try {
-        final blob = await file.readAsBytes();
-        lines = (await _decrypt(key, blob)).split('\n').where((l) => l.isNotEmpty).toList();
-      } catch (_) {
-        lines = [];
+      // Read existing
+      List<String> lines = [];
+      if (await file.exists()) {
+        try {
+          final blob = await file.readAsBytes();
+          lines = (await _decrypt(key, blob)).split('\n').where((l) => l.isNotEmpty).toList();
+        } catch (_) {
+          lines = [];
+        }
       }
-    }
 
-    // Add new entry with timestamp
-    final entryWithMeta = Map<String, dynamic>.from(entry);
-    entryWithMeta['ts'] = DateTime.now().toUtc().toIso8601String();
-    final jsonLine = jsonEncode(entryWithMeta);
-    lines.add(jsonLine);
+      // Add new entry with timestamp
+      final entryWithMeta = Map<String, dynamic>.from(entry);
+      entryWithMeta['ts'] = DateTime.now().toUtc().toIso8601String();
+      final jsonLine = jsonEncode(entryWithMeta);
+      lines.add(jsonLine);
 
-    // Truncate to cap
-    if (lines.length > _maxEntries) {
-      lines = lines.sublist(lines.length - _maxEntries);
-    }
-    final joined = lines.join('\n');
-    if (utf8.encode(joined).length > _maxBytes) {
-      while (utf8.encode(lines.join('\n')).length > _maxBytes && lines.length > 1) {
-        lines.removeAt(0);
+      // Truncate to cap
+      if (lines.length > _maxEntries) {
+        lines = lines.sublist(lines.length - _maxEntries);
       }
-    }
+      final joined = lines.join('\n');
+      if (utf8.encode(joined).length > _maxBytes) {
+        while (utf8.encode(lines.join('\n')).length > _maxBytes && lines.length > 1) {
+          lines.removeAt(0);
+        }
+      }
 
-    await _write(key, file, lines.join('\n'));
+      await _write(key, file, lines.join('\n'));
+    });
   }
 
   /// Reads all log entries (newest first).
   static Future<List<Map<String, dynamic>>> readAll() async {
-    final key = await _deriveKey();
-    final file = await _file();
-    if (!await file.exists()) return [];
-    try {
-      final blob = await file.readAsBytes();
-      final text = await _decrypt(key, blob);
-      return text
-          .split('\n')
-          .where((l) => l.isNotEmpty)
-          .map((l) => jsonDecode(l) as Map<String, dynamic>)
-          .toList()
-          .reversed
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return _fileLock.synchronized(() async {
+      final key = await _deriveKey();
+      final file = await _file();
+      if (!await file.exists()) return [];
+      try {
+        final blob = await file.readAsBytes();
+        final text = await _decrypt(key, blob);
+        return text
+            .split('\n')
+            .where((l) => l.isNotEmpty)
+            .map((l) => jsonDecode(l) as Map<String, dynamic>)
+            .toList()
+            .reversed
+            .toList();
+      } catch (_) {
+        return [];
+      }
+    });
   }
 
   /// Reads entries filtered by category/level/time.
@@ -177,10 +189,12 @@ class EncryptedLogStore {
 
   /// Clears the log file (for "Erase everything" / privacy).
   static Future<void> clear() async {
-    final file = await _file();
-    if (await file.exists()) {
-      await file.delete();
-    }
+    await _fileLock.synchronized(() async {
+      final file = await _file();
+      if (await file.exists()) {
+        await file.delete();
+      }
+    });
   }
 
   static Uint8List _random(int length) {

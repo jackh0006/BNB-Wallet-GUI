@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show File, Platform, Process, FileSystemEntityType;
+import 'dart:io' show File;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1452,11 +1452,11 @@ class AppState extends ChangeNotifier {
 
       final exportFile = File(exportPath);
 
-      // Refuse symlink destinations
-      if (await exportFile.exists()) {
-        if (await isSymlink(exportPath)) {
-          throw StateError('Destination is a symbolic link, refusing to write.');
-        }
+      // Refuse symlink destinations. The no-follow check is independent of
+      // exists(), so a BROKEN symlink (over which exists() answers false) is
+      // refused exactly like a valid one.
+      if (await isSymlink(exportPath)) {
+        throw StateError('Destination is a symbolic link, refusing to write.');
       }
 
       // Refuse to overwrite an existing backup without explicit user action.
@@ -1522,32 +1522,25 @@ class AppState extends ChangeNotifier {
 
     // Acquire lock to prevent concurrent vault operations
     await vaultOperationLock.synchronized(() async {
-      final importFile = File(importPath);
-
-      // Validate import file exists and is a regular file (not symlink)
-      if (!await importFile.exists()) {
-        throw StateError('Import file not found: $importPath');
-      }
+      // No-follow classification first: a symlink entry (valid or broken) at
+      // the import path is refused BEFORE any read. The descriptor-pinned
+      // re-refusal and O_NOFOLLOW open inside readRegularFileNoFollow close
+      // the validate→use window that path-based prechecks cannot.
       if (await isSymlink(importPath)) {
         throw StateError('Import path is a symbolic link, refusing to read.');
       }
-      final importStat = await importFile.stat();
-      if (importStat.type != FileSystemEntityType.file) {
-        throw StateError('Import path is not a regular file.');
-      }
-      if (importStat.size > 5 * 1024 * 1024) {
-        throw StateError('Import file is too large (max 5 MB).');
-      }
-      if (importStat.size == 0) {
-        throw StateError('Import file is empty.');
-      }
 
-      // Read the backup file
-      final blob = await importFile.readAsString();
-      if (blob.isEmpty) throw StateError('Import file is empty.');
-      if (blob.length > 5 * 1024 * 1024) {
-        throw StateError('Imported vault is too large (max 5 MB).');
+      // Pinned read (Linux): missing -> null; symlink/directory/special/
+      // unreadable fail closed with honest StateErrors.
+      final blob = await readRegularFileNoFollow(
+        importPath,
+        maxBytes: 5 * 1024 * 1024,
+        tooLargeMessage: 'Import file is too large (max 5 MB).',
+      );
+      if (blob == null) {
+        throw StateError('Import file not found: $importPath');
       }
+      if (blob.isEmpty) throw StateError('Import file is empty.');
 
       // Validate the envelope format and version by checking base64-decoded magic bytes.
       _validateVaultMagic(blob);
