@@ -108,11 +108,11 @@
 | M3-19 | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
 | M3-20 | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
 | M3-21 | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
-| M3-22 | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| M3-22 | Log append race fix (serialized file mutations) | 🟡 PARTIALLY TESTED | Linux `flock(2)` advisory lock plus local lock; independent-process append/rotation/delete coverage remains required |
 | M3-23 | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 | M3-24 | Post-rename destination identity verification and post-commit cleanup safety | ✅ TESTED | M3-19; `statChildNoFollow` identity comparison; filesystem cases 11d/11e (23/23 focused suite pass, 2026-11-04) |
 | M3-25 | Atomic-write caller outcome audit | ✅ TESTED (focused) | M3-15/M3-24; wrapper saves require verified result; move/export/import rollback no-follow readbacks |
-| M3-26 | Drawer and encrypted-log atomic persistence | ✅ TESTED (focused) | M3-19; drawer rejects unverified result; log envelope is atomic/no-follow with process-local concurrency test |
+| M3-26 | Drawer and encrypted-log atomic persistence | 🟡 PARTIALLY TESTED | M3-19; drawer rejects unverified result; log envelope is atomic/no-follow with advisory locking, but independent-process coverage remains required |
 
 ### MILESTONE 4 — Wallet Core
 

@@ -54,7 +54,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M3-09** | Atomic write hardening | ✅ DONE | `lib/storage.dart` (`atomicWrite`, `_createSecureTempFile`) |
 | **M3-10** | Symlink validation & rejection | ✅ DONE | `lib/storage.dart` (`_isSymlink`, `atomicWrite`, `_validateRegularFile`) |
 | **M3-11** | Import rollback with verification | ✅ DONE | `lib/app_state.dart` (`importVault` rollback logic) |
-| **M3-12** | Vault operation locking | ✅ DONE | `lib/storage.dart` (`vaultOperationLock`) |
+| **M3-12** | Vault operation locking | 🟡 PARTIALLY TESTED | `withVaultOperationLock` uses local ordering plus Linux nonblocking advisory `flock(2)`; independent-process coverage remains required. |
 | **M3-13** | Vault info display (path, size, custom/default) | ✅ DONE | `lib/app_state.dart` (`getVaultInfo`) |
 | **M3-14** | Secure temp file creation with 0600 perms | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile`) |
 | **M3-15** | Atomic write with rollback on failure | ✅ DONE | `lib/app_state.dart` (`importVault` rollback) |
@@ -65,11 +65,11 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M3-19** | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
 | **M3-20** | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
 | **M3-21** | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
-| **M3-22** | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| **M3-22** | Log append race fix (serialized file mutations) | 🟡 PARTIALLY TESTED | Local lock plus Linux advisory lock; independent-process append/rotation/delete coverage remains required. |
 | **M3-23** | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
 | **M3-24** | Post-rename destination identity verification and safe post-commit cleanup | ✅ TESTED | `lib/posix_fs.dart`, `lib/storage.dart`; `filesystem_security_test.dart` cases 11d/11e (2026-11-04, 23/23 pass) |
 | **M3-25** | Atomic-write caller outcome audit | ✅ TESTED (focused) | `lib/app_state.dart`, `lib/storage.dart`; all `atomicWrite` callers inventoried with `rg`; focused filesystem and rollback suites pass (2026-11-04) |
-| **M3-26** | Drawer and encrypted-log atomic persistence | ✅ TESTED (focused) | `lib/encrypted_log_store.dart`, `lib/storage.dart`; `log_canary_test.dart` plus filesystem suite (26/26 combined pass, 2026-11-04) |
+| **M3-26** | Drawer and encrypted-log atomic persistence | 🟡 PARTIALLY TESTED | Drawer behavior has focused evidence; encrypted-log cross-process coverage remains required. |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
