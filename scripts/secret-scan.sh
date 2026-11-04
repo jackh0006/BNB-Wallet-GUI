@@ -63,10 +63,13 @@ if "$scan_history"; then
   # evidence for the required operational rotation.
   historical_keystore=false
   historical_credential=false
-  if git log --all --format='%H' -- scripts/release.keystore | grep -q .; then
+  # Do not pipe to grep -q under pipefail: grep can exit early, leaving git
+  # with SIGPIPE and producing a false negative.  Both queries emit commit
+  # IDs only, never historical file contents or credential-shaped text.
+  if [[ -n "$(git log --all --format='%H' -- scripts/release.keystore)" ]]; then
     historical_keystore=true
   fi
-  if git log --all -p -- scripts/build-apk.sh | grep -qE 'storePassword|keyPassword|BnbWalletRelease'; then
+  if [[ -n "$(git log --all --format='%H' -G 'storePassword|keyPassword|BnbWalletRelease' -- scripts/build-apk.sh)" ]]; then
     historical_credential=true
   fi
   if "$historical_keystore" || "$historical_credential"; then
