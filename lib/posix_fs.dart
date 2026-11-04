@@ -68,7 +68,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// Thrown when a POSIX operation fails or cannot be performed; carries the
 /// errno so callers can distinguish "missing" (ENOENT) from "cannot
@@ -332,10 +331,9 @@ class PosixFs {
   /// deliberately consulted by [available], rather than a caller-side flag,
   /// so the exercised path is the same availability boundary used in
   /// production.
-  @visibleForTesting
+  /// Test-only switch; production code never changes it.
   static bool forceUnavailableForTesting = false;
 
-  @visibleForTesting
   static void resetAvailabilityForTesting() {
     forceUnavailableForTesting = false;
   }

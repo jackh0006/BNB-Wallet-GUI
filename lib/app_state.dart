@@ -1045,51 +1045,55 @@ class AppState extends ChangeNotifier {
     required EthPrivateKey key,
     String? mnemonic,
   }) async {
-    final existing = await _readVaultJson(password);
-    final list = existing == null
-        ? <Map<String, dynamic>>[]
-        : List<Map<String, dynamic>>.from(existing);
-    final normalizedLabel = label.trim();
-    if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
-      throw ArgumentError(
-        'Vault account label must contain 1 to 100 characters.',
+    await withVaultOperationLock(() async {
+      final existing = await _readVaultJson(password);
+      final list = existing == null
+          ? <Map<String, dynamic>>[]
+          : List<Map<String, dynamic>>.from(existing);
+      final normalizedLabel = label.trim();
+      if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
+        throw ArgumentError(
+          'Vault account label must contain 1 to 100 characters.',
+        );
+      }
+      final address = key.address.eip55With0x;
+      list.removeWhere(
+        (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
       );
-    }
-    final address = key.address.eip55With0x;
-    list.removeWhere(
-      (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
-    );
-    list.add({
-      'label': normalizedLabel,
-      'address': address,
-      'privateKeyHex': bytesToHex(key.privateKey, include0x: true),
-      if (mnemonic != null) 'mnemonic': mnemonic,
-      'savedAt': DateTime.now().toIso8601String(),
+      list.add({
+        'label': normalizedLabel,
+        'address': address,
+        'privateKeyHex': bytesToHex(key.privateKey, include0x: true),
+        if (mnemonic != null) 'mnemonic': mnemonic,
+        'savedAt': DateTime.now().toIso8601String(),
+      });
+      final blob = await _runVaultEncrypt(
+        password,
+        jsonEncode(list),
+        await AppStorage.getOrGenerateDeviceSecret(),
+      );
+      await AppStorage.writeVaultAtomic(blob);
+      _vaultExists = true;
+      notifyListeners();
     });
-    final blob = await _runVaultEncrypt(
-      password,
-      jsonEncode(list),
-      await AppStorage.getOrGenerateDeviceSecret(),
-    );
-    await AppStorage.writeVaultAtomic(blob);
-    _vaultExists = true;
-    notifyListeners();
   }
 
   Future<void> deleteVaultAccount(String password, String address) async {
-    final existing = await _readVaultJson(password);
-    if (existing == null) return;
-    final list = List<Map<String, dynamic>>.from(existing)
-      ..removeWhere(
-        (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
+    await withVaultOperationLock(() async {
+      final existing = await _readVaultJson(password);
+      if (existing == null) return;
+      final list = List<Map<String, dynamic>>.from(existing)
+        ..removeWhere(
+          (item) => '${item['address']}'.toLowerCase() == address.toLowerCase(),
+        );
+      final blob = await _runVaultEncrypt(
+        password,
+        jsonEncode(list),
+        await AppStorage.getOrGenerateDeviceSecret(),
       );
-    final blob = await _runVaultEncrypt(
-      password,
-      jsonEncode(list),
-      await AppStorage.getOrGenerateDeviceSecret(),
-    );
-    await AppStorage.writeVaultAtomic(blob);
-    notifyListeners();
+      await AppStorage.writeVaultAtomic(blob);
+      notifyListeners();
+    });
   }
 
   /// Renames a vault account at [index] to [newLabel]. Requires the vault password.
@@ -1098,28 +1102,30 @@ class AppState extends ChangeNotifier {
     int index,
     String newLabel,
   ) async {
-    final existing = await _readVaultJson(password);
-    if (existing == null || index < 0 || index >= existing.length) {
-      throw StateError('Vault account not found.');
-    }
-    final normalizedLabel = newLabel.trim();
-    if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
-      throw ArgumentError(
-        'Vault account label must contain 1 to 100 characters.',
+    await withVaultOperationLock(() async {
+      final existing = await _readVaultJson(password);
+      if (existing == null || index < 0 || index >= existing.length) {
+        throw StateError('Vault account not found.');
+      }
+      final normalizedLabel = newLabel.trim();
+      if (normalizedLabel.isEmpty || normalizedLabel.length > 100) {
+        throw ArgumentError(
+          'Vault account label must contain 1 to 100 characters.',
+        );
+      }
+      // Mutate the decrypted record itself rather than rebuilding it from the
+      // display model. This preserves mnemonic and future schema fields.
+      final updated = List<Map<String, dynamic>>.from(existing);
+      updated[index] = Map<String, dynamic>.from(updated[index])
+        ..['label'] = normalizedLabel;
+      final blob = await _runVaultEncrypt(
+        password,
+        jsonEncode(updated),
+        await AppStorage.getOrGenerateDeviceSecret(),
       );
-    }
-    // Mutate the decrypted record itself rather than rebuilding it from the
-    // display model. This preserves mnemonic and future schema fields.
-    final updated = List<Map<String, dynamic>>.from(existing);
-    updated[index] = Map<String, dynamic>.from(updated[index])
-      ..['label'] = normalizedLabel;
-    final blob = await _runVaultEncrypt(
-      password,
-      jsonEncode(updated),
-      await AppStorage.getOrGenerateDeviceSecret(),
-    );
-    await AppStorage.writeVaultAtomic(blob);
-    notifyListeners();
+      await AppStorage.writeVaultAtomic(blob);
+      notifyListeners();
+    });
   }
 
   Future<VaultAccount> unlockVaultAccount(String password, int index) async {
@@ -1812,29 +1818,31 @@ class AppState extends ChangeNotifier {
   /// the restored first-run state is clean. Funds recover only with the seed
   /// phrase. Returns anything the wipe could NOT remove (empty = clean).
   Future<List<String>> eraseAll() async {
-    final leftovers = await AppStorage.eraseAllData();
-    _key = null;
-    _mnemonic = null;
-    _profiles = [];
-    _nodes = [];
-    _customTokens = [];
-    _bscscanKey = null;
-    _pending = [];
-    _unlocked = false;
-    _vaultExists = false;
-    _usePin = false;
-    _appLocked = false;
-    _drawerNoteShown = false;
-    AppStorage.resetDeviceSecretMemo();
-    rpc.setBscscanKey(null);
-    rpc.clearStory();
-    await rpc.privacyChanged();
-    rpc.note(
-      'Everything stored on this device was erased. The wallet starts clean.',
-      kind: RpcStoryKind.info,
-    );
-    notifyListeners();
-    return leftovers;
+    return withVaultOperationLock(() async {
+      final leftovers = await AppStorage.eraseAllData();
+      _key = null;
+      _mnemonic = null;
+      _profiles = [];
+      _nodes = [];
+      _customTokens = [];
+      _bscscanKey = null;
+      _pending = [];
+      _unlocked = false;
+      _vaultExists = false;
+      _usePin = false;
+      _appLocked = false;
+      _drawerNoteShown = false;
+      AppStorage.resetDeviceSecretMemo();
+      rpc.setBscscanKey(null);
+      rpc.clearStory();
+      await rpc.privacyChanged();
+      rpc.note(
+        'Everything stored on this device was erased. The wallet starts clean.',
+        kind: RpcStoryKind.info,
+      );
+      notifyListeners();
+      return leftovers;
+    });
   }
 }
 
