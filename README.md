@@ -129,15 +129,9 @@ entitled to the corresponding source under its terms.
 
 ## Donate
 
-Donations are optional and support continued open-source development. The
-author's public EVM receiving address, also published in the related
-`bnb-terminal-wallet` repository, is:
-
-| Network / asset | Address |
-|---|---|
-| BNB Smart Chain (BNB or BEP-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-| Ethereum (ETH or ERC-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-
-Verify the full address from more than one official project location before
-sending. Donations are irreversible and are not a purchase, investment, or
-support entitlement.
+Donations are optional and support continued open-source development. See
+[DONATE.md](DONATE.md) for the complete public multi-network address table,
+copied from the author's related `BNB-Terminal-Wallet` repository. Verify the
+whole address from more than one official project location before sending.
+Donations are irreversible and are not a purchase, investment, or support
+entitlement.
