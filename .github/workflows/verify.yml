@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   secret-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -22,7 +22,7 @@ jobs:
         run: bash scripts/secret-scan.sh
 
   flutter:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The full suite includes deliberately expensive, production-parameter
     # Argon2id KDF cases. Keep them in the required check, with enough time
     # for a serial run on a hosted runner.
