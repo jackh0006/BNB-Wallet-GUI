@@ -64,6 +64,12 @@
 | `clipboard_guard_test.dart` | 5 | (light) | ✅ PASS | Secret detection (mnemonic, hex key), auto-clear |
 | `drawer_secret_test.dart` | 6 | (light) | ✅ PASS | Device key memoization, fallback, migration |
 | `memory_protection_test.dart` | 2 | (light) | ✅ PASS | Kernel state: dumpable=0, core limit=0 |
+| `filesystem_security_test.dart` | See test file | (light) | Historical focused PASS | Linux atomic-write, permissions, no-follow, and race protections |
+| `rollback_injection_test.dart` | See test file | `kdf` | Historical focused PASS | Rollback after controlled post-commit verification failure |
+| `vault_header_validation_test.dart` | See test file | (light) | Historical focused PASS | Rejects unsafe or malformed vault headers |
+| `vault_import_rollback_kdf_test.dart` | See test file | `kdf` | Historical focused PASS | Import and rollback with production KDF parameters |
+| `vault_management_test.dart` | See test file | (light) | Historical focused PASS | Vault-management regression cases |
+| `vault_rename_test.dart` | See test file | (light) | Historical focused PASS | Rename and replacement safety |
 
 ### UI & Navigation
 
@@ -75,6 +81,7 @@
 | `backup_quiz_test.dart` | 5 | (light) | ✅ PASS | 3-word verification, creation + settings |
 | `journey_map_test.dart` | 4 | (light) | ✅ PASS | 5-stop map, states, detail |
 | `hold_to_confirm_test.dart` | 3 | (light) | ✅ PASS | Hold gesture, cancellation |
+| `localization_catalog_test.dart` | See test file | (light) | Historical focused PASS | All maintained localization catalogs provide required text |
 
 ### Token & Assets
 
@@ -107,6 +114,10 @@
 ---
 
 ## Test Execution Commands
+
+The CI inventory check requires every `test/*_test.dart` file to appear in
+this matrix. Adding a test without adding it here fails the required
+`sources-and-sbom` GitHub check.
 
 ```bash
 # Full sequential-aware suite (as in CI)

@@ -266,3 +266,6 @@ These rules apply to every human or AI agent:
    signature, `SHA256SUMS`, SBOM, automated checks, and clean-install evidence
    all identify the same version and commit. A newer prerelease is not a
    confirmed stable release merely because it exists.
+6. When adding, renaming, or removing a Flutter test file, update
+   `docs/testing/TEST_MATRIX.md` in the same change. GitHub CI enforces this
+   with `scripts/check_test_inventory.py`; never bypass or remove that check.

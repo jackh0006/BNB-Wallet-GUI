@@ -9,6 +9,11 @@ The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
+**Current source candidate: `1.0.9+3`.** The latest GitHub stable release is
+`v1.0.5`; neither it nor the newer candidate is release-confirmed. The exact
+per-version evidence and release status are maintained in
+[docs/releases/1.0.9.md](docs/releases/1.0.9.md).
+
 > Important: this project is self-assessed, not independently reviewed. No
 > test suite, security score, or software wallet can guarantee the safety of
 > large amounts. For substantial savings, use a hardware wallet and make a
