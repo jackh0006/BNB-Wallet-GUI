@@ -37,6 +37,8 @@ jobs:
       - run: bash scripts/test-suite.sh
       - name: Dependency advisory audit
         run: python3 scripts/dependency-audit.py
+      - name: Dart licence inventory
+        run: python3 scripts/license-check.py --dart-only
 
   linux-build:
     runs-on: ubuntu-latest
@@ -72,6 +74,8 @@ jobs:
       - run: npm ci
       - name: npm dependency advisory audit
         run: npm audit --audit-level=low
+      - name: npm licence inventory
+        run: python3 ../scripts/license-check.py --npm-only
       - run: node verify.cjs
 
   sources-and-sbom:

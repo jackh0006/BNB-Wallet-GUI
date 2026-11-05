@@ -1306,10 +1306,17 @@ class AppStorage {
   /// Returns the app's data directory (same as vault/receipts/logs).
   static Future<Directory> getDataDirectory() async {
     final dir = await getApplicationSupportDirectory();
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
     if (Platform.isLinux) {
+      // Audit events may be started from a widget callback without awaiting
+      // them.  dart:io's asynchronous directory metadata futures inherit
+      // Flutter's fake-async test zone and can then remain pending while an
+      // append owns the global storage mutex.  The hardened Linux storage
+      // pipeline below is descriptor/FFI based and synchronous already, so
+      // keep this small local metadata check in that same execution model.
+      // This avoids leaving a queued audit write (and its lock) stranded.
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
       // Refuse a symlinked data directory ancestry (see vaultFile()).
       try {
         final canonical = PosixFs.resolveCanonical(dir.path);
@@ -1326,7 +1333,22 @@ class AppStorage {
         }
       }
     }
-    if (Platform.isLinux || Platform.isMacOS) {
+    if (Platform.isLinux) {
+      final mode = dir.statSync();
+      if (mode.type == FileSystemEntityType.directory) {
+        final perms = mode.mode & _kPermMask;
+        if ((perms & _kNoGroupOtherPerms) != 0) {
+          throw StateError(
+            'Data directory created with insecure permissions (mode: ${perms.toRadixString(8)}). Process umask must be restrictive (e.g., 0077).',
+          );
+        }
+      }
+      return dir;
+    }
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    if (Platform.isMacOS) {
       final mode = await dir.stat();
       if (mode.type == FileSystemEntityType.directory) {
         final perms = mode.mode & _kPermMask;

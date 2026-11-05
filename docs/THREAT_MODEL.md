@@ -13,7 +13,7 @@ grade". Software carries risk; this document describes ours.
 | 24-word seed phrase | In memory only after unlock; in the vault file only Argon2id+device-bound double-wrapped | Two independent wrappers must both open; see docs/CRYPTO.md |
 | Private keys | In memory after unlock; persisted only inside the vault | Same envelope as the seed |
 | Vault password | Never stored | Only an Argon2id verifier-side KEK exists; there is no recovery path |
-| Device-bound secret | Android secure storage; Linux owner-only local drawer | Never in preferences or the vault file; Linux is not hardware-bound |
+| Device-bound secret | Linux owner-only local drawer | Never in preferences or the vault file; Linux is not hardware-bound |
 | App-lock PIN | Only as a salted Argon2id hash in secure storage | Exponential backoff on failures: 1 s, 2 s, 4 s … capped at 15 min |
 | BscScan API key | Secure storage | Public-but-private value; erased with "Erase all data" |
 | Transaction history | Not persisted at all | Fetched live from the explorer API; nothing on disk |
@@ -39,9 +39,9 @@ grade". Software carries risk; this document describes ours.
    the classic "drip address" scam.
 5. **Contract-recipient mistakes.** Before confirmation, the app reads the
    recipient's on-chain code and warns when it is a contract.
-6. **Shoulder surfing & screen capture (Android).** FLAG_SECURE prevents
-   screenshots and app-switch thumbnails. No equivalent toggle exists on
-   Linux desktop — that is a documented gap, see below.
+6. **Shoulder surfing & screen capture.** Linux desktops have no reliable
+   application-level equivalent to protected screenshots; this is a
+   documented gap, see below.
 7. **Idle exposure.** Auto-lock (configurable; 60 s default) and an
    immediate lock on backgrounding clear keys from memory.
 8. **PIN guessing across restarts.** The backoff window is persisted in
@@ -130,9 +130,9 @@ Honesty section. These are real limits, not corner cases.
 - **Cold-mode field testing.** The flow is covered by automated tests and a
   fake broadcast, not by a documented two-physical-device exercise.
 - **Camera QR on Linux.** Not implemented; file and paste are the transports.
-- **Release-signing key.** The old release keystore was committed and must be
-  treated as compromised. Future APKs must use a rotated key held outside the
-  repository. This is an operational action, not a source-code fix.
+- **Historical credential exposure.** The old Android release keystore was
+  committed publicly and remains compromised. It is not a Linux package
+  credential and Android work is outside this assessment.
 - **Memory locking is best-effort.** `prctl(PR_SET_DUMPABLE, 0)` and the core
   limit are asserted on Linux; `mlockall` can fail under a low memlock limit.
   Windows/macOS are not covered by the kernel-state test.

@@ -303,6 +303,7 @@ class AppState extends ChangeNotifier {
   static Future<String> Function(String password, String blob, String device)?
   vaultDecryptOverride;
 
+
   Future<void> init() async {
     await AppStorage.init();
     rpc.setNetwork(AppStorage.network);
@@ -416,13 +417,24 @@ class AppState extends ChangeNotifier {
       // this line is readable even though the key is dropped right after.
       unawaited(
         logEvent(
-          category: LogCategory.security,
-          level: LogLevel.info,
-          message: 'Wallet locked; keys cleared from memory.',
-          extra: {'simple': 'Wallet locked'},
+        category: LogCategory.security,
+        level: LogLevel.info,
+        message: 'Wallet locked; keys cleared from memory.',
+        extra: {'simple': 'Wallet locked'},
         ).catchError((_) {}),
       );
     }
+    _key = null;
+    _mnemonic = null;
+    _watchAddress = null;
+    _unlocked = false;
+    notifyListeners();
+  }
+
+  /// Test-fixture reset only.  It clears in-memory secrets without launching
+  /// an asynchronous audit write into a temporary directory being removed.
+  @visibleForTesting
+  void lockForTest() {
     _key = null;
     _mnemonic = null;
     _watchAddress = null;

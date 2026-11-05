@@ -104,9 +104,9 @@ wallet when the consequence of loss is high.
 
 ## Build and verify from source
 
-Requirements: current stable Flutter/Dart, Node.js, npm, Python 3, Ubuntu or
-Debian amd64 build dependencies, and a configured GPG signing key for a final
-release package.
+Requirements: current stable Flutter/Dart, Node.js, npm, Python 3, and Ubuntu
+or Debian amd64 build dependencies. A maintainer-controlled GPG signing key is
+also required for a publishable release package.
 
 ```bash
 flutter pub get
@@ -121,9 +121,11 @@ BNB_RELEASE_DEB='/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb
   bash scripts/release-check.sh
 ```
 
-`build-deb.sh` creates a `.deb`, `SHA256SUMS`, and detached GPG signature in
-`/home/mhh06/Downloads/BNB Wallet/`. The release gate refuses a package with
-no signature or matching checksum.
+`build-deb.sh` creates a `.deb` and `SHA256SUMS` in
+`/home/mhh06/Downloads/BNB Wallet/`. Set `BNB_GPG_KEY` to an available,
+authorized secret key to also create the detached signature; an unsigned local
+build is diagnostic-only. The release gate refuses a package with no signature
+or matching checksum.
 
 ## Responsible disclosure and license
 

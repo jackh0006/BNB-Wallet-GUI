@@ -1,11 +1,11 @@
-# RELEASE_SECURITY.md — Release Signing and Distribution Security
+# RELEASE_SECURITY.md — Linux Release Signing and Distribution Security
 
 **Date**: 2026-11-03
 **Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
 
 ---
 
-## Critical: Compromised Release Keystore
+## Historical Android Credential Exposure (Not a Linux Release Credential)
 
 **The old Android release keystore (`scripts/release.keystore`) and its predictable password were committed to public Git history.**
 
@@ -20,64 +20,9 @@ that the tracked source tree no longer contains the material. It does not
 prove the exposed credential has been invalidated, that the private key is no
 longer usable elsewhere, or that any published artifact has been replaced.
 
-**Android update implication**: Android accepts an in-place update only when
-the signing lineage is accepted for the installed package. Replacing a
-standalone signing key generally prevents users of APKs signed by the old key
-from upgrading in place; they must uninstall (which removes app data) and
-install the newly signed APK. Verify the actual signing certificate and any
-Play App Signing lineage before making user-facing claims.
-
-**Required Operational Action**:
-1. Inventory the public commits and release artifacts: identify the old
-   certificate fingerprint with `keytool`/`apksigner`, and map every
-   distributed APK to that certificate. Do not print passwords or private
-   material while doing so.
-2. On an isolated trusted machine, determine whether the old keystore can
-   still sign a test artifact; record only a yes/no result and certificate
-   fingerprint. Do not place the credential in commands, logs, CI output, or
-   reports.
-3. Obtain explicit release-owner approval, then generate a replacement key
-   outside this repository, back it up under the release-owner's recovery
-   controls, and store its path/passwords only in a local protected
-   configuration or CI secret store.
-4. Sign a controlled release with the replacement, record its public
-   certificate fingerprint, verify it with `apksigner`, and publish a clear
-   migration notice after confirming the package/update-lineage consequences.
-5. Run both scan modes and confirm no private signing artifact is tracked.
-   Do not generate or commit a replacement key from this repository.
-
----
-
-## Android APK Signing (`scripts/build-apk.sh`)
-
-### Requirements (Enforced by Script)
-
-```bash
-export BNB_KEYSTORE=/path/to/release.keystore   # Must exist, NOT tracked by git
-export BNB_KEY_ALIAS=mykeyalias                 # Alias in keystore
-export BNB_STORE_PASS=keystore_password         # Keystore password
-export BNB_KEY_PASS=key_password                # Key password (may equal store)
-export BNB_EXPECTED_SIGNER_SHA256=<64-hex-digest> # Approved replacement cert
-# Optional:
-export BNB_GPG_KEY=0xABCDEF...                  # GPG key for .asc signature
-export BNB_VERSION=1.0.8                        # Override pubspec version
-export BNB_OUTDIR=./dist                        # Output directory
-```
-
-### Script Behavior
-
-1. **Fails closed** if any env var missing
-2. **Refuses tracked keystore**: `git ls-files` check
-3. **Builds**: `flutter build apk --release --target-platform android-arm64`
-4. **Signs**: `apksigner` v3 scheme, min SDK 29
-5. **Verifies**: `apksigner verify --print-certs` and exact signer SHA-256
-6. **Outputs**: `.apk`, `.apk.sha256`, optional `.apk.asc` (GPG)
-
-### No Keystore Generation
-
-- Script **never** creates a keystore
-- Silent generation would produce unupgradeable APKs and hide lost keys
-- Missing keystore = hard error with clear message
+This is historical public-repository exposure only. It is not used for Linux
+packages and no Android build, signing, rotation, or distribution work is in
+the active release scope. Treat the old material as compromised permanently.
 
 ---
 
@@ -86,20 +31,23 @@ export BNB_OUTDIR=./dist                        # Output directory
 ### Output
 
 - `bnb-wallet-<version>-amd64.deb`
-- `.deb.sha256` (SHA-256 checksum)
+- `SHA256SUMS` (SHA-256 checksum)
 - Optional `.deb.asc` (GPG detached signature)
 
 ### GPG Signing
 
 ```bash
-# In build-deb.sh:
+# Set only on the maintainer-controlled release host:
+export BNB_GPG_KEY='approved key fingerprint or UID'
 gpg --batch --yes --digest-algo SHA256 \
-  --default-key "jackh0006 <jackh109867@gmail.com>" \
+  --default-key "$BNB_GPG_KEY" \
   --detach-sign --armor "$DEB"
 ```
 
 - **Key management**: GPG key held by maintainer (not in repo)
 - **Verification**: `gpg --verify bnb-wallet-*.deb.asc bnb-wallet-*.deb`
+- **No key available**: the build script still emits a checksum-marked,
+  explicitly unsigned diagnostic package. It is not releaseable.
 
 ---
 
@@ -111,7 +59,7 @@ gpg --batch --yes --digest-algo SHA256 \
 1. **Tracked keystores**: `*.jks`, `*.keystore`, `*.p12`, `*.pfx`, `*.pem`, `*.key`
 2. **PEM private key blocks**: `-----BEGIN *PRIVATE KEY-----` in tracked files
 3. **Old password pattern**: current-tree scan; `bash scripts/secret-scan.sh --history` separately reports the historical exposure without printing it
-4. **Inline Android signing passwords**: `storePassword`/`keyPassword` with values
+4. **Inline signing passwords**: `storePassword`/`keyPassword` with values
 5. **Hardcoded 32-byte keys**: `privateKey`/`secretKey`/`seedPhrase` = 64 hex chars
 
 **Pass Criteria**: The default current-tree mode has zero matches. The
@@ -174,31 +122,24 @@ python3 scripts/sbom.py --out docs/SBOM.json
 - [ ] `bash scripts/test-suite.sh` → all pass (non-KDF 209, KDF individually)
 - [ ] `bash scripts/secret-scan.sh` → clean
 - [ ] `cd verification && npm ci && node verify.cjs` → pass
+- [ ] `python3 scripts/license-check.py` → all locked packages have licence text
 - [ ] `python3 scripts/sbom.py --out docs/SBOM.json` → committed
 - [ ] `git diff --exit-code docs/SBOM.json` → clean
 - [ ] Update `CHANGELOG.md`
 
 ### Linux .deb Release
 
-- [ ] `bash scripts/build-deb.sh` → produces `.deb`, `.sha256`, `.asc`
+- [ ] `BNB_GPG_KEY=<approved key> bash scripts/build-deb.sh` → produces `.deb`, `SHA256SUMS`, `.asc`
 - [ ] Install on clean Ubuntu 22.04/24.04 amd64 VM
 - [ ] Smoke test: launch, vault create/unlock, send, network modes
 - [ ] `dpkg -c bnb-wallet-*.deb` → no secrets, correct permissions
 - [ ] `gpg --verify bnb-wallet-*.deb.asc bnb-wallet-*.deb`
 
-### Android APK Release (Separate)
-
-- [ ] New keystore generated offline, stored in secret manager
-- [ ] `export BNB_KEYSTORE=... BNB_KEY_ALIAS=... BNB_STORE_PASS=... BNB_KEY_PASS=...`
-- [ ] `bash scripts/build-apk.sh` → `.apk`, `.sha256`, `.asc`
-- [ ] `apksigner verify --print-certs bnb-wallet-*.apk`
-- [ ] Test on Android 8+ device/emulator
-
 ### Git Tag & Push
 
 - [ ] `git tag -s v1.x.y -m "Release v1.x.y"` (GPG signed tag)
 - [ ] `git push origin main --tags`
-- [ ] GitHub Release: upload `.deb`, `.apk`, `.sha256`, `.asc`
+- [ ] GitHub Release: upload `.deb`, `SHA256SUMS`, `.asc`
 - [ ] Verify GitHub release artifacts match local checksums
 
 ---
@@ -209,7 +150,6 @@ python3 scripts/sbom.py --out docs/SBOM.json
 |-----------|--------|-------|
 | **Flutter/Dart toolchain pin** | NOT DONE | Need `FLUTTER_VERSION`, `DART_SDK` pins |
 | **Linux build environment** | NOT DONE | Docker image with pinned packages |
-| **Android build environment** | NOT DONE | Docker image with pinned SDK/NDK |
 | **Independent rebuild verification** | NOT TESTED | Compare two builds byte-for-byte |
 | **SBOM determinism** | ✅ DONE | `scripts/sbom.py` from lockfile |
 
@@ -220,8 +160,8 @@ python3 scripts/sbom.py --out docs/SBOM.json
 | Practice | Status |
 |----------|--------|
 | **Dependency pinning** | `pubspec.lock` + `package-lock.json` committed |
-| **Vulnerability scanning** | NOT AUTOMATED (manual `flutter pub outdated`) |
-| **License compliance** | SBOM includes licenses; all OSS compatible |
+| **Vulnerability scanning** | `scripts/dependency-audit.py` plus npm audit in CI; results are only valid when the networked scan completes |
+| **License compliance** | NOT VERIFIED: the SBOM records npm license fields when present but is not a complete license-policy scan |
 | **No proprietary core deps** | ✅ Core wallet uses only OSS |
 | **Contribution policy** | `CONTRIBUTING.md` |
 | **Vulnerability reporting** | `SECURITY.md` (jackh109867@gmail.com) |
@@ -232,7 +172,7 @@ python3 scripts/sbom.py --out docs/SBOM.json
 
 | Artifact | Location |
 |----------|----------|
-| Build scripts | `scripts/build-apk.sh`, `scripts/build-deb.sh` |
+| Build script | `scripts/build-deb.sh` |
 | Secret scan | `scripts/secret-scan.sh` |
 | SBOM generator | `scripts/sbom.py` |
 | SBOM output | `docs/SBOM.json` |
@@ -246,20 +186,17 @@ python3 scripts/sbom.py --out docs/SBOM.json
 
 | Date | Key ID | Algorithm | Status | Notes |
 |------|--------|-----------|--------|-------|
-| ~2026-10 | Old release keystore | RSA-2048 | **COMPROMISED** | In public Git history |
-| TBD | New release keystore | RSA-2048 or EC | **PENDING** | Must generate offline |
+| ~2026-10 | Old Android release keystore | RSA-2048 | **COMPROMISED** | Historical public exposure; not a Linux credential |
 
 ---
 
-*This document describes release security practices. The old keystore is compromised — rotation is an operational requirement, not a code change.*
+*This document describes Linux release security practices. The old Android
+keystore remains a historical compromise, not an active Linux work item.*
 
 ## Release signer identity is mandatory
 
-Android APK creation requires `BNB_EXPECTED_SIGNER_SHA256`, the 64-hex
-SHA-256 digest of the approved replacement release-signing certificate. The
-build script verifies the emitted APK's signer against that value and refuses
-to publish an artifact if they differ. Store this fingerprint in the
-maintainer's protected release procedure, not in this repository. This check
-does not prove a historical key was revoked; the historical exposure remains
-an operational release blocker until the maintainer documents rotation and
-the distribution migration.
+Before publishing a Linux package, record the public GPG fingerprint in the
+release evidence, create a detached signature with the maintainer-controlled
+key, and verify that exact fingerprint in a separate trust context. No private
+signing material belongs in this repository. In this workspace no authorized
+Linux signing key has been verified, so signing remains **NOT VERIFIED**.

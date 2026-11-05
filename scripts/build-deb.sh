@@ -4,7 +4,8 @@
 #
 # Output:
 #   /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<pubspec version>-amd64.deb
-#   plus SHA256SUMS and a GPG detached signature (.asc).
+#   plus SHA256SUMS and, when BNB_GPG_KEY names an available secret key, a
+#   GPG detached signature (.asc).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -150,12 +151,23 @@ echo "[4/5] Checking package ..."
 dpkg-deb -c "$DEB" >/dev/null
 dpkg-deb -I "$DEB"
 
-echo "[5/5] Checksums and GPG signature ..."
+echo "[5/5] Checksums and optional GPG signature ..."
 sha256sum "$DEB" > "$OUTDIR/SHA256SUMS"
-gpg --batch --yes --digest-algo SHA256 \
-    --default-key "jackh0006 <jackh109867@gmail.com>" \
-    --detach-sign --armor "$DEB"
+if [ -n "${BNB_GPG_KEY:-}" ]; then
+  if ! gpg --batch --list-secret-keys --with-colons "$BNB_GPG_KEY" \
+      | grep -q '^sec:'; then
+    echo "ERROR: BNB_GPG_KEY does not identify an available secret signing key." >&2
+    exit 1
+  fi
+  gpg --batch --yes --digest-algo SHA256 --default-key "$BNB_GPG_KEY" \
+      --detach-sign --armor "$DEB"
+  echo "GPG signature: $DEB.asc"
+else
+  echo "No BNB_GPG_KEY supplied; package is unsigned (SHA-256 written)." >&2
+fi
 
 echo "Done: $DEB"
 echo "      $OUTDIR/SHA256SUMS"
-echo "      $DEB.asc"
+if [ -n "${BNB_GPG_KEY:-}" ]; then
+  echo "      $DEB.asc"
+fi

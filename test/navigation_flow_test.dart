@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bnb_wallet_gui/app_state.dart';
+import 'package:bnb_wallet_gui/encrypted_log_store.dart';
 import 'package:bnb_wallet_gui/screens/home_page.dart';
 import 'package:bnb_wallet_gui/screens/send_page.dart';
 import 'package:bnb_wallet_gui/storage.dart';
@@ -54,11 +55,9 @@ void _bigSurface(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-/// Poll through the widget binding only. `pump` yields to pending platform and
-/// filesystem futures as well as advancing the fake clock. Calling `runAsync`
-/// here is unsafe: the unlock handler can itself still be completing an
-/// asynchronous storage operation, which Flutter correctly rejects as a
-/// re-entrant `runAsync` call.
+/// Poll through the widget binding only. The hardened Linux storage layer
+/// uses real descriptor I/O, so each poll gives that I/O a bounded real-time
+/// turn after the modal handler has returned to the frame.
 Future<void> _pumpUntil(
   WidgetTester tester,
   bool Function() done, {
@@ -67,6 +66,9 @@ Future<void> _pumpUntil(
 }) async {
   for (var i = 0; i < tries; i++) {
     if (done()) return;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
     await tester.pump(step);
   }
   await tester.pump(step);
@@ -89,47 +91,22 @@ void main() {
     await AppStorage.init();
     AppState.vaultEncryptOverride = _testEncrypt;
     AppState.vaultDecryptOverride = _testDecrypt;
-    appState.lock();
+    // This fixture shares the global state across widget cases.  It needs the
+    // key cleared, but must not start an unrelated asynchronous audit write
+    // into a directory the fixture will replace or delete.
+    appState.lockForTest();
     appState.tab = 0;
   });
   tearDown(() async {
+    // Finish any unawaited audit append while its unlocked key and isolated
+    // data directory still exist.  This is a lifecycle ownership barrier,
+    // not a delay: the Linux storage path has no fake-clock I/O boundary.
+    await EncryptedLogStore.flush();
     AppState.vaultEncryptOverride = null;
     AppState.vaultDecryptOverride = null;
-    // The next setUp locks the shared state.  Doing it here launches an
-    // asynchronous encrypted audit append that races deletion of this
-    // fixture's application-data directory and previously consumed the
-    // driver's 120-second watchdog.
+    appState.lockForTest();
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
-  });
-
-  testWidgets('Home quick action "Send" switches to the Send tab', (
-    tester,
-  ) async {
-    _bigSurface(tester);
-    await appState.unlock(WalletCore.privateKeyFromHex(_testKeyHex));
-    await tester.pumpWidget(const MaterialApp(home: HomePage()));
-    await tester.pump(const Duration(milliseconds: 100));
-    final button = find.widgetWithText(OutlinedButton, 'Send');
-    expect(
-      button,
-      findsOneWidget,
-      reason: 'quick action must exist. On screen: ${_visibleTexts(tester)}',
-    );
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pump();
-    expect(
-      appState.tab,
-      2,
-      reason: 'the quick action must switch tabs, never push a blank page',
-    );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 500)),
-    );
-    await tester.pump();
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
   });
 
   testWidgets(
@@ -167,6 +144,12 @@ void main() {
         reason:
             'OK must close the password dialog. On screen: ${_visibleTexts(tester)}',
       );
+      // The dialog handler has returned, but its filesystem-backed vault
+      // operation needs a real-event-loop turn before widget frames resume.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 250)),
+      );
+      await tester.pump();
       await _pumpUntil(
         tester,
         () => find.text('Vault accounts').evaluate().isNotEmpty,
@@ -245,6 +228,10 @@ void main() {
       reason:
           'OK must close the password dialog. On screen: ${_visibleTexts(tester)}',
     );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 250)),
+    );
+    await tester.pump();
     await _pumpUntil(
       tester,
       () => find.text('Vault accounts').evaluate().isNotEmpty,
@@ -274,11 +261,25 @@ void main() {
     expect(find.text('Vault account unlocked.'), findsOneWidget);
     expect(find.text('Save public profile?'), findsNothing);
     expect(find.text('Save encrypted vault?'), findsNothing);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 500)),
-    );
     await tester.pump();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('Home quick action "Send" switches to the Send tab', (
+    tester,
+  ) async {
+    _bigSurface(tester);
+    await appState.unlock(WalletCore.privateKeyFromHex(_testKeyHex));
+    await tester.pumpWidget(const MaterialApp(home: HomePage()));
+    await tester.pump(const Duration(milliseconds: 100));
+    final button = find.widgetWithText(OutlinedButton, 'Send');
+    expect(button, findsOneWidget);
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pump();
+    expect(appState.tab, 2);
+    await tester.pumpWidget(const SizedBox.shrink());
+    appState.lockForTest();
   });
 }

@@ -29,6 +29,15 @@ class EncryptedLogStore {
     return File('${dir.path}/$_filename');
   }
 
+  /// Waits until every append/clear operation already queued in this VM has
+  /// released the encrypted-log mutex.  Unlike [readAll], this does not
+  /// derive a wallet key or open storage, so it is safe during shutdown and
+  /// before a test fixture removes its application-data directory.
+  ///
+  /// This is a lifecycle barrier, not a durability acknowledgement for work
+  /// enqueued after the call begins.
+  static Future<void> flush() => _fileLock.synchronized(() async {});
+
   /// Derives the log key from wallet private key + device drawer secret.
   /// Uses the same HKDF-SHA256 path as the receipt store.
   static Future<Uint8List> _deriveKey() async {
@@ -245,13 +254,16 @@ Future<void> logEvent({
   required LogLevel level,
   required String message,
   Map<String, dynamic>? extra,
-}) async {
+}) {
   final entry = <String, dynamic>{
     'category': category.name,
     'level': level.name,
     'msg': message,
     ...?extra,
   };
-  // Fire-and-forget; log failures must never break the app
-  EncryptedLogStore.append(entry).catchError((_) {});
+  // Callers decide whether to await this. Returning the append future is
+  // important: otherwise teardown and storage mutations cannot observe an
+  // in-flight write, allowing a fixture (or a shutdown path) to delete the
+  // data directory while the encrypted audit append still owns its lock.
+  return EncryptedLogStore.append(entry).catchError((_) {});
 }

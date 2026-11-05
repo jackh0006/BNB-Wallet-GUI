@@ -1,8 +1,8 @@
 # Security Self-Assessment — BNB Wallet GUI
 
 Date: 2026-11-03
-Scope: cold-wallet transaction path, transaction verification, TLS pinning,
-process memory hardening, release-signing hygiene.
+Scope: Linux cold-wallet transaction path, transaction verification, TLS
+pinning, process memory hardening, and Debian release-signing hygiene.
 Baseline commit: `19e03c8` (`safety/pre-reaudit-19e03c8`).
 Status: **self-assessment and cross-implementation verification — not a
 third-party audit.**
@@ -26,7 +26,7 @@ suite: a complete green hosted Ubuntu 24.04 run remains required.
 
 | Label | Applies? | Meaning |
 |---|---|---|
-| Ready for unrestricted real-money use | **No** | No independent third-party review; no hardware wallet; no camera QR on Linux; release key rotation is an operational action outside this repository. |
+| Ready for unrestricted real-money use | **No** | No independent third-party review; no hardware wallet; no camera QR on Linux; and no current clean-machine installation evidence. |
 | **Testnet ready (self-assessed)** | **Yes, conditionally** | The critical cold-signing and verification defects below are fixed and demonstrated by automated tests plus an independent ethers.js cross-check. Use only on BSC testnet / small amounts until an external review exists. |
 | Mainnet for large sums | **No** | Same reasons as above. |
 
@@ -143,7 +143,7 @@ Evidence: `test/memory_protection_test.dart` reads back `PR_GET_DUMPABLE == 0`
 and the core soft limit `0` from the running test process (2/2 pass). This is
 Linux-only; Android/Windows/macOS behavior is not covered by that test.
 
-### C-6 — Release keystore and password were committed (partially contained)
+### Historical Android credential disclosure (outside this Linux-only scope)
 
 `scripts/release.keystore` and a predictable hardcoded release password
 (derived from the year and the local username) were present in the public
@@ -163,11 +163,10 @@ Actions taken:
   the old password string, inline Android signing passwords and hardcoded
   32-byte keys. It passes on the current tree.
 
-**Required operational action:** consider the old release key compromised and
-rotate it. A new keystore must be generated outside the repository, stored in
-a secret manager, and used to sign future releases. Existing APKs signed with
-the old key cannot be upgraded in place by a differently signed APK; users
-must be told. This cannot be fixed by source changes alone.
+The Android credential remains compromised permanently. It is not used to
+build or sign the Linux `.deb`, and Android rotation/distribution is not an
+active release task in this assessment. It cannot be remediated by Linux
+source changes.
 
 ### C-7 — Cold signing ignored the paired account index (fixed)
 
@@ -217,9 +216,6 @@ production behavior keeps the fail-closed timeout.
   environment, so no real node accepted or rejected a signed transaction.
   The broadcast gate is tested with a fake RPC that returns the expected hash;
   a mismatched hash test proves the refusal path.
-- **No APK was built here.** A release keystore is intentionally absent, so
-  `scripts/build-apk.sh` was syntax-checked and reviewed but not executed
-  end-to-end. Key rotation is required first.
 - **Memory hardening is Linux-only.** `mlockall` is best-effort; the kernel
   may refuse it under a low `RLIMIT_MEMLOCK`. The test asserts the two
   controls that must hold (`dumpable=0`, core limit 0), not that all memory is
