@@ -1,21 +1,8 @@
 #!/usr/bin/env bash
-# Sequential test driver for the BNB Wallet release machine (2 cores).
-#
-# Phase 1 — light suites run strictly one at a time. Some widget suites use
-#           process-global Flutter/platform state; parallel test workers made
-#           the release driver flaky despite each suite passing in isolation.
-# Phase 2 — the `kdf`-tagged suites (real 64 MiB Argon2id derivations in
-#           vault_test.dart / workers_test.dart) are also serial: overlapping
-#           64 MiB derivations on two cores turns minutes of work into
-#           timeout cascades under load.
-#
-# Explicit paths (e.g. scripts/test-suite.sh test/foo_test.dart) always run
-# sequentially, one file at a time.
-#
-# Full log lives in your terminal or in a redirected file — never judge a
-# run from a `| tail` preview; "did not complete" after a long run means the
-# runner was terminated mid-flight, not that any assertion failed.
-set -euo pipefail
+# Deterministic, serial release test driver. Every test file gets its own
+# Flutter process and wall-clock watchdog, so a leaked timer, isolate, or
+# plugin call is attributed to one file and cannot silently hang the suite.
+set -u -o pipefail
 cd "$(dirname "$0")/.."
 
 # The production Linux launcher starts with a restrictive umask.  Tests that
@@ -23,9 +10,65 @@ cd "$(dirname "$0")/.."
 # application directories are deliberately rejected as group-readable.
 umask 0077
 
+readonly LIGHT_TIMEOUT_SECONDS=120
+readonly KDF_TIMEOUT_SECONDS=900
+readonly GLOBAL_TIMEOUT_SECONDS=3600
+
+started_epoch="$(date +%s)"
+passed=0
+failed=0
+timed_out=0
+declare -a failed_files=()
+
+run_one() {
+  local file="$1"
+  local timeout_seconds="$LIGHT_TIMEOUT_SECONDS"
+  if rg -q "@Tags\(\['kdf'\]\)" "$file"; then
+    timeout_seconds="$KDF_TIMEOUT_SECONDS"
+  fi
+  printf '\n==> %s (wall limit: %ss)\n' "$file" "$timeout_seconds"
+  timeout --signal=TERM --kill-after=15s "${timeout_seconds}s" \
+    flutter test --concurrency=1 --timeout="${timeout_seconds}s" "$file"
+  local status=$?
+  if [ "$status" -eq 0 ]; then
+    passed=$((passed + 1))
+    printf '<== PASS %s (exit 0)\n' "$file"
+  else
+    failed=$((failed + 1))
+    failed_files+=("$file:$status")
+    if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+      timed_out=$((timed_out + 1))
+      printf '<== TIMEOUT %s (exit %s)\n' "$file" "$status"
+    else
+      printf '<== FAIL %s (exit %s)\n' "$file" "$status"
+    fi
+  fi
+}
+
 if [ "$#" -gt 0 ]; then
-  exec flutter test --concurrency=1 "$@"
+  files=("$@")
+else
+  mapfile -t files < <(find test -type f -name '*_test.dart' -print | LC_ALL=C sort)
 fi
 
-flutter test --concurrency=1 --exclude-tags kdf
-flutter test --concurrency=1 --tags kdf
+for file in "${files[@]}"; do
+  elapsed=$(( $(date +%s) - started_epoch ))
+  if [ "$elapsed" -ge "$GLOBAL_TIMEOUT_SECONDS" ]; then
+    failed=$((failed + 1))
+    timed_out=$((timed_out + 1))
+    failed_files+=("global-watchdog:$elapsed")
+    printf '\nGLOBAL TIMEOUT after %ss; remaining files were not run.\n' "$elapsed" >&2
+    break
+  fi
+  run_one "$file"
+done
+
+elapsed=$(( $(date +%s) - started_epoch ))
+printf '\n=== test-suite summary ===\n'
+printf 'files passed: %s\nfiles failed: %s\nfiles timed out: %s\nelapsed seconds: %s\n' \
+  "$passed" "$failed" "$timed_out" "$elapsed"
+if [ "${#failed_files[@]}" -gt 0 ]; then
+  printf 'non-passing files: %s\n' "${failed_files[*]}" >&2
+  exit 1
+fi
+exit 0

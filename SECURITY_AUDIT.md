@@ -11,6 +11,17 @@ This document records what was found, what was changed, what was actually
 executed, and what remains unproven. It deliberately avoids claims of
 independent review or readiness for unrestricted real-money use.
 
+## 2026-11-05 verification-gate update
+
+The previous full-suite command grouped all tests in two long-lived Flutter
+processes. A widget-test timeout could therefore make the overall result hard
+to attribute and leave no useful per-file terminal evidence. The release
+driver now starts each test file in its own serial process, has a 120-second
+watchdog for ordinary files and a 900-second watchdog for the explicitly
+tagged Argon2id files, prints every exit status, and returns failure for any
+timeout. This is a test-infrastructure control, not evidence of a passing
+suite: a complete green hosted Ubuntu 24.04 run remains required.
+
 ## Classification
 
 | Label | Applies? | Meaning |

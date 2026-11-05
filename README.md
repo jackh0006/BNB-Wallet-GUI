@@ -9,6 +9,11 @@ The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
+**Current source candidate: `1.0.9+3`.** The latest GitHub stable release is
+`v1.0.5`; neither it nor the newer candidate is release-confirmed. The exact
+per-version evidence and release status are maintained in
+[docs/releases/1.0.9.md](docs/releases/1.0.9.md).
+
 > Important: this project is self-assessed, not independently reviewed. No
 > test suite, security score, or software wallet can guarantee the safety of
 > large amounts. For substantial savings, use a hardware wallet and make a
@@ -129,15 +134,9 @@ entitled to the corresponding source under its terms.
 
 ## Donate
 
-Donations are optional and support continued open-source development. The
-author's public EVM receiving address, also published in the related
-`bnb-terminal-wallet` repository, is:
-
-| Network / asset | Address |
-|---|---|
-| BNB Smart Chain (BNB or BEP-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-| Ethereum (ETH or ERC-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-
-Verify the full address from more than one official project location before
-sending. Donations are irreversible and are not a purchase, investment, or
-support entitlement.
+Donations are optional and support continued open-source development. See
+[DONATE.md](DONATE.md) for the complete public multi-network address table,
+copied from the author's related `BNB-Terminal-Wallet` repository. Verify the
+whole address from more than one official project location before sending.
+Donations are irreversible and are not a purchase, investment, or support
+entitlement.

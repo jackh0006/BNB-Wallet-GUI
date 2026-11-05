@@ -5,6 +5,12 @@ policy, ownership notice, donation addresses, and comparison wording are
 evergreen: a normal source update must not rewrite them. A release changes the
 version in `pubspec.yaml`, its source, its SBOM, and its release artifacts.
 
+The required GitHub verification workflow runs
+`scripts/check_release_evidence.py`. It rejects a source version unless
+`docs/releases/<major>.<minor>.<patch>.md` exists, names the exact version
+(including its build suffix), and contains the marked test-result table. This
+applies equally to human and AI-authored changes.
+
 ## Required evidence for a confirmed version
 
 Before describing a version as **confirmed**, a maintainer must run these

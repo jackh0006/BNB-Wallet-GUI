@@ -246,3 +246,26 @@ Every meaningful change must update:
 **At session start**: Read this file, `docs/PROJECT_STATUS.md`, and `docs/PROJECT_MASTER_PLAN.md`.
 
 **At session end**: Update `docs/PROJECT_STATUS.md`, `docs/PROJECT_MASTER_PLAN.md`, and task ledger. Record exact next steps.
+
+## Mandatory GitHub Publication and Version Evidence
+
+These rules apply to every human or AI agent:
+
+1. Do not leave a completed, validated change only in a local checkout. Before
+   reporting completion, commit and push it to GitHub. If `main` is protected,
+   create or update a focused pull request and report its URL and check state.
+2. Do not force-push, disable protections, or claim a merge/release is
+   complete when required checks are pending, cancelled, or failed.
+3. Treat `pubspec.yaml`'s `version:` as the source version. Every version
+   change needs a matching `docs/releases/<major>.<minor>.<patch>.md` record
+   naming the exact version, including its build suffix.
+4. The record must contain a marked `Check / Result / Evidence` table. Mark
+   incomplete work as `IN PROGRESS`, `NOT CONFIRMED`, `NOT TESTED`, or
+   `NOT AVAILABLE`; never invent a `PASS` result.
+5. A Linux release is confirmed only when its tagged source, `.deb`, detached
+   signature, `SHA256SUMS`, SBOM, automated checks, and clean-install evidence
+   all identify the same version and commit. A newer prerelease is not a
+   confirmed stable release merely because it exists.
+6. When adding, renaming, or removing a Flutter test file, update
+   `docs/testing/TEST_MATRIX.md` in the same change. GitHub CI enforces this
+   with `scripts/check_test_inventory.py`; never bypass or remove that check.
