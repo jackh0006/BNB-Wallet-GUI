@@ -988,20 +988,27 @@ class _WalletPageState extends State<WalletPage>
               PopupMenuButton<String>(
                 icon: const Icon(Icons.filter_list),
                 onSelected: (value) {
-                  if (value == 'all')
+                  if (value == 'all') {
                     setState(() => _historyFilter = _HistoryFilter.all);
-                  if (value == 'success')
+                  }
+                  if (value == 'success') {
                     setState(() => _historyFilter = _HistoryFilter.success);
-                  if (value == 'failed')
+                  }
+                  if (value == 'failed') {
                     setState(() => _historyFilter = _HistoryFilter.failed);
-                  if (value == 'out')
+                  }
+                  if (value == 'out') {
                     setState(() => _historyFilter = _HistoryFilter.outgoing);
-                  if (value == 'in')
+                  }
+                  if (value == 'in') {
                     setState(() => _historyFilter = _HistoryFilter.incoming);
-                  if (value == 'token')
+                  }
+                  if (value == 'token') {
                     setState(() => _historyFilter = _HistoryFilter.token);
-                  if (value == 'bnb')
+                  }
+                  if (value == 'bnb') {
                     setState(() => _historyFilter = _HistoryFilter.bnb);
+                  }
                 },
                 itemBuilder: (_) => const [
                   PopupMenuItem(value: 'all', child: Text('All')),
@@ -1161,11 +1168,11 @@ class _WalletPageState extends State<WalletPage>
       message: 'Anyone who can see this screen can steal all funds. Only reveal secrets on a trusted, private device.',
       confirmLabel: 'Reveal',
     );
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !context.mounted) return;
     final key = appState.privateKey!;
     final privateKey = WalletCore.privateKeyHex(key);
     final mnemonic = appState.mnemonic;
-    if (!mounted) return;
+    if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -1233,8 +1240,9 @@ class _WalletPageState extends State<WalletPage>
     );
     if (!copy) return;
     await Clipboard.setData(ClipboardData(text: secret));
-    if (context.mounted)
+    if (context.mounted) {
       showInfo(context, '$label copied · clears in 15 seconds');
+    }
     Future<void>.delayed(const Duration(seconds: 15), () async {
       try {
         final current = await Clipboard.getData('text/plain');
@@ -1264,7 +1272,7 @@ class _WalletPageState extends State<WalletPage>
       validator: (value) =>
           value.trim().isEmpty ? 'Enter a wallet name.' : null,
     );
-    if (label == null || !mounted) return;
+    if (label == null || !context.mounted) return;
     if (index >= 0) {
       await appState.renameProfile(index, label.trim());
     } else {
@@ -1277,7 +1285,7 @@ class _WalletPageState extends State<WalletPage>
         ),
       );
     }
-    if (mounted) showInfo(context, 'Wallet name updated.');
+    if (context.mounted) showInfo(context, 'Wallet name updated.');
   }
 
   Future<void> _saveVault(BuildContext context) async {
@@ -1289,14 +1297,14 @@ class _WalletPageState extends State<WalletPage>
       validator: (value) =>
           value.length >= 16 ? null : 'Use at least 16 characters.',
     );
-    if (password == null || password.isEmpty || !mounted) return;
+    if (password == null || password.isEmpty || !context.mounted) return;
     final label = await promptText(
       context,
       title: 'Vault account label',
       label: 'Label',
       initialValue: 'Wallet ${appState.profiles.length + 1}',
     );
-    if (label == null || label.trim().isEmpty || !mounted) return;
+    if (label == null || label.trim().isEmpty || !context.mounted) return;
     try {
       await appState.saveVaultAccount(
         password,
@@ -1305,9 +1313,9 @@ class _WalletPageState extends State<WalletPage>
         mnemonic: appState.mnemonic,
       );
       _vaultAccountsFuture = appState.loadVaultAccounts(password);
-      if (mounted) showInfo(context, 'Encrypted vault saved.');
+      if (context.mounted) showInfo(context, 'Encrypted vault saved.');
     } catch (error) {
-      if (mounted) showError(context, error);
+      if (context.mounted) showError(context, error);
     }
   }
 
@@ -1333,7 +1341,7 @@ class _WalletPageState extends State<WalletPage>
         ],
       ),
     );
-    if (!mounted || choice == null) return;
+    if (!context.mounted || choice == null) return;
     if (choice == 'vault') {
       await _saveVault(context);
     } else {
@@ -1351,7 +1359,7 @@ class _WalletPageState extends State<WalletPage>
       label: 'Label',
       initialValue: 'Wallet ${appState.profiles.length + 1}',
     );
-    if (label == null || label.isEmpty || !mounted) return;
+    if (label == null || label.isEmpty || !context.mounted) return;
     await appState.addProfile(
       WalletProfile(
         label: label,
@@ -1360,7 +1368,7 @@ class _WalletPageState extends State<WalletPage>
         createdAt: DateTime.now().toIso8601String(),
       ),
     );
-    if (mounted) showInfo(context, 'Public profile saved.');
+    if (context.mounted) showInfo(context, 'Public profile saved.');
   }
 }
 
@@ -2248,6 +2256,7 @@ Future<void> _importPrivateKey(BuildContext context) async {
     if (context.mounted) showInfo(context, 'Wallet imported and unlocked.');
     // A raw private key is already the complete backup. Do not add an
     // encrypted secret store without an explicit choice in Wallet manager.
+    if (!context.mounted) return;
     await _offerProfileOnly(context);
   } catch (error) {
     if (context.mounted) showError(context, error);
@@ -2260,9 +2269,8 @@ Future<void> _importPhrase(BuildContext context) async {
   // pasted clipboard data never went through the keyboard) via a second
   // action; typing the phrase manually by keyboard is no longer offered.
   var phrase = await showSeedPicker(context, wordCount: 24);
-  if (phrase == null) {
-    phrase = await showSeedPicker(context, wordCount: 12);
-  }
+  if (!context.mounted) return;
+  phrase ??= await showSeedPicker(context, wordCount: 12);
   if (phrase == null || !context.mounted) return;
   final path = await promptText(
     context,
@@ -2287,6 +2295,7 @@ Future<void> _importPhrase(BuildContext context) async {
     await appState.unlock(key, mnemonic: phrase);
     appState.focusTab(1); // the wallet must visibly appear, not just a message
     if (context.mounted) showInfo(context, 'Wallet imported and unlocked.');
+    if (!context.mounted) return;
     await showOfferProfileAndVault(context);
   } catch (error) {
     if (context.mounted) showError(context, error);
@@ -2312,6 +2321,7 @@ Future<void> _importKeystore(BuildContext context) async {
     await appState.unlock(key);
     appState.focusTab(1); // the wallet must visibly appear, not just a message
     if (context.mounted) showInfo(context, 'Keystore imported and unlocked.');
+    if (!context.mounted) return;
     await showOfferProfileAndVault(context);
   } catch (error) {
     if (context.mounted) showError(context, error);
@@ -2345,10 +2355,12 @@ Future<void> showUnlockVaultDialog(
     return;
   }
   if (accounts.isEmpty) {
-    if (context.mounted)
+    if (context.mounted) {
       showMessage(context, 'Empty vault', 'The vault has no usable accounts.');
+    }
     return;
   }
+  if (!context.mounted) return;
   final index = await showDialog<int>(
     context: context,
     builder: (context) => SimpleDialog(

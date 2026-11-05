@@ -8,16 +8,16 @@ Status: **self-assessment and cross-implementation verification — not a
 third-party audit.**
 
 This document records what was found, what was changed, what was actually
-executed, and what remains unproven. It deliberately does not use the words
-"audited" or "production ready" for this project.
+executed, and what remains unproven. It deliberately avoids claims of
+independent review or readiness for unrestricted real-money use.
 
 ## Classification
 
 | Label | Applies? | Meaning |
 |---|---|---|
-| Production ready | **No** | No independent third-party audit; no hardware wallet; no camera QR on Linux; release key rotation is an operational action outside this repository. |
+| Ready for unrestricted real-money use | **No** | No independent third-party review; no hardware wallet; no camera QR on Linux; release key rotation is an operational action outside this repository. |
 | **Testnet ready (self-assessed)** | **Yes, conditionally** | The critical cold-signing and verification defects below are fixed and demonstrated by automated tests plus an independent ethers.js cross-check. Use only on BSC testnet / small amounts until an external review exists. |
-| Mainnet for large sums | **No** | Same reasons as production ready. |
+| Mainnet for large sums | **No** | Same reasons as above. |
 
 ## Critical findings and disposition
 

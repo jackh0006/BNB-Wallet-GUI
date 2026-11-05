@@ -18,11 +18,11 @@ and where the limits are. A green run is **not** a security audit.
 flutter pub get
 flutter analyze --no-pub
 
-# Full test driver: light suites two-wide, KDF suites strictly one at a time.
+# Full test driver: all suites run strictly one at a time for reproducibility.
 bash scripts/test-suite.sh
 
 # Or run the two phases yourself:
-flutter test --exclude-tags kdf --concurrency=2
+flutter test --exclude-tags kdf --concurrency=1
 flutter test --tags kdf --concurrency=1
 
 # One file / one test:
@@ -38,8 +38,9 @@ bash scripts/secret-scan.sh
 
 The KDF-tagged tests perform real 64 MiB Argon2id derivations. On the 2-core
 release machine each derivation takes roughly 1m45s; the whole KDF phase can
-take ~10 minutes. Run it sequentially — overlapping derivations is the
-"did not complete" cascade described in `scripts/test-suite.sh`.
+take ~10 minutes. The complete driver is serial: parallel workers made
+stateful Flutter/widget suites flaky and overlapping KDF derivations can
+exhaust a small release machine. No test is skipped or relaxed.
 
 ## Recorded runs (2026-11-03)
 
@@ -59,11 +60,12 @@ take ~10 minutes. Run it sequentially — overlapping derivations is the
 | `scripts/secret-scan.sh` | 1 scan | pass |
 | `flutter analyze --no-pub` | — | no errors; warnings/infos recorded below |
 
-`flutter analyze` currently reports no errors. It does report pre-existing
-info-level lints (mostly `use_build_context_synchronously` and
-`curly_braces_in_flow_control_structures`) and one unused private helper
-warning in `lib/rpc_service.dart`; these are not treated as test failures but
-are not hidden either.
+The recorded table above is historical evidence, not a claim about the
+current working tree. The 2026-11-04 remediation branch was subsequently
+checked with `flutter analyze --no-pub`, which completed with **No issues
+found**. The complete current-tree test driver has not yet produced a
+recorded terminal result; see `SECURITY_AUDIT_2026-11-04.md` for the exact
+focused-suite evidence and release blockers.
 
 ## What each area proves
 

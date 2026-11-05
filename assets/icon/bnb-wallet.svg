@@ -1,16 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FCD535"/>
-      <stop offset="100%" stop-color="#F0B90B"/>
-    </linearGradient>
-  </defs>
-  <rect width="1024" height="1024" fill="#0B0E11" rx="140"/>
-  <path d="M64 64 h896 v896 H64 z" fill="none"/>
-  <g fill="url(#gold)">
-    <path d="M512 60 L960 420 C960 560 832 960 512 964 C192 960 64 560 64 420 Z" fill="#161A1E" stroke="url(#gold)" stroke-width="24"/>
-    <path d="M360 480 h304 v64 H360 z M360 608 h304 v64 H360 z M416 528 l64 128 h-128 z" fill="#161A1E"/>
-    <path d="M416 528 l64 128 h-128 z M416 528 l-64 128 h128 z" opacity="0.12" fill="#FFFFFF"/>
-  </g>
-  <text x="512" y="700" font-family="DejaVu Sans Bold" font-size="140" fill="url(#gold)" text-anchor="middle">B</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="BNB Wallet">
+  <!-- Original wallet mark. It deliberately avoids the Binance diamond mark and geometry. -->
+  <rect width="1024" height="1024" rx="220" fill="#080A0C"/>
+  <rect x="34" y="34" width="956" height="956" rx="188" fill="none" stroke="#2A2F35" stroke-width="20"/>
+  <path fill="#F28C18" d="M306 202h250c126 0 204 61 204 161 0 59-29 104-77 128 67 23 105 75 105 145 0 114-86 186-223 186H306V202zm125 112v124h107c55 0 87-22 87-63 0-40-31-61-87-61H431zm0 232v164h130c64 0 101-30 101-83 0-52-37-81-101-81H431z"/>
+  <path fill="#080A0C" d="M286 410h230v38H286zm0 168h230v38H286z" opacity=".92"/>
+  <circle cx="810" cy="790" r="42" fill="#F28C18"/>
 </svg>

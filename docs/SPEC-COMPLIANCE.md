@@ -22,7 +22,7 @@ the internal self-assessment is [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md).
 
 | # | Requirement | Status | Evidence / gap |
 |---|---|---|---|
-| 0.1 | Audited libraries only; pin, lockfile, hashes | 🟡 | `pubspec.lock` committed; `docs/SBOM.json` lists every version + SHA-256 (`scripts/sbom.py`); crypto primitives come from `cryptography`/`web3dart`. The EIP-1559/RLP serialization is project code (`cold_tx_codec.dart`) because the available RLP helper was wrong for byte strings; it is cross-checked with ethers.js in `verification/verify.cjs` |
+| 0.1 | Reviewed libraries only; pin, lockfile, hashes | 🟡 | `pubspec.lock` committed; `docs/SBOM.json` lists every version + SHA-256 (`scripts/sbom.py`); crypto primitives come from `cryptography`/`web3dart`. The EIP-1559/RLP serialization is project code (`cold_tx_codec.dart`) because the available RLP helper was wrong for byte strings; it is cross-checked with ethers.js in `verification/verify.cjs` |
 | 0.2 | No invented chain facts | ✅ | Fee engine measures fee history + block times live (`fee_engine.dart`, `rpc_service.dart`); presets derive ETAs from measured seconds-per-block |
 | 0.3 | Zero telemetry/ads/SDKs | ✅ | PRIVACY.md; only RPC/explorers ever contacted; `docs/SECURITY.md` |
 | 0.4 | Privacy claims testable | 🟡 | Behavior tests exist; automated traffic-capture (tcpdump asserting §6/§7) not yet — R4/R7 |

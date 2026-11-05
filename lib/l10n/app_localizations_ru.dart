@@ -24,6 +24,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settings => 'Настройки';
 
   @override
+  String get inspect => 'Проверить';
+
+  @override
   String get logs => 'Логи';
 
   @override

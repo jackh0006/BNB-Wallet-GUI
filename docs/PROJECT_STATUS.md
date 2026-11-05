@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Current Project State
 
-**Last Updated**: 2026-11-04
+**Last Updated**: 2026-11-05
 **Baseline Commit**: `dc8732f` (working-tree audit in progress)
 **Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)
 **Previous Milestone**: M3 was previously declared complete; that declaration is not accepted as verification evidence.
@@ -35,7 +35,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M1-02**: Cold protocol envelopes | ✅ DONE | `lib/cold_wallet_protocol.dart`, `test/cold_wallet_protocol_test.dart` (15/15) |
 | **M1-03**: Cold wallet service | ✅ DONE | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` (15/15) |
 | **M1-04**: Strict response verification | ✅ DONE | `lib/wallet_core.dart::verifyColdSignatureDetailed` |
-| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.13.2) |
+| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.17.0) |
 | **M1-06**: TLS SPKI pinning (standard first) | ✅ DONE | `lib/net/privacy_client.dart`, `test/tls_pinning_test.dart` (6/6) |
 | **M1-07**: Fixed v3 cert SPKI index bug | ✅ DONE | Was hashing extensions (idx 7), now public key (idx 6) |
 | **M1-08**: Memory hardening (FFI) | ✅ DONE | `lib/memory_protection.dart`, `test/memory_protection_test.dart` (2/2) |
@@ -201,12 +201,11 @@ flutter analyze --no-pub
 
 ## Next Exact Actions
 
-1. **Implement M4-01: Account derivation UI** — Add/remove/switch accounts in wallet management
-2. **Implement M4-02: Private key import UI** — Raw hex, keystore JSON v3 import dialogs
-3. **Implement M4-03: Seed phrase import UI** — 12/24 word validation, checksum verification
-4. **Implement M4-04: Wallet unlock/lock UI** — Biometric integration where available
-5. **Implement M4-06: Nonce management UI** — Pending transaction display, replacement UI
-6. **Run full test suite** after each UI component
+1. Run `bash scripts/test-suite.sh` on a machine able to retain the full terminal output and zero exit status.
+2. Run `bash scripts/build-deb.sh` without `SKIP_FLUTTER_BUILD` on that machine.
+3. Test fresh install, launch, upgrade, uninstall, and data preservation on a clean Ubuntu desktop.
+4. Complete the signing-key rotation response for the historical Android keystore exposure; Android is out of scope for this Linux-only release.
+5. Do not publish or describe this as suitable for unrestricted or large-value mainnet use without an independent review and the release-gate evidence.
 
 ---
 

@@ -1,126 +1,143 @@
-# BNB Wallet GUI (v1.0.5)
+# BNB Wallet
 
-A security-hardened GUI wallet for BNB Smart Chain, made by jackh0006
-(jackh109867@gmail.com) from their v1 terminal wallet. Pure Dart networking
-(no vendored node, no WebViews).
+A Linux amd64 desktop wallet for BNB Smart Chain. It is local, self-custodial,
+AGPL-3.0-or-later software: the wallet owner controls the recovery phrase and
+the source can be inspected, built, and redistributed.
 
-## What is new in 1.0.5 — the freeze fix
+Created and maintained by **jackh0006** ([jackh109867@gmail.com](mailto:jackh109867@gmail.com)).
+The project is AI-assisted and self-assessed: automated tools and AI may help
+with implementation, review, and documentation, but neither replaces an
+independent security audit.
 
-Two taste-test findings from Ubuntu said the app froze ("Force Quit / Wait")
-while creating a wallet and while switching networks. Root cause: on Linux the
-wallet's cryptography ran on the window's own thread, so 64 MiB memory-hard
-Argon2id froze the desktop.
+> Important: this project is self-assessed, not independently reviewed. No
+> test suite, security score, or software wallet can guarantee the safety of
+> large amounts. For substantial savings, use a hardware wallet and make a
+> small transfer first.
 
-- **Heavy crypto moved to worker isolates** (`compute()`): vault
-  encrypt/decrypt and PIN hashing run on a helper core with byte-identical
-  output — same envelope, same `BNBVL004` format, same security. The window
-  now keeps answering the desktop while it works.
-- **Narration during work**: "I stretch 64 MB of memory into armor for your
-  vault — one moment…" and the finishing line with the real millisecond cost,
-  in the Home connection story.
-- **10-second timebox per network step**: a hanging RPC host can no longer
-  stall the connect sequence; the story log plainly says "I waited 10 seconds
-  and it stayed silent" and moves to the next door.
-- Honest record in docs/SECURITY.md and docs/STANDARDS.md, verified by the
-  new worker round-trip tests (`test/workers_test.dart`).
+## What it does
 
-## Cold wallet mode and independent verification
+- Creates and restores BIP-39 wallets; derives EVM addresses and signs locally.
+- Encrypts the vault with Argon2id and XChaCha20-Poly1305; writes through a
+  hardened atomic Linux storage path.
+- Supports BSC RPC nodes, optional Tor/SOCKS routing, HTTPS-only custom nodes,
+  TLS SPKI pins, and fail-closed privacy routing.
+- Reviews a transaction before signing: full checksummed address, chain,
+  nonce, fees, maximum cost, poisoning checks, simulation, and safe handling
+  of an uncertain broadcast result.
+- Includes offline cold-wallet request/sign/verify/broadcast roles and an
+  independent ethers.js verification check.
+- Stores receipts and activity data encrypted at rest; provides lock, PIN
+  backoff, idle lock, and erase-all-data controls.
 
-- **Cold (offline signer)** holds the seed and refuses all network access.
-  **Online (companion)** holds only a public pairing, prepares the unsigned
-  EIP-1559 request, verifies the returned signature and broadcasts.
-- Pairing, requests and signed responses are versioned canonical JSON
-  envelopes with strict field allow-lists, SHA-256 checksums, expiry and
-  replay protection. No seed or private key crosses the channel.
-- The online side re-derives the digest, parses the raw transaction, compares
-  every field, checks `r`/`s`/`yParity`/hash and recovers the signer before
-  broadcasting.
-- `verification/verify.cjs` is an **independent ethers.js 6.13.2** check of
-  the exact signed bytes (not web3dart). It runs in CI.
-- Status: self-verified, **not third-party audited**. Read
-  [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) and
-  [`docs/COLD_WALLET.md`](docs/COLD_WALLET.md) before using it.
+## Evidence, not a score
 
-## What is new in 1.0.4
+Security is not a single measurable number. A credible assessment needs code
+review, reproducible test evidence, release provenance, and hands-on testing
+on the device that will hold funds. This repository publishes the commands
+and limitations needed to judge it:
 
-- **Connection story on Home**: every blockchain action is narrated in plain
-  words — whom I asked, how long it took, which chain it confirmed, whether
-  it went through Tor, and that your keys never leave the device.
-- **Test RPC tells the truth**: latency, chain-id match (or mismatch), latest
-  block, and a verdict a child could read — no more bare "tested".
-- **Terminal-grade node book**: add / edit / remove / activate / test nodes
-  per network side, duplicate detection, one-tap reset to the official list.
-- **Network switch fixes**: switching mainnet ↔ testnet updates every screen
-  immediately and narrates the handback; a dead node explains itself.
-- **Vault-aware Send**: if you already made a wallet, Send opens it by vault
-  password instead of asking you to create/import again.
-- docs/STANDARDS.md — every subsystem mapped to its official standard with
-  the runnable proof.
+| Evidence | Where to inspect |
+|---|---|
+| Threats, protections, and residual risks | [Threat model](docs/THREAT_MODEL.md) |
+| Security findings and exact scope | [Security self-assessment](SECURITY_AUDIT.md) |
+| Reproducible automated checks | [Testing guide](docs/TESTING.md) |
+| Dependency inventory | [SBOM](docs/SBOM.json) |
+| Build/install gate | [Release checklist](docs/RELEASE_CHECKLIST.md) |
+| Per-version status and confirmation rule | [Release evidence](docs/RELEASE_EVIDENCE.md) |
+| Private vulnerability reporting | [Security policy](SECURITY.md) |
 
-## What is new in 1.0.3 (carried over)
+## Download and verify the Linux package
 
-- **Two-factor encrypted vault** (`BNBVL004`): password + device-bound key;
-  a copied file alone is inert. v1.0.2 vaults migrate transparently.
-- **Erase all data**, **Argon2id PIN** with persisted lockout, **idle
-  auto-lock**, **Tor/SOCKS5 privacy mode** (fail-closed), **seed
-  word-picker**, **send safety** (full grouped EIP-55, poisoning +
-  contract warnings), and the fixed `INTERNET` permission for release
-  builds.
+Only download a `.deb`, its detached `.asc` signature, and `SHA256SUMS` from
+the same GitHub Release. Obtain the maintainer's GPG fingerprint independently
+before trusting a signature.
 
-Read docs/THREAT_MODEL.md (honest limits), docs/STANDARDS.md (proof map),
-docs/SECURITY.md (controls), docs/CRYPTO.md (byte-level spec).
-Also shipped: LICENSE (AGPL-3.0-or-later), PRIVACY.md, ARCHITECTURE.md,
-CONTRIBUTING.md, CHANGELOG.md, SECURITY_AUDIT.md, docs/COLD_WALLET.md,
-docs/TESTING.md, SPEC-COMPLIANCE.md (why every spec line is done, partially
-done, or an honest deviation), and docs/SBOM.json — the
-deterministic component inventory `python3 scripts/sbom.py` regenerates
-from the committed lockfile. `python3 scripts/check_token_sources.py`
-verifies the trusted token-source links from docs/SPEC-COMPLIANCE §10e
-before each release.
+```bash
+sha256sum --check SHA256SUMS
+gpg --verify bnb-wallet-<version>-amd64.deb.asc bnb-wallet-<version>-amd64.deb
+sudo apt install ./bnb-wallet-<version>-amd64.deb
+```
 
-## Security quick-start
+Never install a package from a chat attachment, a URL shortener, or an
+unverified mirror. Do not type a seed phrase into a website, terminal, or
+support message.
 
-1. Write down the 24-word recovery phrase on paper — no photos, no cloud.
-2. Set an app-lock PIN (Settings → App lock) and an auto-lock window.
-3. Finish privacy setup **before** doing sensitive lookups is fine either
-   way: enabling Tor simply rebuilds the connection.
-4. "Erase all data" is for handing over or decommissioning a device.
-   Funds are recoverable only with the phrase.
+## Before sending funds
 
-## Notes on the Tor mode
+1. Install from a verified release and keep the `.deb`, checksum, signature,
+   and release commit together.
+2. Create a wallet, write the recovery phrase on paper, and verify the backup
+   before funding it. No photo, cloud note, password manager, or clipboard.
+3. Test restoring on a separate clean installation before receiving material
+   funds.
+4. Send a tiny amount first. Confirm the full recipient address from an
+   independent source; never trust a recently copied address by itself.
+5. Keep the operating system updated, use a separate user account, and lock
+   the screen. Malware or a compromised OS can defeat any desktop wallet.
 
-- Setup: `sudo apt install tor` (Ubuntu; SOCKS on 127.0.0.1:9050) or
-  Orbot on Android. Bridges are configured inside Orbot/tor, not here.
-- What it hides: which RPC endpoints you query, from your ISP/local
-  network. DNS stays in the tunnel.
-- What it cannot hide: traffic analysis to the Tor entry point, activity
-  already on the chain, or history your address already exposed.
+The fuller non-expert instructions are in [docs/FAMILY_GUIDE.md](docs/FAMILY_GUIDE.md).
 
-## Development
+## How it compares
+
+This is a feature comparison, not a safety ranking. Features vary by version
+and configuration; verify claims against each project's current documentation.
+
+| Property | BNB Wallet | Typical browser-extension wallet | Typical hardware wallet |
+|---|---:|---:|---:|
+| Local signing | Yes | Yes | Yes |
+| Seed exposed to browser extensions | No browser component | Often browser-hosted | No |
+| Open source | Yes (AGPL-3.0-or-later) | Varies | Varies |
+| Deterministic Linux `.deb` verification material | SHA-256 + GPG signature | Varies | Usually vendor package |
+| Offline signing workflow | Built in | Usually external/limited | Device-dependent |
+| Protection from a compromised desktop OS | No | No | Better: key remains on device |
+| Independent external security review | No | Varies | Varies |
+
+The point of BNB Wallet is an inspectable Linux-native BSC workflow with
+encrypted local storage, strict transaction review, privacy routing, and a
+cold-wallet protocol in one codebase. It is not a replacement for a hardware
+wallet when the consequence of loss is high.
+
+## Build and verify from source
+
+Requirements: current stable Flutter/Dart, Node.js, npm, Python 3, Ubuntu or
+Debian amd64 build dependencies, and a configured GPG signing key for a final
+release package.
 
 ```bash
 flutter pub get
-flutter analyze lib
-scripts/test-suite.sh        # sequential-aware runner (see dart_test.yaml)
-bash scripts/secret-scan.sh  # no tracked keystores/private keys
-cd verification && npm ci && node verify.cjs && cd ..  # independent ethers.js
-scripts/build-deb.sh         # the release line: a signed amd64 .deb
+flutter analyze --no-pub
+bash scripts/test-suite.sh
+bash scripts/secret-scan.sh
+(cd verification && npm ci && node verify.cjs)
+python3 scripts/dependency-audit.py
+python3 scripts/sbom.py --out docs/SBOM.json
+bash scripts/build-deb.sh
+BNB_RELEASE_DEB='/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb' \
+  bash scripts/release-check.sh
 ```
 
-`scripts/build-apk.sh` is provided for an Android arm64 release, but it
-requires an external `BNB_KEYSTORE`, `BNB_KEY_ALIAS`, `BNB_STORE_PASS` and
-`BNB_KEY_PASS`; it never creates or commits a keystore. The old committed
-release key must be treated as compromised and rotated.
+`build-deb.sh` creates a `.deb`, `SHA256SUMS`, and detached GPG signature in
+`/home/mhh06/Downloads/BNB Wallet/`. The release gate refuses a package with
+no signature or matching checksum.
 
-`scripts/test-suite.sh` runs the light suites two-wide and the heavy
-Argon2id (`kdf`-tagged) suites strictly one at a time — on a 2-core machine,
-overlapping 64 MiB derivations is the "did not complete" cascade recipe.
-Release form is the deb; no APK is built on this box (the deb-only release
-policy).
+## Responsible disclosure and license
 
-Artifacts land in `/home/mhh06/Downloads/BNB Wallet` with `.sha256` and
-`.asc` (GPG) companions.
+Do not create public vulnerability issues. See [SECURITY.md](SECURITY.md) for
+private reporting and rotation guidance. The [AGPL-3.0-or-later license](LICENSE)
+applies: people who receive and use modified network-interacting versions are
+entitled to the corresponding source under its terms.
 
-## Attribution
+## Donate
 
-BNB Wallet — created by jackh0006 <jackh109867@gmail.com>
+Donations are optional and support continued open-source development. The
+author's public EVM receiving address, also published in the related
+`bnb-terminal-wallet` repository, is:
+
+| Network / asset | Address |
+|---|---|
+| BNB Smart Chain (BNB or BEP-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
+| Ethereum (ETH or ERC-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
+
+Verify the full address from more than one official project location before
+sending. Donations are irreversible and are not a purchase, investment, or
+support entitlement.

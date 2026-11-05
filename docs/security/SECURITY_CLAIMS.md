@@ -33,7 +33,7 @@
 | EIP-55 checksummed address display | **TESTED** | `lib/wallet_core.dart`, `test/wallet_core_test.dart` |
 | ECDSA signing (RFC-6979 deterministic, low-s) | **TESTED** | `lib/wallet_core.dart` (via web3dart) |
 | EIP-1559 transaction construction | **TESTED** | `lib/cold_tx_codec.dart`, `test/cold_tx_codec_test.dart` (4/4) |
-| EIP-1559 signing digest = keccak256(0x02 \| rlp([...])) | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (ethers.js 6.13.2 independent) |
+| EIP-1559 signing digest = keccak256(0x02 \| rlp([...])) | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (ethers.js 6.17.0 independent) |
 | Cold response verification (field-by-field + recovery) | **TESTED** | `WalletCore.verifyColdSignatureDetailed`, 15 service tests |
 | Cold replay protection (single-use request ID + burn list) | **TESTED** | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` |
 | No private keys/seed in logs, URLs, clipboard, network | **TESTED** | `ClipboardGuard.secretFree()`, `lib/screens/common.dart` |

@@ -27,7 +27,7 @@
 | **M14** | Final UX & branding | Black/orange theme, logo, accessibility, explanations | ⏳ PENDING |
 | **M15** | Compatibility & performance | Weak devices, distros, resources, unstable net | ⏳ PENDING |
 | **M16** | Final security validation | All tests, static analysis, secret scan, review | ⏳ PENDING |
-| **M17** | Release candidate | Build, install, test, document, checksum, .deb | ⏳ PENDING |
+| **M17** | Linux release candidate | Build, install, test, document, checksum, signed `.deb` | 🔄 IN PROGRESS — package integrity verified; full source build, full-suite evidence, and clean-install checks remain. |
 | **M18** | Android planning & implementation | After Linux core stable | ⏳ BLOCKED (M17 first) |
 
 ---
@@ -276,11 +276,11 @@
 |---------|-------------|--------|--------------|
 | M17-01 | Version bump in pubspec.yaml | ⏳ PENDING | M16 |
 | M17-02 | CHANGELOG.md final update | ⏳ PENDING | M16 |
-| M17-03 | SBOM regeneration (scripts/sbom.py) | ⏳ PENDING | M16 |
-| M17-04 | Build .deb (scripts/build-deb.sh) | ⏳ PENDING | M16 |
+| M17-03 | SBOM regeneration (scripts/sbom.py) | ✅ DONE | M16; regenerated 2026-11-05 |
+| M17-04 | Build signed `.deb` (scripts/build-deb.sh) | 🟡 PARTIAL | M16; package checksum and detached signature verified; full source rebuild remains required |
 | M17-05 | Clean VM install + smoke test | ⏳ PENDING | M17-04 |
-| M17-06 | Verify package contents (no secrets) | ⏳ PENDING | M17-04 |
-| M17-07 | SHA-256 + GPG .asc | ⏳ PENDING | M17-04 |
+| M17-06 | Verify package contents (no secrets) | ✅ DONE | M17-04; package listing inspected 2026-11-05 |
+| M17-07 | SHA-256 + GPG .asc | ✅ DONE | M17-04; SHA-256 and detached GPG signature verified 2026-11-05 |
 | M17-08 | Signed git tag (git tag -s) | ⏳ PENDING | M17-07 |
 | M17-09 | Push to origin + GitHub release | ⏳ PENDING | M17-08 |
 

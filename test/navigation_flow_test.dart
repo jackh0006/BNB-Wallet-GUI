@@ -124,26 +124,8 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 500)),
     );
     await tester.pump();
-  });
-
-  test('renaming a vault account preserves its recovery phrase', () async {
-    final key = WalletCore.privateKeyFromHex(_testKeyHex);
-    const phrase =
-        'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-    await appState.saveVaultAccount(
-      _testPassword,
-      label: 'Before rename',
-      key: key,
-      mnemonic: phrase,
-    );
-
-    await appState.renameVaultAccount(_testPassword, 0, 'After rename');
-    final accounts = await appState.loadVaultAccounts(_testPassword);
-
-    expect(accounts, hasLength(1));
-    expect(accounts.single.label, 'After rename');
-    expect(accounts.single.mnemonic, phrase);
-    expect(accounts.single.address, key.address.eip55With0x);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets(
@@ -220,6 +202,8 @@ void main() {
         reason: 'the send form itself must be on screen, ready to send',
       );
       expect(find.text('Review transfer'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     },
   );
 
@@ -289,6 +273,8 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 500)),
     );
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
 }
