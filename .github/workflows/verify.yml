@@ -77,6 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - run: python3 scripts/check_token_sources.py
+      - run: python3 scripts/check_release_evidence.py
       - run: python3 scripts/sbom.py --out docs/SBOM.json
       - name: SBOM must be committed and current
         run: |
