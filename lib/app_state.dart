@@ -1064,7 +1064,7 @@ class AppState extends ChangeNotifier {
         'label': normalizedLabel,
         'address': address,
         'privateKeyHex': bytesToHex(key.privateKey, include0x: true),
-        if (mnemonic != null) 'mnemonic': mnemonic,
+        'mnemonic': ?mnemonic,
         'savedAt': DateTime.now().toIso8601String(),
       });
       final blob = await _runVaultEncrypt(
@@ -1401,8 +1401,9 @@ class AppState extends ChangeNotifier {
   /// - Verifies written content after move
   Future<void> moveVault(String password, String newPath) async {
     if (!hasVault) throw StateError('No vault exists to move.');
-    if (newPath.trim().isEmpty)
+    if (newPath.trim().isEmpty) {
       throw ArgumentError('New path cannot be empty.');
+    }
 
     await withVaultOperationLock(() async {
       final json = await _readVaultJson(password);
@@ -1603,8 +1604,9 @@ class AppState extends ChangeNotifier {
           }
         }
       } catch (e) {
-        if (e is StateError || e is ArgumentError || e is VaultException)
+        if (e is StateError || e is ArgumentError || e is VaultException) {
           rethrow;
+        }
         throw StateError('Wrong password or corrupted/tampered backup file.');
       }
 
