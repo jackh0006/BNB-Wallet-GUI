@@ -23,7 +23,7 @@ real secret, wallet, or transaction was used.
 | AUD-03 | High | Remediated in this branch; release verification pending | `scripts/build-apk.sh` | APK build accepted any supplied key and did not bind output to an approved signer. Build now requires and checks an external SHA-256 signer fingerprint. |
 | AUD-04 | Medium | Remediated in this branch | `scripts/sbom.py`, `docs/SBOM.json`, `scripts/build-deb.sh` | SBOM and Debian package used stale hard-coded application versions. Generator/package script now reads `pubspec.yaml`; SBOM was expanded to inventory both Dart and independent-verifier npm lockfiles, then regenerated. |
 | AUD-05 | Medium | Remediated in this branch; GitHub CI pending | `.github/workflows/verify.yml`, `scripts/dependency-audit.py`, dependency lockfile | CI now fails if pub.dev reports an advisory for a resolved package, and actions are pinned to commits resolved from their official release tags. |
-| AUD-06 | Medium | Open | `android/app/build.gradle.kts` | Release APK is arm64-v8a only; Android API <29 is unsupported. This is a compatibility limitation, not a cryptographic relaxation. |
+| AUD-06 | Medium | Partially remediated | `android/app/build.gradle.kts` | Release APK remains arm64-v8a only, but now supports Android 8.0+ (API 26), including 64-bit Android 8/9 devices such as the Huawei Y9 2019. This is a compatibility limitation, not a cryptographic relaxation. |
 | AUD-07 | Medium | Open | Linux drawer implementation, `docs/THREAT_MODEL.md` | Linux device secret is a 0600 local drawer, not a hardware secure element. Same-UID/compromised-OS attackers remain out of scope; documentation corrected. |
 | AUD-08 | Low | Remediated in this branch | `lib/screens/settings_page.dart` | Flutter `Radio` controls were migrated to `RadioGroup` and local identifiers were normalized. `flutter analyze --no-pub` completes with no issues; no diagnostics were suppressed. |
 | AUD-09 | Medium | Code remediation implemented; NOT VERIFIED by a dedicated widget regression | `lib/screens/send_page.dart`, `lib/screens/settings_page.dart`, `lib/screens/wallet_page.dart` | UI callbacks used a `BuildContext` after asynchronous work with an unrelated liveness guard. Exact state/context `mounted` guards now abort safely if the page disappears. A dedicated dispose-during-await widget regression is still required before this finding can be closed. |
@@ -50,7 +50,7 @@ real secret, wallet, or transaction was used.
 ## Compatibility and performance
 
 Linux release packaging targets amd64/x64; Android release packaging targets
-arm64-v8a with minSdk 29. Neither a lower Android API nor other CPU ABI is
+arm64-v8a with minSdk 26. Neither a lower Android API nor other CPU ABI is
 verified/supported by this release script. Argon2id is fixed at 64 MiB, three
 iterations and four lanes; this is intentionally retained. The new header
 check runs before KDF allocation and adds negligible normal-unlock cost.
