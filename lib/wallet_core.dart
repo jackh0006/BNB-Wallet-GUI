@@ -141,10 +141,11 @@ class WalletCore {
 
     int leadingOnes = 0;
     for (final c in input.codeUnits) {
-      if (c == '1'.codeUnitAt(0))
+      if (c == '1'.codeUnitAt(0)) {
         leadingOnes++;
-      else
+      } else {
         break;
+      }
     }
 
     BigInt num = BigInt.zero;
@@ -533,8 +534,7 @@ class WalletCore {
       final maxUint256 = BigInt.from(2).pow(256) - BigInt.one;
       if (decodedValue == maxUint256) {
         warning =
-            (warning != null ? '$warning; ' : '') +
-            'UNLIMITED approval — token can spend all your balance';
+            '${warning != null ? '$warning; ' : ''}UNLIMITED approval — token can spend all your balance';
       }
     }
 

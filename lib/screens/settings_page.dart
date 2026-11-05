@@ -218,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 14),
-          _PrivacyCard(
+          _privacyCard(
             title: 'Your ISP / DPI (internet provider, firewalls)',
             canSee: isPrivate
                 ? [
@@ -245,7 +245,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
           ),
           const SizedBox(height: 10),
-          _PrivacyCard(
+          _privacyCard(
             title: 'The RPC node (the door you chose)',
             canSee: [
               'Your IP (or Tor exit IP if Tor is on).',
@@ -261,7 +261,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 10),
-          _PrivacyCard(
+          _privacyCard(
             title: 'Everyone on the blockchain (public forever)',
             canSee: [
               'Your addresses, amounts, timestamps — forever.',
@@ -347,7 +347,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// A card showing what a party CAN see and CANNOT see.
-  Widget _PrivacyCard({
+  Widget _privacyCard({
     required String title,
     required List<String> canSee,
     required List<String> cannotSee,
@@ -513,7 +513,7 @@ class _SettingsPageState extends State<SettingsPage> {
             selected: {appState.rpc.network},
             onSelectionChanged: (s) async {
               await appState.setNetwork(s.first);
-              if (context.mounted) showInfo(context, 'Switched to ${s.first}.');
+              if (mounted) showInfo(context, 'Switched to ${s.first}.');
             },
           ),
         ],
@@ -555,7 +555,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     return;
                   }
                   await appState.setRpc(url);
-                  if (context.mounted) showInfo(context, 'RPC updated.');
+                  if (mounted) showInfo(context, 'RPC updated.');
                 },
                 icon: const Icon(Icons.save_outlined),
                 label: const Text('Save RPC'),
@@ -567,7 +567,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     url,
                     expectedNetwork: appState.rpc.network,
                   );
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   await _showNodeChecklist(
                     context,
                     Uri.tryParse(url)?.host ?? url,
@@ -641,7 +641,7 @@ class _SettingsPageState extends State<SettingsPage> {
           else
             for (var i = 0; i < appState.nodes.length; i++)
               if (appState.nodes[i].network == appState.rpc.network)
-                NodeRow(index: i, node: appState.nodes[i]),
+                _nodeRow(index: i, node: appState.nodes[i]),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -690,7 +690,7 @@ class _SettingsPageState extends State<SettingsPage> {
       title: 'Add node',
       label: 'Friendly name (e.g. My home node)',
     );
-    if (label == null || !context.mounted) return;
+    if (label == null || !mounted) return;
     final url = await promptText(
       context,
       title: 'Add node',
@@ -700,7 +700,7 @@ class _SettingsPageState extends State<SettingsPage> {
           : 'HTTPS everywhere. HTTP is only ever allowed for a localhost/LAN '
                 'door or a .onion address reached over Tor.',
     );
-    if (url == null || !context.mounted) return;
+    if (url == null || !mounted) return;
     if (!appState.isNodeWarned(url.trim())) {
       final understood = await confirmDialog(
         context,
@@ -719,14 +719,14 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     try {
       await appState.addNode(label.trim(), url.trim());
-      if (context.mounted) {
+      if (mounted) {
         showInfo(
           context,
           'Saved "${label.trim()}". Test it before trusting it.',
         );
       }
     } catch (error) {
-      if (context.mounted) showError(context, error);
+      if (mounted) showError(context, error);
     }
   }
 
@@ -739,10 +739,10 @@ class _SettingsPageState extends State<SettingsPage> {
       label: 'Paste the JSON node list',
       keyboardType: TextInputType.url,
     );
-    if (raw == null || raw.trim().isEmpty || !context.mounted) return;
+    if (raw == null || raw.trim().isEmpty || !mounted) return;
     try {
       final added = await appState.importNodes(raw.trim());
-      if (context.mounted) {
+      if (mounted) {
         showInfo(
           context,
           added == 0
@@ -751,7 +751,7 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     } catch (error) {
-      if (context.mounted) showError(context, error);
+      if (mounted) showError(context, error);
     }
   }
 
@@ -784,9 +784,9 @@ class _SettingsPageState extends State<SettingsPage> {
       label: 'Type RESET to confirm',
       validator: (v) => v.trim() == 'RESET' ? null : 'Type RESET exactly.',
     );
-    if (confirmed == null || !context.mounted) return;
+    if (confirmed == null || !mounted) return;
     await appState.resetNodesToDefaults();
-    if (context.mounted) showInfo(context, 'Back to the official doors.');
+    if (mounted) showInfo(context, 'Back to the official doors.');
   }
 
   /// The §10d "Full test" dialog: every checklist item with ✔/⚠ and what was
@@ -885,7 +885,7 @@ class _SettingsPageState extends State<SettingsPage> {
   /// One phone-book row: status, name, host, an on/off switch (a disabled
   /// door is never asked anything), and the actions (test / edit / use /
   /// remove / move up / move down).
-  Widget NodeRow({required int index, required RpcNode node}) {
+  Widget _nodeRow({required int index, required RpcNode node}) {
     final active = appState.isNodeActive(node);
     final transportLabel = _transportLabel(node);
     return ListTile(
@@ -962,7 +962,7 @@ class _SettingsPageState extends State<SettingsPage> {
             scale: 0.72,
             child: Switch(
               value: node.enabled,
-              activeColor: const Color(0xFFF0B90B),
+              activeThumbColor: const Color(0xFFF0B90B),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               onChanged: (value) => appState.setNodeEnabled(index, value),
             ),
@@ -978,14 +978,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     validator: (v) =>
                         v.trim() == 'USE' ? null : 'Type USE exactly.',
                   );
-                  if (ok == null || !context.mounted) return;
+                  if (ok == null || !mounted) return;
                   try {
                     await appState.activateNode(node);
-                    if (context.mounted) {
+                    if (mounted) {
                       showInfo(context, 'Switched to ${node.label}.');
                     }
                   } catch (error) {
-                    if (context.mounted) showError(context, error);
+                    if (mounted) showError(context, error);
                   }
                   break;
                 case 'test':
@@ -993,7 +993,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     node.url,
                     expectedNetwork: node.network,
                   );
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   await _showNodeChecklist(
                     context,
                     Uri.tryParse(node.url)?.host ?? node.url,
@@ -1017,7 +1017,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     validator: (v) =>
                         v.trim().isEmpty ? 'Name required.' : null,
                   );
-                  if (label == null || !context.mounted) return;
+                  if (label == null || !mounted) return;
                   final url = await promptText(
                     context,
                     title: 'Edit node',
@@ -1028,14 +1028,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         : 'HTTPS everywhere — HTTP only for localhost/LAN or '
                               'a .onion address over Tor.',
                   );
-                  if (url == null || !context.mounted) return;
+                  if (url == null || !mounted) return;
                   try {
                     await appState.editNode(index, label.trim(), url.trim());
-                    if (context.mounted) {
+                    if (mounted) {
                       showInfo(context, 'Phone book updated.');
                     }
                   } catch (error) {
-                    if (context.mounted) showError(context, error);
+                    if (mounted) showError(context, error);
                   }
                   break;
                 case 'transport':
@@ -1069,14 +1069,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     validator: (v) =>
                         v.trim() == 'DELETE' ? null : 'Type DELETE exactly.',
                   );
-                  if (ok == null || !context.mounted) return;
+                  if (ok == null || !mounted) return;
                   try {
                     await appState.deleteNode(index);
-                    if (context.mounted) {
+                    if (mounted) {
                       showInfo(context, '"${node.label}" removed.');
                     }
                   } catch (error) {
-                    if (context.mounted) showError(context, error);
+                    if (mounted) showError(context, error);
                   }
                   break;
               }
@@ -1216,10 +1216,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     final meta = await appState.rpc.tokenMeta(raw);
                     await appState.addToken(meta);
                     _newTokenAddress.clear();
-                    if (context.mounted)
+                    if (mounted) {
                       showInfo(context, '${meta.symbol} added.');
+                    }
                   } catch (error) {
-                    if (context.mounted) showError(context, error);
+                    if (mounted) showError(context, error);
                   }
                 },
                 icon: const Icon(Icons.add),
@@ -1459,7 +1460,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Add your own link',
               label: 'Name (e.g. Company X token page)',
             );
-            if (name == null || name.trim().isEmpty || !context.mounted) return;
+            if (name == null || name.trim().isEmpty || !mounted) return;
             final url = await promptText(
               context,
               title: 'Add your own link',
@@ -1469,7 +1470,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ? null
                   : 'Only https:// links are accepted here.',
             );
-            if (url == null || !context.mounted) return;
+            if (url == null || !mounted) return;
             final links = [
               for (final e in AppStorage.userTokenSources) Map.of(e),
             ];
@@ -1531,8 +1532,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   label: 'API key (hidden)',
                   obscure: true,
                 );
-                if (key == null || key.isEmpty || !context.mounted) return;
+                if (key == null || key.isEmpty || !mounted) return;
                 await appState.setBscscanKey(key);
+                if (!mounted) return;
                 showInfo(context, 'API key saved.');
               },
               icon: const Icon(Icons.add),
@@ -1593,9 +1595,13 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _showThemeDialog(context),
           ),
           const Divider(height: 24),
-          const Text(
-            'Language requires app restart to apply fully.',
-            style: TextStyle(color: Colors.white70, fontSize: 12.5),
+          Text(
+            'Navigation labels update immediately. Detailed wallet and security '
+            'instructions are currently English; they are never presented as translated when they are not.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12.5,
+            ),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -1648,29 +1654,21 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (dialogContext) => SimpleDialog(
         title: const Text('Select theme'),
         children: [
-          RadioListTile<int>(
-            title: const Text('System default'),
-            value: 0,
+          RadioGroup<int>(
             groupValue: appState.themeModeIndex,
             onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<int>(
-            title: const Text('Light'),
-            value: 1,
-            groupValue: appState.themeModeIndex,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<int>(
-            title: const Text('Dark'),
-            value: 2,
-            groupValue: appState.themeModeIndex,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<int>(
-            title: const Text('AMOLED black'),
-            value: 3,
-            groupValue: appState.themeModeIndex,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<int>(
+                  title: const Text('System default'),
+                  value: 0,
+                ),
+                RadioListTile<int>(title: const Text('Light'), value: 1),
+                RadioListTile<int>(title: const Text('Dark'), value: 2),
+                RadioListTile<int>(title: const Text('AMOLED black'), value: 3),
+              ],
+            ),
           ),
         ],
       ),
@@ -1686,41 +1684,38 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (dialogContext) => SimpleDialog(
         title: const Text('Select language'),
         children: [
-          RadioListTile<String>(
-            title: const Text('English'),
-            value: 'en',
+          RadioGroup<String>(
             groupValue: appState.locale,
             onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<String>(
-            title: const Text('فارسی (Persian)'),
-            value: 'fa',
-            groupValue: appState.locale,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<String>(
-            title: const Text('العربية (Arabic)'),
-            value: 'ar',
-            groupValue: appState.locale,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<String>(
-            title: const Text('中文 (Chinese)'),
-            value: 'zh',
-            groupValue: appState.locale,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<String>(
-            title: const Text('Русский (Russian)'),
-            value: 'ru',
-            groupValue: appState.locale,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
-          ),
-          RadioListTile<String>(
-            title: const Text('Español (Spanish)'),
-            value: 'es',
-            groupValue: appState.locale,
-            onChanged: (value) => Navigator.pop(dialogContext, value),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<String>(
+                  title: const Text('English'),
+                  value: 'en',
+                ),
+                RadioListTile<String>(
+                  title: const Text('فارسی (Persian)'),
+                  value: 'fa',
+                ),
+                RadioListTile<String>(
+                  title: const Text('العربية (Arabic)'),
+                  value: 'ar',
+                ),
+                RadioListTile<String>(
+                  title: const Text('中文 (Chinese)'),
+                  value: 'zh',
+                ),
+                RadioListTile<String>(
+                  title: const Text('Русский (Russian)'),
+                  value: 'ru',
+                ),
+                RadioListTile<String>(
+                  title: const Text('Español (Spanish)'),
+                  value: 'es',
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1728,7 +1723,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (locale != null) {
       await appState.setLocale(locale);
       if (!context.mounted) return;
-      showInfo(context, 'Language changed. Restart the app for full effect.');
+      showInfo(context, 'Language changed. Navigation labels updated.');
     }
   }
 
@@ -1787,7 +1782,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       context,
                       appState.mnemonic!,
                     );
-                    if (!context.mounted) return;
+                    if (!mounted) return;
                     if (passed) {
                       showInfo(context, 'Backup verified.');
                     }
@@ -1849,7 +1844,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionTitle('About'),
           const SizedBox(height: 8),
           const Text(
-            'BNB Wallet 1.0.5',
+            'BNB Wallet 1.0.9',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
@@ -1958,8 +1953,9 @@ class _SettingsPageState extends State<SettingsPage> {
               'issuer before trusting it.\n\n'
               '• The clipboard clears after 30 seconds, but another app can '
               'read it during that window.\n\n'
-              '• Light/AMOLED themes and translations are not available yet; '
-              'the interface is English and dark.\n\n'
+              '• Light, dark and AMOLED themes are available. Navigation labels '
+              'are available in the selected language; detailed wallet and security '
+              'instructions are currently English.\n\n'
               '• This is not financial, legal or tax advice, and it comes with '
               'no warranty. Keep only what you can afford to lose.',
               style: TextStyle(fontSize: 12.5, height: 1.45),
@@ -2018,7 +2014,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
         );
-    if (choice == null) return;
+    if (choice == null || !mounted) return;
     if (choice == NodeTransport.customProxy ||
         choice == NodeTransport.httpConnect) {
       final current = node.proxyHost == null
@@ -2039,11 +2035,11 @@ class _SettingsPageState extends State<SettingsPage> {
               : null;
         },
       );
-      if (url == null || !context.mounted) return;
+      if (url == null || !mounted) return;
       if (url.trim().isNotEmpty) {
         final parsed = GlobalProxyConfig.fromUrl(url);
         if (parsed == null) {
-          if (context.mounted) showError(context, 'Unsupported proxy URL.');
+          if (mounted) showError(context, 'Unsupported proxy URL.');
           return;
         }
         final effective = parsed.type == ProxyType.httpConnect
@@ -2067,7 +2063,7 @@ class _SettingsPageState extends State<SettingsPage> {
         initialValue: node.proxyHost ?? '',
         validator: (v) => v.trim().isEmpty ? 'Host required' : null,
       );
-      if (host == null || !context.mounted) return;
+      if (host == null || !mounted) return;
       final port = await promptText(
         context,
         title: _transportLabelFromEnum(choice),
@@ -2082,14 +2078,14 @@ class _SettingsPageState extends State<SettingsPage> {
               : 'Valid port required';
         },
       );
-      if (port == null || !context.mounted) return;
+      if (port == null || !mounted) return;
       final user = await promptText(
         context,
         title: '${_transportLabelFromEnum(choice)} (optional)',
         label: 'Username (empty for none)',
         initialValue: node.proxyUser ?? '',
       );
-      if (user == null || !context.mounted) return;
+      if (user == null || !mounted) return;
       String? pass;
       if (user.isNotEmpty) {
         pass = await promptText(
@@ -2098,7 +2094,7 @@ class _SettingsPageState extends State<SettingsPage> {
           label: 'Password',
           obscure: true,
         );
-        if (pass == null || !context.mounted) return;
+        if (pass == null || !mounted) return;
       }
       await appState.setNodeTransport(
         index,
@@ -2128,7 +2124,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-    if (choice == null) return;
+    if (choice == null || !mounted) return;
 
     String? token;
     String? username;
@@ -2142,7 +2138,7 @@ class _SettingsPageState extends State<SettingsPage> {
         obscure: true,
         validator: (v) => v.trim().isEmpty ? 'Token required' : null,
       );
-      if (token == null || !context.mounted) return;
+      if (token == null || !mounted) return;
     } else if (choice == NodeAuthType.basic) {
       username = await promptText(
         context,
@@ -2151,7 +2147,7 @@ class _SettingsPageState extends State<SettingsPage> {
         initialValue: node.authUsername ?? '',
         validator: (v) => v.trim().isEmpty ? 'Username required' : null,
       );
-      if (username == null || !context.mounted) return;
+      if (username == null || !mounted) return;
       password = await promptText(
         context,
         title: 'Basic auth',
@@ -2159,7 +2155,7 @@ class _SettingsPageState extends State<SettingsPage> {
         obscure: true,
         validator: (v) => v.trim().isEmpty ? 'Password required' : null,
       );
-      if (password == null || !context.mounted) return;
+      if (password == null || !mounted) return;
     }
 
     await appState.setNodeAuth(
@@ -2182,7 +2178,7 @@ class _SettingsPageState extends State<SettingsPage> {
       maxLines: 5,
       hintText: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=',
     );
-    if (pins == null || !context.mounted) return;
+    if (pins == null || !mounted) return;
     final pinList = pins
         .trim()
         .split('\n')
@@ -2190,8 +2186,9 @@ class _SettingsPageState extends State<SettingsPage> {
         .map((s) => s.trim())
         .toList();
     await appState.setNodePinning(index, pinList);
-    if (mounted)
+    if (mounted) {
       showInfo(context, 'Certificate pinning updated for ${node.label}.');
+    }
   }
 
   Future<void> _editNodeSelection(int index, RpcNode node) async {
@@ -2201,14 +2198,14 @@ class _SettingsPageState extends State<SettingsPage> {
       'Whether this node should be used for balance queries, token info, etc.',
       initialValue: node.useForReads,
     );
-    if (!context.mounted || useForReads == null) return;
+    if (!mounted || useForReads == null) return;
     final useForBroadcast = await _askBool(
       context,
       'Use for broadcast?',
       'Whether this node should be used for sending transactions.',
       initialValue: node.useForBroadcast,
     );
-    if (!context.mounted || useForBroadcast == null) return;
+    if (!mounted || useForBroadcast == null) return;
 
     final selectionMode = await showDialog<int>(
       context: context,
@@ -2236,8 +2233,9 @@ class _SettingsPageState extends State<SettingsPage> {
       useForBroadcast: useForBroadcast,
       selectionMode: selectionMode,
     );
-    if (mounted)
+    if (mounted) {
       showInfo(context, 'Selection settings updated for ${node.label}.');
+    }
   }
 
   String _authTypeLabel(NodeAuthType t) {
@@ -2279,113 +2277,115 @@ class _SettingsPageState extends State<SettingsPage> {
   /// §10f Wallet mode selector: hot / cold / online.
   Widget _walletModeSection() {
     return InfoCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionTitle('Wallet mode (§10f)'),
-          const SizedBox(height: 4),
-          const Text(
-            'Hot wallet holds the seed and can sign. Cold (offline signer) holds '
-            'the seed but uses no network. Online companion holds no secrets — '
-            'it prepares and broadcasts for a cold device.',
-            style: TextStyle(color: Colors.white70, fontSize: 12.5),
-          ),
-          const SizedBox(height: 10),
-          RadioListTile<int>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Normal (hot wallet)'),
-            subtitle: const Text('Default — holds seed, signs, broadcasts'),
-            value: 0,
-            groupValue: appState.walletModeIndex,
-            onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(
-              Icons.wallet,
-              color: appState.hotMode ? Colors.amber : Colors.white38,
+      child: RadioGroup<int>(
+        groupValue: appState.walletModeIndex,
+        onChanged: (value) {
+          if (value != null) appState.setWalletMode(value);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionTitle('Wallet mode (§10f)'),
+            const SizedBox(height: 4),
+            const Text(
+              'Hot wallet holds the seed and can sign. Cold (offline signer) holds '
+              'the seed but uses no network. Online companion holds no secrets — '
+              'it prepares and broadcasts for a cold device.',
+              style: TextStyle(color: Colors.white70, fontSize: 12.5),
             ),
-          ),
-          RadioListTile<int>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Cold (offline signer)'),
-            subtitle: const Text(
-              'Holds seed, no network — signs requests offline',
-            ),
-            value: 1,
-            groupValue: appState.walletModeIndex,
-            onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(
-              Icons.smartphone,
-              color: appState.coldMode ? Colors.amber : Colors.white38,
-            ),
-          ),
-          RadioListTile<int>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Online (watch-only companion)'),
-            subtitle: const Text(
-              'No secrets — prepares & broadcasts for cold device',
-            ),
-            value: 2,
-            groupValue: appState.walletModeIndex,
-            onChanged: (v) => appState.setWalletMode(v!),
-            secondary: Icon(
-              Icons.wifi_tethering,
-              color: appState.onlineMode ? Colors.amber : Colors.white38,
-            ),
-          ),
-          if (appState.coldMode) ...[
-            const Divider(height: 24),
-            ListTile(
+            const SizedBox(height: 10),
+            RadioListTile<int>(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code, color: Colors.amber),
-              title: const Text('Export for online device'),
-              subtitle: const Text('QR / file with public addresses only'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldExportPairing(context),
+              title: const Text('Normal (hot wallet)'),
+              subtitle: const Text('Default — holds seed, signs, broadcasts'),
+              value: 0,
+              secondary: Icon(
+                Icons.wallet,
+                color: appState.hotMode ? Colors.amber : Colors.white38,
+              ),
             ),
-            ListTile(
+            RadioListTile<int>(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.edit_document, color: Colors.amber),
-              title: const Text('Sign a request offline'),
-              subtitle: const Text('Paste / read the online device\'s request'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldSignPendingRequest(context),
+              title: const Text('Cold (offline signer)'),
+              subtitle: const Text(
+                'Holds seed, no network — signs requests offline',
+              ),
+              value: 1,
+              secondary: Icon(
+                Icons.smartphone,
+                color: appState.coldMode ? Colors.amber : Colors.white38,
+              ),
             ),
-            ListTile(
+            RadioListTile<int>(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code_2, color: Colors.amber),
-              title: const Text('Show last signed response'),
-              subtitle: const Text('QR / file to carry back online'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldShowLastSignature(context),
+              title: const Text('Online (watch-only companion)'),
+              subtitle: const Text(
+                'No secrets — prepares & broadcasts for cold device',
+              ),
+              value: 2,
+              secondary: Icon(
+                Icons.wifi_tethering,
+                color: appState.onlineMode ? Colors.amber : Colors.white38,
+              ),
             ),
+            if (appState.coldMode) ...[
+              const Divider(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.qr_code, color: Colors.amber),
+                title: const Text('Export for online device'),
+                subtitle: const Text('QR / file with public addresses only'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldExportPairing(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.edit_document, color: Colors.amber),
+                title: const Text('Sign a request offline'),
+                subtitle: const Text(
+                  'Paste / read the online device\'s request',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldSignPendingRequest(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.qr_code_2, color: Colors.amber),
+                title: const Text('Show last signed response'),
+                subtitle: const Text('QR / file to carry back online'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldShowLastSignature(context),
+              ),
+            ],
+            if (appState.onlineMode) ...[
+              const Divider(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.link, color: Colors.amber),
+                title: const Text('Import cold pairing'),
+                subtitle: const Text('Verify the fingerprint, then watch only'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldImportPairing(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.qr_code_2, color: Colors.amber),
+                title: const Text('Show pending request'),
+                subtitle: const Text('Request to carry to the cold signer'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldShowPendingRequest(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.verified_user, color: Colors.amber),
+                title: const Text('Import signed response'),
+                subtitle: const Text('Verify strictly, then broadcast'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => coldImportAndBroadcastSignature(context),
+              ),
+            ],
           ],
-          if (appState.onlineMode) ...[
-            const Divider(height: 24),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.link, color: Colors.amber),
-              title: const Text('Import cold pairing'),
-              subtitle: const Text('Verify the fingerprint, then watch only'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldImportPairing(context),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.qr_code_2, color: Colors.amber),
-              title: const Text('Show pending request'),
-              subtitle: const Text('Request to carry to the cold signer'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldShowPendingRequest(context),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.verified_user, color: Colors.amber),
-              title: const Text('Import signed response'),
-              subtitle: const Text('Verify strictly, then broadcast'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => coldImportAndBroadcastSignature(context),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -2393,51 +2393,49 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Node selection mode (global) — R7.
   Widget _selectionModeSection() {
     return InfoCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionTitle('Node selection mode'),
-          const SizedBox(height: 4),
-          const Text(
-            'How the wallet picks which RPC node to talk to for reads and '
-            'broadcasts. Per-node "use for reads / broadcast" overrides are set '
-            'in the node list.',
-            style: TextStyle(color: Colors.white70, fontSize: 12.5),
-          ),
-          const SizedBox(height: 10),
-          RadioListTile<NodeSelectionMode>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Manual'),
-            subtitle: const Text('Always use the selected node'),
-            value: NodeSelectionMode.manual,
-            groupValue: appState.selectionMode,
-            onChanged: (v) => appState.setSelectionMode(v!),
-          ),
-          RadioListTile<NodeSelectionMode>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Auto-fastest'),
-            subtitle: const Text('Always pick the fastest-responding node'),
-            value: NodeSelectionMode.autoFastest,
-            groupValue: appState.selectionMode,
-            onChanged: (v) => appState.setSelectionMode(v!),
-          ),
-          RadioListTile<NodeSelectionMode>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Round-robin / random'),
-            subtitle: const Text('Rotate through enabled nodes for privacy'),
-            value: NodeSelectionMode.roundRobin,
-            groupValue: appState.selectionMode,
-            onChanged: (v) => appState.setSelectionMode(v!),
-          ),
-          RadioListTile<NodeSelectionMode>(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Quorum'),
-            subtitle: const Text('Query N nodes and cross-check answers'),
-            value: NodeSelectionMode.quorum,
-            groupValue: appState.selectionMode,
-            onChanged: (v) => appState.setSelectionMode(v!),
-          ),
-        ],
+      child: RadioGroup<NodeSelectionMode>(
+        groupValue: appState.selectionMode,
+        onChanged: (value) {
+          if (value != null) appState.setSelectionMode(value);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionTitle('Node selection mode'),
+            const SizedBox(height: 4),
+            const Text(
+              'How the wallet picks which RPC node to talk to for reads and '
+              'broadcasts. Per-node "use for reads / broadcast" overrides are set '
+              'in the node list.',
+              style: TextStyle(color: Colors.white70, fontSize: 12.5),
+            ),
+            const SizedBox(height: 10),
+            RadioListTile<NodeSelectionMode>(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Manual'),
+              subtitle: const Text('Always use the selected node'),
+              value: NodeSelectionMode.manual,
+            ),
+            RadioListTile<NodeSelectionMode>(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Auto-fastest'),
+              subtitle: const Text('Always pick the fastest-responding node'),
+              value: NodeSelectionMode.autoFastest,
+            ),
+            RadioListTile<NodeSelectionMode>(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Round-robin / random'),
+              subtitle: const Text('Rotate through enabled nodes for privacy'),
+              value: NodeSelectionMode.roundRobin,
+            ),
+            RadioListTile<NodeSelectionMode>(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Quorum'),
+              subtitle: const Text('Query N nodes and cross-check answers'),
+              value: NodeSelectionMode.quorum,
+            ),
+          ],
+        ),
       ),
     );
   }

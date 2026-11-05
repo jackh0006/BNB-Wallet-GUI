@@ -1,8 +1,24 @@
 # CHANGELOG.md
 
-All notable changes to this wallet. Dates in 2026; version 1.0.7 is the
-release line built as a deb for Debian/Ubuntu (no APK — the deb is the
-distribution form for this device).
+All notable changes to this wallet. Dates in 2026; releases identify their
+supported artifacts explicitly.
+
+## 1.0.9-ui.1 prerelease — accessibility, locale and status accuracy
+
+- **Accessible primary actions:** primary-button labels now use black text on
+  the yellow brand color in every theme. The previous white-on-yellow light
+  theme treatment did not provide adequate contrast.
+- **Live navigation localization:** Home, Wallet, Send, Inspect and Settings
+  labels now update immediately when the locale changes. `Inspect` was added
+  to all six maintained catalogs; `test/localization_catalog_test.dart`
+  prevents a missing catalog entry from silently falling back to English.
+- **Honest Settings copy:** About now reports 1.0.9, the language setting no
+  longer instructs users to restart, and the limits notice accurately says
+  that themes exist and that detailed wallet/security instructions remain
+  English. This is intentionally not presented as full-interface translation.
+- **Original application mark:** replaced the old shield artwork with an
+  original orange `B.` on a near-black rounded square. It intentionally does
+  not use Binance's diamond mark or geometry.
 
 ## 2026-11-04 — M3 Filesystem Security Corrections (v1.0.7)
 
@@ -75,7 +91,7 @@ distribution form for this device).
   digest, signed bytes and parsed transaction. The parser rejects
   non-canonical RLP, bad scalars, high-s, wrong field counts and access lists.
 - **Independent verification:** `verification/verify.cjs` uses ethers.js
-  6.13.2 (not web3dart) to check the exact bytes, digest, fields, `r`/`s`/
+  6.17.0 (not web3dart) to check the exact bytes, digest, fields, `r`/`s`/
   `yParity`, hash and recovered signer, and rejects 8 substitutions.
 - **TLS pinning:** standard CA/hostname validation first, then SPKI pin;
   corrected the v3 certificate SPKI index (extensions were hashed instead of

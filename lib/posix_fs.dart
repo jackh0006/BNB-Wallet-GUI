@@ -95,6 +95,7 @@ enum PosixPathClass {
   directory,
   symlink,
   special,
+
   /// A filesystem error prevents establishing state (EACCES, EPERM, ELOOP,
   /// EIO, ...). Callers must fail closed: never treat this as "missing" or
   /// as "not a symlink".
@@ -111,6 +112,7 @@ const int errnoEnotdir = 20;
 const int errnoEnametoolong = 36;
 const int errnoEnosys = 38;
 const int errnoEloop = 40;
+const int errnoEwouldblock = 11;
 
 String? errnoName(int code) {
   switch (code) {
@@ -158,6 +160,11 @@ const int posixRenameNoreplace = 1 << 0;
 /// Mode bits: S_IRUSR | S_IWUSR (0600).
 const int posixMode0600 = 0x180;
 
+/// flock(2) flags.  This project uses an advisory, nonblocking exclusive
+/// lock; a busy peer is an explicit failure rather than a UI-thread block.
+const int posixLockExclusive = 2;
+const int posixLockNonBlocking = 4;
+
 /// S_IFMT file-type classes (Linux).
 const int posixSIfifo = 0x1000;
 const int posixSIfchr = 0x2000;
@@ -173,10 +180,17 @@ const int _statBufSize = 256;
 const int _stModeOffset = 24;
 const int _stSizeOffset = 48;
 
-/// The fields we parse from struct stat: mode and size.
+/// The `stat` fields needed for object identity, type/permission checks and
+/// bounded reads.
 class PosixStat {
-  PosixStat._(this.mode, this.size);
+  PosixStat._(this.device, this.inode, this.mode, this.size);
 
+  /// Device and inode identify the object named by a directory entry.  They
+  /// are deliberately retained for post-rename verification: fstat() on the
+  /// old temporary descriptor alone cannot prove that the destination name
+  /// still resolves to that committed object.
+  final int device;
+  final int inode;
   final int mode;
   final int size;
 
@@ -200,87 +214,108 @@ class _PosixBindings {
 
   final DynamicLibrary libc;
 
-  late final Pointer<Int32> Function() errnoLocation =
-      libc.lookupFunction<Pointer<Int32> Function(), Pointer<Int32> Function()>(
-          '__errno_location');
+  late final Pointer<Int32> Function() errnoLocation = libc
+      .lookupFunction<Pointer<Int32> Function(), Pointer<Int32> Function()>(
+        '__errno_location',
+      );
 
-  late final int Function(Pointer<Uint8>, Pointer<Uint8>) lstat =
-      libc.lookupFunction<
-          Int32 Function(Pointer<Uint8>, Pointer<Uint8>),
-          int Function(Pointer<Uint8>, Pointer<Uint8>)>('lstat');
+  late final int Function(Pointer<Uint8>, Pointer<Uint8>) lstat = libc
+      .lookupFunction<
+        Int32 Function(Pointer<Uint8>, Pointer<Uint8>),
+        int Function(Pointer<Uint8>, Pointer<Uint8>)
+      >('lstat');
 
   late final int Function(int, Pointer<Uint8>, Pointer<Uint8>, int) fstatat =
       libc.lookupFunction<
-          Int32 Function(Int32, Pointer<Uint8>, Pointer<Uint8>, Int32),
-          int Function(
-              int, Pointer<Uint8>, Pointer<Uint8>, int)>('fstatat');
+        Int32 Function(Int32, Pointer<Uint8>, Pointer<Uint8>, Int32),
+        int Function(int, Pointer<Uint8>, Pointer<Uint8>, int)
+      >('fstatat');
 
-  late final int Function(int, Pointer<Uint8>) fstat = libc.lookupFunction<
-      Int32 Function(Int32, Pointer<Uint8>),
-      int Function(int, Pointer<Uint8>)>('fstat');
+  late final int Function(int, Pointer<Uint8>) fstat = libc
+      .lookupFunction<
+        Int32 Function(Int32, Pointer<Uint8>),
+        int Function(int, Pointer<Uint8>)
+      >('fstat');
 
   /// openat is variadic in C (mode_t only appears with O_CREAT); bound with
   /// the fixed four-argument shape (dirfd, path, flags, mode).
   late final int Function(int, Pointer<Uint8>, int, int) openat = libc
       .lookupFunction<
-          Int32 Function(Int32, Pointer<Uint8>, Int32, Uint32),
-          int Function(int, Pointer<Uint8>, int, int)>('openat');
+        Int32 Function(Int32, Pointer<Uint8>, Int32, Uint32),
+        int Function(int, Pointer<Uint8>, int, int)
+      >('openat');
 
-  late final int Function(Pointer<Uint8>) mkstemp = libc.lookupFunction<
-      Int32 Function(Pointer<Uint8>),
-      int Function(Pointer<Uint8>)>('mkstemp');
+  late final int Function(Pointer<Uint8>) mkstemp = libc
+      .lookupFunction<
+        Int32 Function(Pointer<Uint8>),
+        int Function(Pointer<Uint8>)
+      >('mkstemp');
 
   /// ssize_t write(int fd, const void *buf, size_t count) — non-variadic.
-  late final int Function(int, Pointer<Uint8>, int) write = libc.lookupFunction<
-      Int64 Function(Int32, Pointer<Uint8>, Uint64),
-      int Function(int, Pointer<Uint8>, int)>('write');
+  late final int Function(int, Pointer<Uint8>, int) write = libc
+      .lookupFunction<
+        Int64 Function(Int32, Pointer<Uint8>, Uint64),
+        int Function(int, Pointer<Uint8>, int)
+      >('write');
 
   /// ssize_t read(int fd, void *buf, size_t count) — non-variadic.
-  late final int Function(int, Pointer<Uint8>, int) read = libc.lookupFunction<
-      Int64 Function(Int32, Pointer<Uint8>, Uint64),
-      int Function(int, Pointer<Uint8>, int)>('read');
+  late final int Function(int, Pointer<Uint8>, int) read = libc
+      .lookupFunction<
+        Int64 Function(Int32, Pointer<Uint8>, Uint64),
+        int Function(int, Pointer<Uint8>, int)
+      >('read');
 
-  late final int Function(int, int) fchmod =
-      libc.lookupFunction<Int32 Function(Int32, Uint32), int Function(
-          int, int)>('fchmod');
+  late final int Function(int, int) fchmod = libc
+      .lookupFunction<Int32 Function(Int32, Uint32), int Function(int, int)>(
+        'fchmod',
+      );
 
-  late final int Function(int) fsync =
-      libc.lookupFunction<Int32 Function(Int32), int Function(int)>('fsync');
+  late final int Function(int) fsync = libc
+      .lookupFunction<Int32 Function(Int32), int Function(int)>('fsync');
 
-  late final int Function(int) close =
-      libc.lookupFunction<Int32 Function(Int32), int Function(int)>('close');
+  late final int Function(int) close = libc
+      .lookupFunction<Int32 Function(Int32), int Function(int)>('close');
+
+  late final int Function(int, int) flock = libc
+      .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
+        'flock',
+      );
 
   late final int Function(int, Pointer<Uint8>, int) unlinkat = libc
       .lookupFunction<
-          Int32 Function(Int32, Pointer<Uint8>, Int32),
-          int Function(int, Pointer<Uint8>, int)>('unlinkat');
+        Int32 Function(Int32, Pointer<Uint8>, Int32),
+        int Function(int, Pointer<Uint8>, int)
+      >('unlinkat');
 
   /// off_t lseek(int fd, off_t offset, int whence)
-  late final int Function(int, int, int) lseek = libc.lookupFunction<
-      Int64 Function(Int32, Int64, Int32),
-      int Function(int, int, int)>('lseek');
+  late final int Function(int, int, int) lseek = libc
+      .lookupFunction<
+        Int64 Function(Int32, Int64, Int32),
+        int Function(int, int, int)
+      >('lseek');
 
   /// renameat takes exactly four arguments (no flags parameter).
   late final int Function(int, Pointer<Uint8>, int, Pointer<Uint8>) renameat =
       libc.lookupFunction<
-          Int32 Function(Int32, Pointer<Uint8>, Int32, Pointer<Uint8>),
-          int Function(
-              int, Pointer<Uint8>, int, Pointer<Uint8>)>('renameat');
+        Int32 Function(Int32, Pointer<Uint8>, Int32, Pointer<Uint8>),
+        int Function(int, Pointer<Uint8>, int, Pointer<Uint8>)
+      >('renameat');
 
   late final int Function(int, Pointer<Uint8>, int, Pointer<Uint8>, int)
-      renameat2 = libc.lookupFunction<
-          Int32 Function(Int32, Pointer<Uint8>, Int32, Pointer<Uint8>, Uint32),
-          int Function(int, Pointer<Uint8>, int, Pointer<Uint8>,
-              int)>('renameat2');
+  renameat2 = libc
+      .lookupFunction<
+        Int32 Function(Int32, Pointer<Uint8>, Int32, Pointer<Uint8>, Uint32),
+        int Function(int, Pointer<Uint8>, int, Pointer<Uint8>, int)
+      >('renameat2');
 
   late final Pointer<Uint8> Function(Pointer<Uint8>, Pointer<Uint8>) realpath =
       libc.lookupFunction<
-          Pointer<Uint8> Function(Pointer<Uint8>, Pointer<Uint8>),
-          Pointer<Uint8> Function(
-              Pointer<Uint8>, Pointer<Uint8>)>('realpath');
+        Pointer<Uint8> Function(Pointer<Uint8>, Pointer<Uint8>),
+        Pointer<Uint8> Function(Pointer<Uint8>, Pointer<Uint8>)
+      >('realpath');
 
-  late final int Function(int) umask =
-      libc.lookupFunction<Uint32 Function(Uint32), int Function(int)>('umask');
+  late final int Function(int) umask = libc
+      .lookupFunction<Uint32 Function(Uint32), int Function(int)>('umask');
 }
 
 /// Native POSIX filesystem helper. Operations are synchronous single
@@ -291,9 +326,22 @@ class PosixFs {
   static _PosixBindings? _bindings;
   static String? _loadError;
 
+  /// Test-only switch for proving that Linux storage fails closed when the
+  /// native descriptor-based implementation cannot be initialized.  This is
+  /// deliberately consulted by [available], rather than a caller-side flag,
+  /// so the exercised path is the same availability boundary used in
+  /// production.
+  /// Test-only switch; production code never changes it.
+  static bool forceUnavailableForTesting = false;
+
+  static void resetAvailabilityForTesting() {
+    forceUnavailableForTesting = false;
+  }
+
   /// True when the native helper can be used. Security-critical callers on
   /// Linux must check this and fail closed otherwise.
   static bool get available {
+    if (forceUnavailableForTesting) return false;
     if (_bindings != null) return true;
     if (_loadError != null) return false;
     if (!Platform.isLinux) {
@@ -316,6 +364,7 @@ class PosixFs {
       b.fsync;
       b.fchmod;
       b.close;
+      b.flock;
       b.realpath;
       b.umask;
       b.read;
@@ -363,8 +412,17 @@ class PosixFs {
     return v.toSigned(64);
   }
 
+  static int _u64At(Pointer<Uint8> buf, int offset) {
+    final bytes = buf.asTypedList(_statBufSize);
+    var v = 0;
+    for (var i = 0; i < 8; i++) {
+      v |= bytes[offset + i] << (8 * i);
+    }
+    return v;
+  }
+
   static PosixStat _statFromBuffer(Pointer<Uint8> buf) =>
-      PosixStat._(_modeOf(buf), _sizeOf(buf));
+      PosixStat._(_u64At(buf, 0), _u64At(buf, 8), _modeOf(buf), _sizeOf(buf));
 
   static PosixPathClass _classFrom(PosixStat? stat) {
     if (stat == null) return PosixPathClass.missing;
@@ -442,6 +500,28 @@ class PosixFs {
     }
   }
 
+  /// Returns no-follow metadata for [name] under the pinned [dirfd], or null
+  /// when it is absent.  Unlike [classifyChildNoFollow], this retains device
+  /// and inode identity so callers can prove that a post-rename destination
+  /// entry still names their already-open committed inode.
+  static PosixStat? statChildNoFollow(int dirfd, String name) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    final native = _toNative(name);
+    final buf = calloc<Uint8>(_statBufSize);
+    try {
+      final rc = _b.fstatat(dirfd, native, buf, posixAtSymlinkNofollow);
+      if (rc == 0) return _statFromBuffer(buf);
+      final errno = _errno();
+      if (errno == errnoEnoent) return null;
+      throw PosixFsError('fstatat', name, errno);
+    } finally {
+      calloc.free(native);
+      calloc.free(buf);
+    }
+  }
+
   /// Stats an already-open descriptor (post-creation and post-rename
   /// verification). Descriptor-pinned: immune to path swaps.
   static PosixStat statFd(int fd) {
@@ -473,8 +553,7 @@ class PosixFs {
         0,
       );
       if (fd < 0) {
-        throw PosixFsError(
-            'openat(O_DIRECTORY|O_NOFOLLOW)', dirPath, _errno());
+        throw PosixFsError('openat(O_DIRECTORY|O_NOFOLLOW)', dirPath, _errno());
       }
       return fd;
     } finally {
@@ -528,6 +607,62 @@ class PosixFs {
     }
   }
 
+  /// Opens the persistent advisory-lock object [name] in a pinned,
+  /// security-validated directory.  The final component is never followed;
+  /// an existing malformed, linked, non-0600, or substituted object fails
+  /// closed rather than becoming a lock target.  The caller owns the returned
+  /// descriptor and must close it to release any acquired flock lock.
+  static int openLockFileAt(int dirfd, String name) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    final native = _toNative(name);
+    try {
+      final fd = _b.openat(
+        dirfd,
+        native,
+        posixORdwr | posixOCreat | posixONofollow | posixOCloexec,
+        posixMode0600,
+      );
+      if (fd < 0) {
+        throw PosixFsError('openat(lock,O_NOFOLLOW)', name, _errno());
+      }
+      try {
+        final opened = statFd(fd);
+        final named = statChildNoFollow(dirfd, name);
+        if (!opened.isRegular ||
+            opened.permissions != posixMode0600 ||
+            opened.size != 0 ||
+            named == null ||
+            !named.isRegular ||
+            named.device != opened.device ||
+            named.inode != opened.inode) {
+          throw StateError('Refusing malformed or replaced lock object: $name');
+        }
+        return fd;
+      } catch (_) {
+        closeFd(fd);
+        rethrow;
+      }
+    } finally {
+      calloc.free(native);
+    }
+  }
+
+  /// Attempts a cooperative process-scoped exclusive lock. Returns false
+  /// only for EWOULDBLOCK/EAGAIN; other kernel failures are surfaced.
+  static bool tryExclusiveLock(int fd) {
+    if (!available) {
+      throw StateError('PosixFs is not available: $loadError');
+    }
+    if (_b.flock(fd, posixLockExclusive | posixLockNonBlocking) == 0) {
+      return true;
+    }
+    final errno = _errno();
+    if (errno == errnoEwouldblock) return false;
+    throw PosixFsError('flock(LOCK_EX|LOCK_NB)', 'fd=$fd', errno);
+  }
+
   /// Creates a 0600 O_CREAT|O_EXCL temporary file inside the pinned directory
   /// [dirfd] using openat(). Returns (fd, basename). The name is unique
   /// inside the directory — same filesystem as the destination, as the atomic
@@ -541,18 +676,21 @@ class PosixFs {
     final random = math.Random.secure();
     // Try up to 10 times with fresh random names
     for (var attempt = 0; attempt < 10; attempt++) {
-      final randomPart = List<int>.generate(
-        16,
-        (_) => random.nextInt(256),
-      );
-      final hex = randomPart.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      final randomPart = List<int>.generate(16, (_) => random.nextInt(256));
+      final hex = randomPart
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
       final tempBase = '.$prefix-$hex';
       final native = _toNative(tempBase);
       try {
         final fd = _b.openat(
           dirfd,
           native,
-          posixORdwr | posixOCreat | posixOExclusive | posixOCloexec | posixONofollow,
+          posixORdwr |
+              posixOCreat |
+              posixOExclusive |
+              posixOCloexec |
+              posixONofollow,
           posixMode0600,
         );
         if (fd >= 0) {
@@ -577,7 +715,9 @@ class PosixFs {
         calloc.free(native);
       }
     }
-    throw StateError('Could not generate unique temporary filename after 10 attempts');
+    throw StateError(
+      'Could not generate unique temporary filename after 10 attempts',
+    );
   }
 
   /// Creates a 0600 O_CREAT|O_EXCL temporary file inside [directory] via
@@ -691,7 +831,10 @@ class PosixFs {
         );
         if (existed == 0) {
           throw PosixFsError(
-              'renameat(no-replace fallback)', newName, errnoEexist);
+            'renameat(no-replace fallback)',
+            newName,
+            errnoEexist,
+          );
         }
         // fstatat failed - check errno
         final probeErrno = _errno();
@@ -699,12 +842,18 @@ class PosixFs {
           // Any error other than ENOENT means we cannot establish state;
           // fail closed instead of silently treating as absent.
           throw PosixFsError(
-              'renameat(no-replace fallback): fstatat', newName, probeErrno);
+            'renameat(no-replace fallback): fstatat',
+            newName,
+            probeErrno,
+          );
         }
         final rc2 = _b.renameat(dirfd, oldNative, dirfd, newNative);
         if (rc2 < 0) {
-          throw PosixFsError('renameat(no-replace fallback)', newName,
-              _errno());
+          throw PosixFsError(
+            'renameat(no-replace fallback)',
+            newName,
+            _errno(),
+          );
         }
         return;
       }
@@ -843,8 +992,10 @@ class PosixFs {
     }
     final nullStat = tryLstatNoFollow('/dev/null');
     if (nullStat == null || nullStat.mode & posixSIfmt != posixSIfchr) {
-      throw StateError('PosixFs.selfCheck: /dev/null is not a char device; '
-          'struct stat layout mismatch');
+      throw StateError(
+        'PosixFs.selfCheck: /dev/null is not a char device; '
+        'struct stat layout mismatch',
+      );
     }
     if (!nullStat.isSpecial) {
       throw StateError('PosixFs.selfCheck: char-device detection failed');
@@ -855,11 +1006,14 @@ class PosixFs {
     } on PosixFsError catch (e) {
       if (e.errno != errnoEnotdir) {
         throw StateError(
-            'PosixFs.selfCheck: O_DIRECTORY flag mismatch (${e.meaning})');
+          'PosixFs.selfCheck: O_DIRECTORY flag mismatch (${e.meaning})',
+        );
       }
       return;
     }
-    throw StateError('PosixFs.selfCheck: opening /dev/null as a directory '
-        'unexpectedly succeeded (flag mismatch)');
+    throw StateError(
+      'PosixFs.selfCheck: opening /dev/null as a directory '
+      'unexpectedly succeeded (flag mismatch)',
+    );
   }
 }

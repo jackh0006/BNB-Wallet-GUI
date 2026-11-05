@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bnb_wallet_gui/storage.dart';
-import 'package:bnb_wallet_gui/vault.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -160,9 +159,6 @@ void main() {
     test('import with wrong password fails and preserves original', () async {
       final tempDir = await Directory.systemTemp.createTemp('bnb-import-test-');
       try {
-        const password = 'correct_password';
-        const wrongPassword = 'wrong_password';
-
         final r1 = await atomicWrite(File('${tempDir.path}/vault.bnb'), 'test_blob');
         r1.getOrThrow();
 

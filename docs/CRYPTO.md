@@ -13,7 +13,7 @@ One serialization component is project code: the canonical EIP-1559/RLP
 codec in `lib/cold_tx_codec.dart`. The available `rlp` helper encoded every
 `List<int>` as an RLP list, so addresses and calldata were serialized
 incorrectly. The replacement is not a new cryptographic primitive; it is a
-strict encoder/decoder cross-checked against ethers.js 6.13.2 in
+strict encoder/decoder cross-checked against ethers.js 6.17.0 in
 `verification/verify.cjs`.
 
 ## Vault envelope v2 ("BNBVL004", version byte 2)

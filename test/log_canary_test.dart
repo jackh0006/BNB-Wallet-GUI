@@ -1,8 +1,12 @@
+@Tags(['sequential'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:bnb_wallet_gui/app_state.dart';
 import 'package:bnb_wallet_gui/encrypted_log_store.dart';
+import 'package:bnb_wallet_gui/posix_fs.dart';
 import 'package:bnb_wallet_gui/storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -19,14 +23,16 @@ class _MockPathProvider extends PathProviderPlatform {
   Future<String?> getApplicationSupportPath() async => dir;
 }
 
-@Tags(['sequential'])
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tmp;
+  late int previousUmask;
   const canary = 'CANARY-SECRET-6e1f4c2a-DO-NOT-PERSIST';
 
   setUp(() async {
+    PosixFs.selfCheck();
+    previousUmask = PosixFs.setUmask(63); // match Linux launcher (0077)
     SharedPreferences.setMockInitialValues({});
     tmp = await Directory.systemTemp.createTemp('bnb-log-canary');
     PathProviderPlatform.instance = _MockPathProvider(tmp.path);
@@ -40,6 +46,7 @@ void main() {
     appState.lock();
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
+    PosixFs.restoreUmask(previousUmask);
   });
 
   group('log canary (spec §8: no secret reaches the log sink)', () {
@@ -54,10 +61,16 @@ void main() {
       expect(await file.exists(), isTrue);
       final raw = await file.readAsBytes();
       final asText = utf8.decode(raw, allowMalformed: true);
-      expect(asText.contains(canary), isFalse,
-          reason: 'the on-disk log must never contain plaintext');
-      expect(asText.startsWith('BNBLOG01'), isTrue,
-          reason: 'the encrypted envelope must be present');
+      expect(
+        asText.contains(canary),
+        isFalse,
+        reason: 'the on-disk log must never contain plaintext',
+      );
+      expect(
+        base64Decode(asText).sublist(0, 8),
+        'BNBLOG01'.codeUnits,
+        reason: 'the atomic text envelope must contain BNBLOG01 ciphertext',
+      );
 
       final entries = await EncryptedLogStore.readAll();
       expect(entries, hasLength(1));
@@ -74,6 +87,23 @@ void main() {
       expect(await file.exists(), isTrue);
       await EncryptedLogStore.clear();
       expect(await file.exists(), isFalse);
+    });
+
+    test('same-process concurrent appends retain every entry', () async {
+      await Future.wait(
+        List.generate(
+          12,
+          (i) => EncryptedLogStore.append({
+            'category': 'security',
+            'level': 'info',
+            'msg': 'entry-$i',
+          }),
+        ),
+      );
+      final messages = (await EncryptedLogStore.readAll())
+          .map((entry) => entry['msg'])
+          .toSet();
+      expect(messages, {for (var i = 0; i < 12; i++) 'entry-$i'});
     });
   });
 }

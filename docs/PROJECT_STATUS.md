@@ -1,9 +1,25 @@
 # PROJECT_STATUS.md — Current Project State
 
-**Last Updated**: 2026-11-04
-**Baseline Commit**: `ae48cf39536a4505addd51c9b200893bc87e5636`
-**Current Milestone**: M4 — Wallet Core
-**Previous Milestone**: M3 — Local Encrypted Storage (COMPLETE)
+**Last Updated**: 2026-11-05
+**Baseline Commit**: `dc8732f` (working-tree audit in progress)
+**Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)
+**Previous Milestone**: M3 was previously declared complete; that declaration is not accepted as verification evidence.
+
+## 2026-11-04 Independent M3 Audit Update
+
+| Requirement | Status | Evidence / finding |
+|---|---|---|
+| M3-08 rollback write-failure injection | **TESTED** | `test/rollback_injection_test.dart`: two valid, decryptable vaults; replacement rename is observed; forced post-commit verification failure reaches real rollback; both rollback success and rollback-write failure assert exact final bytes. |
+| M3-09 Linux fail-closed native storage | **TESTED** | `atomicWrite` now refuses a portable fallback when `PosixFs` is unavailable on Linux; filesystem case 00 proves destination bytes remain untouched. |
+| M3-15 post-commit outcome handling | **IMPLEMENTED, TESTED** | `AtomicWriteState` distinguishes verified commit, durability uncertainty, and verification failure. Import rolls back only on the latter; directory-fsync uncertainty remains an explicit warning. |
+| M3-24 post-rename destination identity verification | **IMPLEMENTED, TESTED** | `fstatat(AT_SYMLINK_NOFOLLOW)` under the pinned parent compares destination device/inode with the open committed descriptor. Filesystem cases 11d/11e prove a post-rename pathname replacement is not reported as success and reused temp names are preserved. |
+| M3-25 atomic-write caller outcome audit | **IMPLEMENTED, TESTED (focused)** | Vault/account/password/receipt wrappers use `getOrThrow` (verified-only). Move and export now require verified commit and no-follow readback; import rollback requires a verified rollback and no-follow readback. Broader interruption/concurrency coverage remains open. |
+| M3-26 drawer and encrypted-log persistent-state audit | **IMPLEMENTED, TESTED (focused)** | Drawer now requires `committedVerified`. Encrypted logs use atomic base64 envelopes, no-follow reads/deletes, and a process-local append lock; `log_canary_test.dart` verifies same-process concurrent append retention. |
+| M3 overall | **IN PROGRESS** | Failure modes such as rename/cleanup/interruption and all callers still require independent review. Do not treat historical “COMPLETE” rows below as current verification. |
+
+**Current test evidence (2026-11-04, Linux, Flutter 3.47.6/Dart 3.13.5):**
+`bash scripts/test-suite.sh` passed: 239 non-KDF tests in 1m09s and 22
+KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 
 ---
 
@@ -19,7 +35,7 @@
 | **M1-02**: Cold protocol envelopes | ✅ DONE | `lib/cold_wallet_protocol.dart`, `test/cold_wallet_protocol_test.dart` (15/15) |
 | **M1-03**: Cold wallet service | ✅ DONE | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` (15/15) |
 | **M1-04**: Strict response verification | ✅ DONE | `lib/wallet_core.dart::verifyColdSignatureDetailed` |
-| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.13.2) |
+| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.17.0) |
 | **M1-06**: TLS SPKI pinning (standard first) | ✅ DONE | `lib/net/privacy_client.dart`, `test/tls_pinning_test.dart` (6/6) |
 | **M1-07**: Fixed v3 cert SPKI index bug | ✅ DONE | Was hashing extensions (idx 7), now public key (idx 6) |
 | **M1-08**: Memory hardening (FFI) | ✅ DONE | `lib/memory_protection.dart`, `test/memory_protection_test.dart` (2/2) |
@@ -38,7 +54,7 @@
 | **M3-09** | Atomic write hardening | ✅ DONE | `lib/storage.dart` (`atomicWrite`, `_createSecureTempFile`) |
 | **M3-10** | Symlink validation & rejection | ✅ DONE | `lib/storage.dart` (`_isSymlink`, `atomicWrite`, `_validateRegularFile`) |
 | **M3-11** | Import rollback with verification | ✅ DONE | `lib/app_state.dart` (`importVault` rollback logic) |
-| **M3-12** | Vault operation locking | ✅ DONE | `lib/storage.dart` (`vaultOperationLock`) |
+| **M3-12** | Vault operation locking | 🟡 PARTIALLY TESTED | `withVaultOperationLock` uses local ordering plus Linux nonblocking advisory `flock(2)`; independent-process coverage remains required. |
 | **M3-13** | Vault info display (path, size, custom/default) | ✅ DONE | `lib/app_state.dart` (`getVaultInfo`) |
 | **M3-14** | Secure temp file creation with 0600 perms | ✅ DONE | `lib/storage.dart` (`_createSecureTempFile`) |
 | **M3-15** | Atomic write with rollback on failure | ✅ DONE | `lib/app_state.dart` (`importVault` rollback) |
@@ -49,8 +65,11 @@
 | **M3-19** | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
 | **M3-20** | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
 | **M3-21** | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
-| **M3-22** | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| **M3-22** | Log append race fix (serialized file mutations) | 🟡 PARTIALLY TESTED | Local lock plus Linux advisory lock; independent-process append/rotation/delete coverage remains required. |
 | **M3-23** | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
+| **M3-24** | Post-rename destination identity verification and safe post-commit cleanup | ✅ TESTED | `lib/posix_fs.dart`, `lib/storage.dart`; `filesystem_security_test.dart` cases 11d/11e (2026-11-04, 23/23 pass) |
+| **M3-25** | Atomic-write caller outcome audit | ✅ TESTED (focused) | `lib/app_state.dart`, `lib/storage.dart`; all `atomicWrite` callers inventoried with `rg`; focused filesystem and rollback suites pass (2026-11-04) |
+| **M3-26** | Drawer and encrypted-log atomic persistence | 🟡 PARTIALLY TESTED | Drawer behavior has focused evidence; encrypted-log cross-process coverage remains required. |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
 | **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
@@ -65,7 +84,7 @@
 | Suite | Count | Result | Notes |
 |-------|-------|--------|-------|
 | **Non-KDF full suite** | 238 | ✅ PASS | `flutter test --exclude-tags kdf --concurrency=2` |
-| **filesystem_security_test** | 20 | ✅ PASS | Linux errno-aware, descriptor-based, race tests |
+| **filesystem_security_test** | 23 | ✅ PASS | Linux errno-aware, descriptor-based, pre/post-rename race tests (2026-11-04) |
 | **cold_tx_codec_test** | 4 | ✅ PASS | Canonical EIP-1559 codec |
 | **cold_wallet_protocol_test** | 15 | ✅ PASS | Envelopes, checksums, expiry, substitutions |
 | **cold_wallet_service_test** | 15 | ✅ PASS | Persistence, replay, broadcast, verification |
@@ -182,12 +201,11 @@ flutter analyze --no-pub
 
 ## Next Exact Actions
 
-1. **Implement M4-01: Account derivation UI** — Add/remove/switch accounts in wallet management
-2. **Implement M4-02: Private key import UI** — Raw hex, keystore JSON v3 import dialogs
-3. **Implement M4-03: Seed phrase import UI** — 12/24 word validation, checksum verification
-4. **Implement M4-04: Wallet unlock/lock UI** — Biometric integration where available
-5. **Implement M4-06: Nonce management UI** — Pending transaction display, replacement UI
-6. **Run full test suite** after each UI component
+1. Run `bash scripts/test-suite.sh` on a machine able to retain the full terminal output and zero exit status.
+2. Run `bash scripts/build-deb.sh` without `SKIP_FLUTTER_BUILD` on that machine.
+3. Test fresh install, launch, upgrade, uninstall, and data preservation on a clean Ubuntu desktop.
+4. Complete the signing-key rotation response for the historical Android keystore exposure; Android is out of scope for this Linux-only release.
+5. Do not publish or describe this as suitable for unrestricted or large-value mainnet use without an independent review and the release-gate evidence.
 
 ---
 

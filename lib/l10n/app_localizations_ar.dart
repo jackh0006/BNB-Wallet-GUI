@@ -24,6 +24,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settings => 'الإعدادات';
 
   @override
+  String get inspect => 'فحص';
+
+  @override
   String get logs => 'السجلات';
 
   @override

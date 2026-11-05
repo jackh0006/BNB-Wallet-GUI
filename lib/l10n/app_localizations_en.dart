@@ -24,6 +24,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get inspect => 'Inspect';
+
+  @override
   String get logs => 'Logs';
 
   @override

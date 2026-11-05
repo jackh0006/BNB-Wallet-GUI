@@ -8,6 +8,8 @@
 #   BNB_KEY_ALIAS  key alias inside that keystore
 #   BNB_STORE_PASS keystore password
 #   BNB_KEY_PASS   key password (may equal BNB_STORE_PASS)
+#   BNB_EXPECTED_SIGNER_SHA256 SHA-256 certificate digest of the approved,
+#                              rotated Android release signer (64 hex digits)
 #
 # Optional:
 #   BNB_VERSION    version string used in the output filename (default: from pubspec.yaml)
@@ -26,6 +28,13 @@ cd "$ROOT"
 : "${BNB_KEY_ALIAS:?BNB_KEY_ALIAS is required}"
 : "${BNB_STORE_PASS:?BNB_STORE_PASS is required}"
 : "${BNB_KEY_PASS:?BNB_KEY_PASS is required}"
+: "${BNB_EXPECTED_SIGNER_SHA256:?BNB_EXPECTED_SIGNER_SHA256 is required (the approved release signer certificate SHA-256)}"
+
+EXPECTED_SIGNER="${BNB_EXPECTED_SIGNER_SHA256,,}"
+if [[ ! "$EXPECTED_SIGNER" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "ERROR: BNB_EXPECTED_SIGNER_SHA256 must be a 64-character hex digest." >&2
+  exit 1
+fi
 
 if [[ ! -f "$BNB_KEYSTORE" ]]; then
   echo "ERROR: keystore not found: $BNB_KEYSTORE" >&2
@@ -84,8 +93,14 @@ fi
 
 "$ZIPALIGN" -c -p 4 "$APK" >/dev/null
 echo "[3/4] Verifying signatures ..."
-"$APKSIGNER" verify --print-certs "$APK" >/dev/null
+CERT_INFO="$("$APKSIGNER" verify --print-certs "$APK")"
 "$APKSIGNER" verify "$APK" >/dev/null
+ACTUAL_SIGNER="$(printf '%s\n' "$CERT_INFO" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+if [[ "$ACTUAL_SIGNER" != "$EXPECTED_SIGNER" ]]; then
+  echo "ERROR: APK signer certificate does not match BNB_EXPECTED_SIGNER_SHA256." >&2
+  echo "Refusing to emit an artifact signed by an unapproved key." >&2
+  exit 1
+fi
 
 sha256sum "$APK" > "$APK.sha256"
 echo "[4/4] Done"
@@ -100,3 +115,4 @@ fi
 
 echo "APK:    $APK"
 echo "SHA256: $APK.sha256"
+echo "Signer certificate SHA-256: $ACTUAL_SIGNER"

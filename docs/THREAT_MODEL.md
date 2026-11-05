@@ -13,7 +13,7 @@ grade". Software carries risk; this document describes ours.
 | 24-word seed phrase | In memory only after unlock; in the vault file only Argon2id+device-bound double-wrapped | Two independent wrappers must both open; see docs/CRYPTO.md |
 | Private keys | In memory after unlock; persisted only inside the vault | Same envelope as the seed |
 | Vault password | Never stored | Only an Argon2id verifier-side KEK exists; there is no recovery path |
-| Device-bound secret | Platform secure store (Android Keystore-backed preferences / libsecret on Linux) | Never in prefs or the vault file |
+| Device-bound secret | Android secure storage; Linux owner-only local drawer | Never in preferences or the vault file; Linux is not hardware-bound |
 | App-lock PIN | Only as a salted Argon2id hash in secure storage | Exponential backoff on failures: 1 s, 2 s, 4 s … capped at 15 min |
 | BscScan API key | Secure storage | Public-but-private value; erased with "Erase all data" |
 | Transaction history | Not persisted at all | Fetched live from the explorer API; nothing on disk |
@@ -29,9 +29,10 @@ grade". Software carries risk; this document describes ours.
 2. **Weak passwords / offline brute force.** Any password guess costs an
    Argon2id run (64 MiB, t=3, p=4) per attempt, per salt. There are no
    shortcuts in the file: parameters live in an authenticated header.
-3. **Tampering / parameter downgrade.** The entire header (magic, version,
-   KDF parameters, salt) is authenticated data for every AEAD box. Flipping
-   a byte — or rewriting parameters to a weaker KDF — fails authentication.
+3. **Tampering / KDF abuse.** The entire header (magic, version, KDF
+   parameters, salt) is authenticated data for every AEAD box. The parser
+   also accepts only the published fixed Argon2id profile before it derives a
+   key, so a hostile backup cannot request unbounded KDF memory or CPU.
 4. **Malicious contacts / address poisoning.** The send dialog shows the
    full grouped, checksummed address and warns when a recipient shares a
    4+ character prefix or suffix with an address already on the device —
@@ -136,11 +137,11 @@ Honesty section. These are real limits, not corner cases.
   limit are asserted on Linux; `mlockall` can fail under a low memlock limit.
   Windows/macOS are not covered by the kernel-state test.
 - **Independent verification — honest status.** The cryptography sits on
-  audited, published primitives (Argon2id, XChaCha20-Poly1305, HKDF — from
+  published, reviewed primitives (Argon2id, XChaCha20-Poly1305, HKDF — from
   the pinned `cryptography` package; secp256k1 via `web3dart`; SOCKS5 from
   `socks5_proxy`). The EIP-1559 serialization is project code, because the
   available RLP helper encoded byte strings incorrectly; it is cross-checked
-  against ethers.js 6.13.2 in `verification/verify.cjs`. What no software
+  against ethers.js 6.17.0 in `verification/verify.cjs`. What no software
   author alone can hand you is a **third-party security audit of this
   release** — if you plan to hold serious value here, require one before
   doing so, and ask for the latest audit statement:

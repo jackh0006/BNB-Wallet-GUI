@@ -19,8 +19,9 @@ void main() {
   // envelope". Tests that PROVE a property of fresh encryptions still derive
   // their own; nothing below weakens a security assertion — it only stops
   // re-deriving the same blob five extra times on a 2-core box.
-  Future<String>? _blobMemo;
-  Future<String> goodBlob() => _blobMemo ??= VaultCipher.encrypt(password, payload, device);
+  Future<String>? blobMemo;
+  Future<String> goodBlob() =>
+      blobMemo ??= VaultCipher.encrypt(password, payload, device);
 
   // Every Argon2id call here hashes 64 MiB; keep the test budget sane.
   // Each KDF test gets an explicit minutes-scale timeout because the default
@@ -30,8 +31,11 @@ void main() {
   group('VaultCipher v2 envelope', () {
     test('round-trips with password + device secret', () async {
       final blob = await goodBlob();
-      expect(base64Decode(blob).sublist(0, 8), 'BNBVL004'.codeUnits,
-          reason: 'v2 magic marker at the front of every envelope');
+      expect(
+        base64Decode(blob).sublist(0, 8),
+        'BNBVL004'.codeUnits,
+        reason: 'v2 magic marker at the front of every envelope',
+      );
       final clear = await VaultCipher.decrypt(password, blob, device);
       expect(clear, payload);
     }, timeout: const Timeout(Duration(minutes: 8)));
@@ -44,22 +48,30 @@ void main() {
       );
     }, timeout: const Timeout(Duration(minutes: 8)));
 
-    test('rejects a wrong device secret — copied vault file is inert', () async {
-      final blob = await goodBlob();
-      expect(
-        () => VaultCipher.decrypt(password, blob, 'nope-nope-nope'),
-        throwsA(isA<VaultException>()),
-      );
-    }, timeout: const Timeout(Duration(minutes: 8)));
+    test(
+      'rejects a wrong device secret — copied vault file is inert',
+      () async {
+        final blob = await goodBlob();
+        expect(
+          () => VaultCipher.decrypt(password, blob, 'nope-nope-nope'),
+          throwsA(isA<VaultException>()),
+        );
+      },
+      timeout: const Timeout(Duration(minutes: 8)),
+    );
 
-    test('unknown plaintexts differ in ciphertext (fresh nonce each time)', () async {
-      final a = await goodBlob(); // one envelope produced by its own call
-      final b = await VaultCipher.encrypt(password, payload, device);
-      expect(a, isNot(b));
-      // Both still decrypt.
-      expect(await VaultCipher.decrypt(password, a, device), payload);
-      expect(await VaultCipher.decrypt(password, b, device), payload);
-    }, timeout: const Timeout(Duration(minutes: 8)));
+    test(
+      'unknown plaintexts differ in ciphertext (fresh nonce each time)',
+      () async {
+        final a = await goodBlob(); // one envelope produced by its own call
+        final b = await VaultCipher.encrypt(password, payload, device);
+        expect(a, isNot(b));
+        // Both still decrypt.
+        expect(await VaultCipher.decrypt(password, a, device), payload);
+        expect(await VaultCipher.decrypt(password, b, device), payload);
+      },
+      timeout: const Timeout(Duration(minutes: 8)),
+    );
 
     test('rejects downgraded Argon2id parameters in the header', () async {
       final blob = await goodBlob();
@@ -96,6 +108,37 @@ void main() {
       );
     }, timeout: const Timeout(Duration(minutes: 8)));
 
+    test(
+      'rejects resource-exhausting Argon2id header values before KDF',
+      () async {
+        final blob = await goodBlob();
+        final bytes = base64Decode(blob);
+        void put32(List<int> data, int offset, int v) {
+          data[offset] = v & 0xff;
+          data[offset + 1] = (v >> 8) & 0xff;
+          data[offset + 2] = (v >> 16) & 0xff;
+          data[offset + 3] = (v >> 24) & 0xff;
+        }
+
+        // An authenticated header is not enough: it is consumed before AEAD
+        // verification.  This used to drive Argon2id with attacker-selected
+        // costs.  The fixed v2 profile must reject it without deriving a key.
+        final hostile = [...bytes];
+        put32(hostile, 9, 0x7fffffff);
+        expect(
+          () => VaultCipher.decrypt(password, base64Encode(hostile), device),
+          throwsA(
+            isA<VaultException>().having(
+              (error) => error.message,
+              'message',
+              'Unsafe vault parameters.',
+            ),
+          ),
+        );
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
+
     test('does not leak which wrapper failed (single message)', () async {
       final blob = await goodBlob();
       try {
@@ -131,34 +174,54 @@ void main() {
       );
       final keyBytes = await key.extractBytes();
       final cipher = Xchacha20.poly1305Aead();
-      final nonce = <int>[
-        for (var i = 0; i < 24; i++) 0xa0 + i,
-      ];
+      final nonce = <int>[for (var i = 0; i < 24; i++) 0xa0 + i];
       final box = await cipher.encrypt(
         utf8.encode(payload),
         secretKey: SecretKey(keyBytes),
         nonce: nonce,
         aad: [
-          ...magic, 1,
-          ..._u32le(65536), ..._u32le(3), ..._u32le(4),
+          ...magic,
+          1,
+          ..._u32le(65536),
+          ..._u32le(3),
+          ..._u32le(4),
           ...salt,
         ],
       );
       final blob = base64Encode([
-        ...magic, 1,
-        ..._u32le(65536), ..._u32le(3), ..._u32le(4),
+        ...magic,
+        1,
+        ..._u32le(65536),
+        ..._u32le(3),
+        ..._u32le(4),
         ...salt,
-        ...box.nonce, ...box.cipherText, ...box.mac.bytes,
+        ...box.nonce,
+        ...box.cipherText,
+        ...box.mac.bytes,
       ]);
       final clear = await VaultCipher.decrypt(password, blob, device);
       expect(clear, payload);
     }, timeout: const Timeout(Duration(minutes: 8)));
+
+    test('rejects truncated legacy headers as vault failures', () async {
+      final truncated = base64Encode('BNBVL003'.codeUnits);
+      expect(
+        () => VaultCipher.decrypt(password, truncated, device),
+        throwsA(
+          isA<VaultException>().having(
+            (error) => error.message,
+            'message',
+            'Vault data is malformed.',
+          ),
+        ),
+      );
+    });
   });
 }
 
 List<int> _u32le(int v) => [
-      v & 0xff,
-      (v >> 8) & 0xff,
-      (v >> 16) & 0xff,
-      (v >> 24) & 0xff,
-    ];
+  v & 0xff,
+  (v >> 8) & 0xff,
+  (v >> 16) & 0xff,
+  (v >> 24) & 0xff,
+];

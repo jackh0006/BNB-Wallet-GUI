@@ -43,8 +43,30 @@ class VaultCipher {
   static const int _keyLength = 32;
   static const int _macLength = 16;
   static const List<int> _hkdfInfo = [
-    0x62, 0x6e, 0x62, 0x2d, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2f, // "bnb-wallet/"
-    0x64, 0x65, 0x76, 0x69, 0x63, 0x65, 0x2d, 0x6b, 0x65, 0x6b, 0x2d, 0x76, 0x32, // "device-kek-v2"
+    0x62,
+    0x6e,
+    0x62,
+    0x2d,
+    0x77,
+    0x61,
+    0x6c,
+    0x6c,
+    0x65,
+    0x74,
+    0x2f, // "bnb-wallet/"
+    0x64,
+    0x65,
+    0x76,
+    0x69,
+    0x63,
+    0x65,
+    0x2d,
+    0x6b,
+    0x65,
+    0x6b,
+    0x2d,
+    0x76,
+    0x32, // "device-kek-v2"
   ];
 
   static final Xchacha20 _cipher = Xchacha20.poly1305Aead();
@@ -63,16 +85,23 @@ class VaultCipher {
     final paperNonce = _random(_nonceLength);
     final deviceNonce = _random(_nonceLength);
 
-    final header = _header(memory: _memoryKiB, iterations: _iterations, parallelism: _parallelism, salt: salt);
-    final aad = header;
-
-    final kekPw = SecretKey(await _argon2Kek(
-      password,
-      salt,
-      memoryKiB: _memoryKiB,
+    final header = _header(
+      memory: _memoryKiB,
       iterations: _iterations,
       parallelism: _parallelism,
-    ));
+      salt: salt,
+    );
+    final aad = header;
+
+    final kekPw = SecretKey(
+      await _argon2Kek(
+        password,
+        salt,
+        memoryKiB: _memoryKiB,
+        iterations: _iterations,
+        parallelism: _parallelism,
+      ),
+    );
     final kekDev = SecretKey(await _deviceKek(deviceSecret));
 
     final payloadBox = await _cipher.encrypt(
@@ -146,7 +175,12 @@ class VaultCipher {
     // Fixed layout: magic(8) | v(1) | m,t,p(12) | salt(16) = 37 bytes.
     final headerLength = _magicV2.length + 1 + 12 + _saltLength;
     // Floor = header + 2 wrapped-DEK boxes + payload box with ≥1 byte plaintext.
-    final minLength = headerLength + 2 * (_nonceLength + _keyLength + _macLength) + _nonceLength + _macLength + 1;
+    final minLength =
+        headerLength +
+        2 * (_nonceLength + _keyLength + _macLength) +
+        _nonceLength +
+        _macLength +
+        1;
     if (bytes.length < minLength) {
       throw const VaultException('Vault data is malformed.');
     }
@@ -156,11 +190,24 @@ class VaultCipher {
     final memory = _readUint32(bytes, _magicV2.length + 1);
     final iterations = _readUint32(bytes, _magicV2.length + 5);
     final parallelism = _readUint32(bytes, _magicV2.length + 9);
-    if (memory < _memoryKiB || iterations < _iterations || parallelism < 1) {
+    // The parameters are header-authenticated, but authentication happens
+    // only *after* Argon2id has consumed the requested resources.  Accepting
+    // arbitrary values at this point lets a malicious backup request
+    // unbounded memory/CPU before its AEAD tag is checked.  V2 is a fixed
+    // profile format: every released writer uses these exact values.  Keeping
+    // the parser equally strict is therefore both backwards-compatible with
+    // released vaults and fail-closed for hostile/future profiles.
+    if (memory != _memoryKiB ||
+        iterations != _iterations ||
+        parallelism != _parallelism) {
       throw const VaultException('Unsafe vault parameters.');
     }
     final aad = Uint8List.sublistView(bytes, 0, headerLength);
-    final salt = Uint8List.sublistView(bytes, headerLength - _saltLength, headerLength);
+    final salt = Uint8List.sublistView(
+      bytes,
+      headerLength - _saltLength,
+      headerLength,
+    );
 
     var offset = headerLength;
 
@@ -169,13 +216,21 @@ class VaultCipher {
     SecretBox payloadBox;
     try {
       paperBox = SecretBox.fromConcatenation(
-        Uint8List.sublistView(bytes, offset, offset + _nonceLength + _keyLength + _macLength),
+        Uint8List.sublistView(
+          bytes,
+          offset,
+          offset + _nonceLength + _keyLength + _macLength,
+        ),
         nonceLength: _nonceLength,
         macLength: _macLength,
       );
       offset += _nonceLength + _keyLength + _macLength;
       deviceBox = SecretBox.fromConcatenation(
-        Uint8List.sublistView(bytes, offset, offset + _nonceLength + _keyLength + _macLength),
+        Uint8List.sublistView(
+          bytes,
+          offset,
+          offset + _nonceLength + _keyLength + _macLength,
+        ),
         nonceLength: _nonceLength,
         macLength: _macLength,
       );
@@ -189,24 +244,32 @@ class VaultCipher {
       throw const VaultException('Vault data is malformed.');
     }
 
-    final kekPw = SecretKey(await _argon2Kek(
-      password,
-      salt,
-      memoryKiB: memory,
-      iterations: iterations,
-      parallelism: parallelism,
-    ));
+    final kekPw = SecretKey(
+      await _argon2Kek(
+        password,
+        salt,
+        memoryKiB: memory,
+        iterations: iterations,
+        parallelism: parallelism,
+      ),
+    );
     final kekDev = SecretKey(await _deviceKek(deviceSecret));
 
     Uint8List paperDek;
     Uint8List deviceDek;
     try {
-      paperDek = Uint8List.fromList(await _cipher.decrypt(paperBox, secretKey: kekPw, aad: aad));
-      deviceDek = Uint8List.fromList(await _cipher.decrypt(deviceBox, secretKey: kekDev, aad: aad));
+      paperDek = Uint8List.fromList(
+        await _cipher.decrypt(paperBox, secretKey: kekPw, aad: aad),
+      );
+      deviceDek = Uint8List.fromList(
+        await _cipher.decrypt(deviceBox, secretKey: kekDev, aad: aad),
+      );
     } catch (_) {
       // One generic error covering: wrong password, wrong/missing device key,
       // corrupted or tampered file. No oracle about which one it was.
-      throw const VaultException('Wrong password, device key unavailable, or corrupted vault.');
+      throw const VaultException(
+        'Wrong password, device key unavailable, or corrupted vault.',
+      );
     }
     if (!_constantEquals(paperDek, deviceDek)) {
       // The two wrappers disagree — the vault was edited. Fail closed.
@@ -221,7 +284,9 @@ class VaultCipher {
       );
       return utf8.decode(clear);
     } catch (_) {
-      throw const VaultException('Wrong password, device key unavailable, or corrupted vault.');
+      throw const VaultException(
+        'Wrong password, device key unavailable, or corrupted vault.',
+      );
     }
   }
 
@@ -275,6 +340,13 @@ class VaultCipher {
 
   /// Legacy v1 format: single Argon2id-keyed box (unchanged behaviour).
   static Future<String> _decryptV1(String password, Uint8List bytes) async {
+    // Validate the whole fixed header before reading its version or KDF
+    // fields.  A truncated hostile file must be a normal vault failure, never
+    // an out-of-range exception from the parser.
+    final headerLength = _magicV1.length + 1 + 12 + _saltLength;
+    if (bytes.length < headerLength + _nonceLength + _macLength + 1) {
+      throw const VaultException('Vault data is malformed.');
+    }
     if (bytes[_magicV1.length] != _versionV1) {
       throw const VaultException('Unsupported vault version.');
     }
@@ -283,20 +355,26 @@ class VaultCipher {
     final iterations = _readUint32(bytes, offset + 4);
     final parallelism = _readUint32(bytes, offset + 8);
     offset += 12;
-    if (memory < _memoryKiB || iterations < _iterations || parallelism < 1) {
+    if (memory != _memoryKiB ||
+        iterations != _iterations ||
+        parallelism != _parallelism) {
       throw const VaultException('Unsafe vault parameters.');
     }
     final salt = Uint8List.sublistView(bytes, offset, offset + _saltLength);
     offset += _saltLength;
-    if (bytes.length < offset + _nonceLength + _macLength + 1) {
-      throw const VaultException('Vault data is malformed.');
-    }
     final nonce = Uint8List.sublistView(bytes, offset, offset + _nonceLength);
     offset += _nonceLength;
-    final cipherText = Uint8List.sublistView(bytes, offset, bytes.length - _macLength);
+    final cipherText = Uint8List.sublistView(
+      bytes,
+      offset,
+      bytes.length - _macLength,
+    );
     final macBytes = Uint8List.sublistView(bytes, bytes.length - _macLength);
     final aad = Uint8List.sublistView(
-        bytes, 0, _magicV1.length + 1 + 12 + _saltLength);
+      bytes,
+      0,
+      _magicV1.length + 1 + 12 + _saltLength,
+    );
 
     final keyBytes = await _argon2Kek(
       password,
@@ -335,7 +413,8 @@ class VaultCipher {
     return diff == 0;
   }
 
-  static Uint8List _random(int length) {    final random = Random.secure();
+  static Uint8List _random(int length) {
+    final random = Random.secure();
     return Uint8List.fromList(
       List<int>.generate(length, (_) => random.nextInt(256)),
     );
@@ -346,8 +425,11 @@ class VaultCipher {
     return data.buffer.asUint8List();
   }
 
-  static int _readUint32(Uint8List bytes, int offset) =>
-      ByteData.sublistView(bytes, offset, offset + 4).getUint32(0, Endian.little);
+  static int _readUint32(Uint8List bytes, int offset) => ByteData.sublistView(
+    bytes,
+    offset,
+    offset + 4,
+  ).getUint32(0, Endian.little);
 }
 
 /// Vault failure that never reveals whether the password, the device key or

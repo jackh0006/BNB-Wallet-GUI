@@ -10,7 +10,10 @@ plain-language list of what is and is not protected, see docs/THREAT_MODEL.md.
 - One encrypted vault file (`bnb-wallet-vault.bnb`) in the app-support
   directory. Format v2 (`BNBVL004`), envelope-encrypted twice: once with an
   Argon2id key from your vault password, once with an HKDF key from a
-  32-byte device secret living only in the platform secure store.
+  32-byte device secret. Android uses platform secure storage; Linux uses an
+  owner-only (0600) local drawer to avoid a libsecret UI-thread freeze. The
+  Linux drawer is an additional password-protection layer, not a hardware
+  secure element.
 - Atomic writes: vault saves go to `<path>.tmp`, then `rename()` over the
   real file. A crash mid-save leaves the previous good vault intact, never
   a half-written one.
@@ -89,8 +92,10 @@ The old `scripts/release.keystore` and its hardcoded password were committed
 to this public repository. The file is removed from the current tree, but it
 remains in history. **Treat that signing key as compromised and rotate it.**
 `scripts/build-apk.sh` now requires `BNB_KEYSTORE`, `BNB_KEY_ALIAS`,
-`BNB_STORE_PASS` and `BNB_KEY_PASS` from the environment, never creates a
-keystore, and refuses a tracked keystore. `scripts/secret-scan.sh` runs in CI.
+`BNB_STORE_PASS`, `BNB_KEY_PASS`, and the externally maintained approved
+replacement certificate fingerprint `BNB_EXPECTED_SIGNER_SHA256`. It never
+creates a keystore, refuses a tracked keystore, and refuses an output signed
+by a different certificate. `scripts/secret-scan.sh` runs in CI.
 
 ## Erase all data
 
@@ -117,7 +122,7 @@ Funds are recoverable ONLY with the 24-word backup phrase.
 - Fail closed: if the SOCKS port is unreachable, requests fail. There is no
   silent direct-connection fallback.
 - HTTPS-only through the proxy; plain HTTP requests are refused outright.
-- Transport stack: the audited `socks5_proxy` package assigning a
+- Transport stack: the reviewed `socks5_proxy` package assigning a
   connection factory into dart:io's `HttpClient`, surfaced through the
   standard `http` client adapter — TLS, chunked encoding, and redirects
   behave exactly as in direct mode.

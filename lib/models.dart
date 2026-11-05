@@ -294,8 +294,9 @@ bool nodeUrlAllowed(String url) {
     if (uri.scheme == 'https' || uri.scheme == 'wss') return true;
     if (uri.scheme != 'http') return false;
     var host = uri.host.toLowerCase();
-    if (host.startsWith('[') && host.endsWith(']'))
+    if (host.startsWith('[') && host.endsWith(']')) {
       host = host.substring(1, host.length - 1);
+    }
     if (host == 'localhost' || host == '::1' || host == '0.0.0.0') return true;
     if (host.endsWith('.onion')) return true;
     final v4 = host.split('.');

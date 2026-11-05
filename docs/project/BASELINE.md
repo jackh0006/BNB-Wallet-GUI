@@ -42,7 +42,7 @@
 | **Journey Map / Hold-to-Confirm Widgets** | IMPLEMENTED, TESTED | `lib/widgets/`, `test/journey_map_test.dart`, `test/hold_to_confirm_test.dart` |
 | **Build Scripts (.deb, .apk env-only)** | IMPLEMENTED | `scripts/build-deb.sh`, `scripts/build-apk.sh` |
 | **Secret Scan CI** | IMPLEMENTED, TESTED | `scripts/secret-scan.sh` |
-| **Independent ethers.js Verification** | IMPLEMENTED, TESTED | `verification/verify.cjs` (ethers 6.13.2) |
+| **Independent ethers.js Verification** | IMPLEMENTED, TESTED | `verification/verify.cjs` (ethers 6.17.0) |
 
 ---
 
@@ -132,7 +132,7 @@
 | `qr_flutter` | ^4.1.0 | QR code generation |
 | `asn1lib` | ^1.6.8 | Certificate parsing (TLS pinning) |
 | `ffi` | ^2.2.0 | Linux kernel calls (prctl/setrlimit/mlockall) |
-| `ethers` | 6.13.2 | Independent verification (Node.js) |
+| `ethers` | 6.17.0 | Independent verification (Node.js) |
 
 ---
 

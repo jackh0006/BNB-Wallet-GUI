@@ -2,7 +2,7 @@
 
 **Version**: 1.0 (2026-11-03)
 **Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
-**Status**: Milestone 3 complete; entering Milestone 4 (Wallet Core)
+**Status**: Milestone 3 re-opened on 2026-11-04 for independent filesystem and rollback audit. Historical completion claims are retained below, but are not verification evidence.
 
 ---
 
@@ -13,7 +13,7 @@
 | **M0** | Repository baseline & persistent instructions | AGENTS.md, BASELINE.md, task ledger | ✅ DONE |
 | **M1** | Existing code security & architecture review | Fix critical issues without breaking | ✅ DONE (security hardening round) |
 | **M2** | Linux application foundation | Build, initial .deb, desktop integration | ✅ DONE |
-| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | ✅ DONE |
+| **M3** | Local encrypted storage | Vaults, paths, encryption, backup, delete | 🔄 IN PROGRESS (independent audit) |
 | **M4** | Wallet core | Accounts, signing, verification, recovery | ⏳ PENDING (M3 complete first) |
 | **M5** | Activity Center | Encrypted logs, events, redaction, integrity | ⏳ PENDING |
 | **M6** | Blockchain & RPC | Custom RPC, chain validation, endpoints | ⏳ PENDING |
@@ -27,7 +27,7 @@
 | **M14** | Final UX & branding | Black/orange theme, logo, accessibility, explanations | ⏳ PENDING |
 | **M15** | Compatibility & performance | Weak devices, distros, resources, unstable net | ⏳ PENDING |
 | **M16** | Final security validation | All tests, static analysis, secret scan, review | ⏳ PENDING |
-| **M17** | Release candidate | Build, install, test, document, checksum, .deb | ⏳ PENDING |
+| **M17** | Linux release candidate | Build, install, test, document, checksum, signed `.deb` | 🔄 IN PROGRESS — package integrity verified; full source build, full-suite evidence, and clean-install checks remain. |
 | **M18** | Android planning & implementation | After Linux core stable | ⏳ BLOCKED (M17 first) |
 
 ---
@@ -108,8 +108,11 @@
 | M3-19 | Descriptor-based atomic write (openat, O_NOFOLLOW, dirfds) | ✅ DONE | `lib/posix_fs.dart`, `lib/storage.dart` Linux pipeline |
 | M3-20 | Use-time recheck closes validate→use race | ✅ DONE | `StorageDebugHooks.beforeCommit`, cases 11a/11b/11c |
 | M3-21 | Process umask(077) at startup | ✅ DONE | `linux/runner/main.cc`, staged `.deb` test |
-| M3-22 | Log append race fix (serialized file mutations) | ✅ DONE | `lib/encrypted_log_store.dart::_fileLock` |
+| M3-22 | Log append race fix (serialized file mutations) | 🟡 PARTIALLY TESTED | Linux `flock(2)` advisory lock plus local lock; independent-process append/rotation/delete coverage remains required |
 | M3-23 | Dedicated Linux filesystem security integration tests | ✅ DONE | `test/filesystem_security_test.dart` (20 tests) |
+| M3-24 | Post-rename destination identity verification and post-commit cleanup safety | ✅ TESTED | M3-19; `statChildNoFollow` identity comparison; filesystem cases 11d/11e (23/23 focused suite pass, 2026-11-04) |
+| M3-25 | Atomic-write caller outcome audit | ✅ TESTED (focused) | M3-15/M3-24; wrapper saves require verified result; move/export/import rollback no-follow readbacks |
+| M3-26 | Drawer and encrypted-log atomic persistence | 🟡 PARTIALLY TESTED | M3-19; drawer rejects unverified result; log envelope is atomic/no-follow with advisory locking, but independent-process coverage remains required |
 
 ### MILESTONE 4 — Wallet Core
 
@@ -273,11 +276,11 @@
 |---------|-------------|--------|--------------|
 | M17-01 | Version bump in pubspec.yaml | ⏳ PENDING | M16 |
 | M17-02 | CHANGELOG.md final update | ⏳ PENDING | M16 |
-| M17-03 | SBOM regeneration (scripts/sbom.py) | ⏳ PENDING | M16 |
-| M17-04 | Build .deb (scripts/build-deb.sh) | ⏳ PENDING | M16 |
+| M17-03 | SBOM regeneration (scripts/sbom.py) | ✅ DONE | M16; regenerated 2026-11-05 |
+| M17-04 | Build signed `.deb` (scripts/build-deb.sh) | 🟡 PARTIAL | M16; package checksum and detached signature verified; full source rebuild remains required |
 | M17-05 | Clean VM install + smoke test | ⏳ PENDING | M17-04 |
-| M17-06 | Verify package contents (no secrets) | ⏳ PENDING | M17-04 |
-| M17-07 | SHA-256 + GPG .asc | ⏳ PENDING | M17-04 |
+| M17-06 | Verify package contents (no secrets) | ✅ DONE | M17-04; package listing inspected 2026-11-05 |
+| M17-07 | SHA-256 + GPG .asc | ✅ DONE | M17-04; SHA-256 and detached GPG signature verified 2026-11-05 |
 | M17-08 | Signed git tag (git tag -s) | ⏳ PENDING | M17-07 |
 | M17-09 | Push to origin + GitHub release | ⏳ PENDING | M17-08 |
 

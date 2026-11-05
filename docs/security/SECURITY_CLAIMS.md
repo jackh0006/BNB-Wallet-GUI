@@ -33,7 +33,7 @@
 | EIP-55 checksummed address display | **TESTED** | `lib/wallet_core.dart`, `test/wallet_core_test.dart` |
 | ECDSA signing (RFC-6979 deterministic, low-s) | **TESTED** | `lib/wallet_core.dart` (via web3dart) |
 | EIP-1559 transaction construction | **TESTED** | `lib/cold_tx_codec.dart`, `test/cold_tx_codec_test.dart` (4/4) |
-| EIP-1559 signing digest = keccak256(0x02 \| rlp([...])) | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (ethers.js 6.13.2 independent) |
+| EIP-1559 signing digest = keccak256(0x02 \| rlp([...])) | **VERIFIED WITH EVIDENCE** | `verification/verify.cjs` (ethers.js 6.17.0 independent) |
 | Cold response verification (field-by-field + recovery) | **TESTED** | `WalletCore.verifyColdSignatureDetailed`, 15 service tests |
 | Cold replay protection (single-use request ID + burn list) | **TESTED** | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` |
 | No private keys/seed in logs, URLs, clipboard, network | **TESTED** | `ClipboardGuard.secretFree()`, `lib/screens/common.dart` |
@@ -66,7 +66,7 @@
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (20 tests) |
+| Vault file atomic write (tmp → rename, fsync, 0600) | **TESTED (Linux)** | `lib/storage.dart::atomicWrite`, `test/filesystem_security_test.dart` (23 focused tests, 2026-11-04); Linux refuses native-helper unavailability rather than silently using the portable pipeline. |
 | Vault double AEAD (password KEK + device KEK) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
 | Device secret in platform secure storage | **TESTED** | `lib/storage.dart` (flutter_secure_storage) |
 | Desktop: device secret in owner-only drawer file (0600) | **TESTED** | `lib/storage.dart::atomicWrite` for drawer; staged `.deb` first-run |
@@ -89,11 +89,16 @@
 | Descriptor-based operations (openat, O_NOFOLLOW, O_CREAT|O_EXCL, dirfds) | **TESTED** | `lib/posix_fs.dart`, `lib/storage.dart::atomicWrite` Linux pipeline |
 | Temporary files created on same filesystem as destination | **TESTED** | `mkstempSecure` in destination dir; `renameat` replace/NOREPLACE |
 | Atomic replacement via `renameat` (RENAME_NOREPLACE + ENOSYS fallback) | **TESTED** | `PosixFs.renameCommit`, `test/filesystem_security_test.dart` case 11c |
+| Post-rename destination identity check | **TESTED (bounded)** | `fstatat(AT_SYMLINK_NOFOLLOW)` compares destination device/inode to the still-open committed descriptor; case 11d detects a deterministic replacement. This proves identity only at the check boundary, not against a later same-UID replacement. |
+| Device-secret drawer writes | **TESTED (bounded)** | Drawer rejects every result except `committedVerified`; it does not represent durability uncertainty as successful key persistence. |
+| Encrypted activity-log persistence | **PARTIALLY TESTED** | Base64-wrapped `BNBLOG01` envelopes are written via `atomicWrite` and read/delete no-follow. Linux wraps each read/append/delete cycle in a shared nonblocking `flock(2)` advisory lock; independent-process append/rotation/delete races remain unverified. |
 | Use-time recheck closes validate→use race window | **TESTED** | `StorageDebugHooks.beforeCommit` drives cases 11a/11b/11c |
 | Creation-time 0600 permissions (mkstemp mode argument; umask cannot add bits) | **TESTED** | `test/filesystem_security_test.dart` mechanism test under umask 0002 |
 | Temp file cleanup on failure; never touches destination on error | **TESTED** | `test/filesystem_security_test.dart` cleanup test |
-| Vault operation locking (`vaultOperationLock`) serializes all vault ops | **TESTED** | `lib/storage.dart`, `lib/app_state.dart`, existing vault tests |
+| Vault operation locking | **PARTIALLY TESTED** | `withVaultOperationLock` orders the VM lock before a shared Linux `flock(2)` lock. Contention fails closed and descriptor close releases it; full independent-process vault-operation coverage remains required. |
 | Process umask(077) set before Flutter init protects plugin-created files/dirs | **TESTED** | Staged `.deb` first-run under desktop umask 0002 → dirs 0700, files 0600 |
+| Rollback after a post-commit verification failure | **TESTED** | `test/rollback_injection_test.dart`: valid replacement reaches rename, then a controlled verification failure invokes the actual rollback and restores exact original bytes. |
+| Rollback-write failure is distinguishable from successful restore | **TESTED** | `test/rollback_injection_test.dart`: explicit rollback-boundary failure returns non-committed result; replacement remains valid and unrelated/source files are preserved. |
 | Non-Linux platforms: dart:io `FileSystemEntity.type(followLinks:false)` ambiguity documented | **DOCUMENTED** | "notFound" conflates missing + lookup errors; fail-closed where possible |
 
 ---

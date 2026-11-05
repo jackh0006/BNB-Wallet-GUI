@@ -16,7 +16,9 @@ android {
 
     defaultConfig {
         applicationId = "com.jackh0006.bnbwallet"
-        minSdk = 29
+        // Android 8.0 (API 26) supports devices such as the Huawei Y9 2019
+        // while retaining modern platform encryption and TLS capabilities.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
