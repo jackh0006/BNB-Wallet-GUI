@@ -122,7 +122,7 @@ Funds are recoverable ONLY with the 24-word backup phrase.
 - Fail closed: if the SOCKS port is unreachable, requests fail. There is no
   silent direct-connection fallback.
 - HTTPS-only through the proxy; plain HTTP requests are refused outright.
-- Transport stack: the audited `socks5_proxy` package assigning a
+- Transport stack: the reviewed `socks5_proxy` package assigning a
   connection factory into dart:io's `HttpClient`, surfaced through the
   standard `http` client adapter — TLS, chunked encoding, and redirects
   behave exactly as in direct mode.

@@ -1,0 +1,3 @@
+# GitHub's funding picker supports only URLs for crypto donations. Keep the
+# canonical addresses in DONATE.md so a release never depends on a third party.
+custom: ["https://github.com/jackh0006/BNB-Wallet-GUI/blob/main/DONATE.md"]

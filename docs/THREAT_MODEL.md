@@ -137,7 +137,7 @@ Honesty section. These are real limits, not corner cases.
   limit are asserted on Linux; `mlockall` can fail under a low memlock limit.
   Windows/macOS are not covered by the kernel-state test.
 - **Independent verification — honest status.** The cryptography sits on
-  audited, published primitives (Argon2id, XChaCha20-Poly1305, HKDF — from
+  published, reviewed primitives (Argon2id, XChaCha20-Poly1305, HKDF — from
   the pinned `cryptography` package; secp256k1 via `web3dart`; SOCKS5 from
   `socks5_proxy`). The EIP-1559 serialization is project code, because the
   available RLP helper encoded byte strings incorrectly; it is cross-checked

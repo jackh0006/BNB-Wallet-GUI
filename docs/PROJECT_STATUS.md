@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md — Current Project State
 
-**Last Updated**: 2026-11-04
+**Last Updated**: 2026-11-05
 **Baseline Commit**: `dc8732f` (working-tree audit in progress)
 **Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)
 **Previous Milestone**: M3 was previously declared complete; that declaration is not accepted as verification evidence.
@@ -201,12 +201,11 @@ flutter analyze --no-pub
 
 ## Next Exact Actions
 
-1. **Implement M4-01: Account derivation UI** — Add/remove/switch accounts in wallet management
-2. **Implement M4-02: Private key import UI** — Raw hex, keystore JSON v3 import dialogs
-3. **Implement M4-03: Seed phrase import UI** — 12/24 word validation, checksum verification
-4. **Implement M4-04: Wallet unlock/lock UI** — Biometric integration where available
-5. **Implement M4-06: Nonce management UI** — Pending transaction display, replacement UI
-6. **Run full test suite** after each UI component
+1. Run `bash scripts/test-suite.sh` on a machine able to retain the full terminal output and zero exit status.
+2. Run `bash scripts/build-deb.sh` without `SKIP_FLUTTER_BUILD` on that machine.
+3. Test fresh install, launch, upgrade, uninstall, and data preservation on a clean Ubuntu desktop.
+4. Complete the signing-key rotation response for the historical Android keystore exposure; Android is out of scope for this Linux-only release.
+5. Do not publish or describe this as suitable for unrestricted or large-value mainnet use without an independent review and the release-gate evidence.
 
 ---
 

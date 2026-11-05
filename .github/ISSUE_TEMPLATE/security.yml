@@ -1,0 +1,9 @@
+name: Security report
+description: Do not use this form for vulnerabilities; use the private reporting policy.
+title: "Security question: "
+labels: [security]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not post secrets or vulnerability details here. See SECURITY.md for private reporting.

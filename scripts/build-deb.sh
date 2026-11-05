@@ -4,7 +4,7 @@
 #
 # Output:
 #   /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<pubspec version>-amd64.deb
-#   plus .sha256 and a GPG detached signature (.asc).
+#   plus SHA256SUMS and a GPG detached signature (.asc).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -98,7 +98,7 @@ Description: BNB Wallet — graphical BNB Smart Chain wallet
  / legacy fee tiers, receive with QR, inspect public addresses, manage RPC
  nodes and an encrypted local vault (Argon2id + XChaCha20-Poly1305).
  Secrets stay on-device; RPC never sees keys or phrases.
-Homepage: https://github.com/jackh0006/bnb-terminal-wallet
+Homepage: https://github.com/jackh0006/BNB-Wallet-GUI
 CONTROL
 chmod 0644 "$STAGE/DEBIAN/control"
 
@@ -120,7 +120,8 @@ chmod 0755 "$STAGE/DEBIAN/postinst"
 cp "$ROOT/README.md" "$STAGE/usr/share/doc/bnb-wallet/README" 2>/dev/null || true
 chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/README" 2>/dev/null || true
 for DOC in THREAT_MODEL SECURITY CRYPTO STANDARDS PRIVACY ARCHITECTURE \
-           CONTRIBUTING CHANGELOG SPEC-COMPLIANCE; do
+           CONTRIBUTING CHANGELOG SPEC-COMPLIANCE FAMILY_GUIDE HARDENING_REPORT \
+           RELEASE_EVIDENCE; do
   if [ -f "$ROOT/docs/$DOC.md" ]; then
     cp "$ROOT/docs/$DOC.md" "$STAGE/usr/share/doc/bnb-wallet/$DOC"
     chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/$DOC"
@@ -131,6 +132,12 @@ if [ -f "$ROOT/LICENSE" ]; then
   cp "$ROOT/LICENSE" "$STAGE/usr/share/doc/bnb-wallet/LICENSE"
   chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/LICENSE"
 fi
+for ROOT_DOC in NOTICE DONATE.md; do
+  if [ -f "$ROOT/$ROOT_DOC" ]; then
+    cp "$ROOT/$ROOT_DOC" "$STAGE/usr/share/doc/bnb-wallet/$ROOT_DOC"
+    chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/$ROOT_DOC"
+  fi
+done
 if [ -f "$ROOT/docs/SBOM.json" ]; then
   cp "$ROOT/docs/SBOM.json" "$STAGE/usr/share/doc/bnb-wallet/SBOM.json"
   chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/SBOM.json"
@@ -144,11 +151,11 @@ dpkg-deb -c "$DEB" >/dev/null
 dpkg-deb -I "$DEB"
 
 echo "[5/5] Checksums and GPG signature ..."
-sha256sum "$DEB" > "$DEB.sha256"
+sha256sum "$DEB" > "$OUTDIR/SHA256SUMS"
 gpg --batch --yes --digest-algo SHA256 \
     --default-key "jackh0006 <jackh109867@gmail.com>" \
     --detach-sign --armor "$DEB"
 
 echo "Done: $DEB"
-echo "      $DEB.sha256"
+echo "      $OUTDIR/SHA256SUMS"
 echo "      $DEB.asc"

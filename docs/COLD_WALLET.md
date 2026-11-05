@@ -1,6 +1,6 @@
 # Cold Wallet Mode — operator and developer guide
 
-Status: implemented and self-verified. **Not third-party audited.** Use on
+Status: implemented and self-verified. **Not independently reviewed.** Use on
 BSC testnet (chain id 97) or with small amounts until an external review
 exists. The security assessment is in [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md).
 
