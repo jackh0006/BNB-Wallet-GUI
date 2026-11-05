@@ -1,3 +1,7 @@
+// This test intentionally exercises production Argon2id encryption.
+@Tags(['kdf'])
+library;
+
 import 'dart:io';
 
 import 'package:bnb_wallet_gui/app_state.dart';
@@ -31,7 +35,8 @@ void main() {
     appState.lock();
   });
   tearDown(() async {
-    appState.lock();
+    // The next setUp locks the shared state.  Locking here starts an
+    // asynchronous encrypted audit append that can race directory cleanup.
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });

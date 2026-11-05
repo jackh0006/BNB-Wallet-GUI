@@ -18,15 +18,19 @@ started_epoch="$(date +%s)"
 passed=0
 failed=0
 timed_out=0
+executed=0
 declare -a failed_files=()
 
 run_one() {
   local file="$1"
   local timeout_seconds="$LIGHT_TIMEOUT_SECONDS"
-  if rg -q "@Tags\(\['kdf'\]\)" "$file"; then
+  # CI images do not guarantee ripgrep.  Use POSIX grep so tag detection is
+  # available everywhere the Flutter SDK is supported.
+  if grep -Eq "@Tags[[:space:]]*\\([[:space:]]*\\[[[:space:]]*['\"]kdf['\"]" "$file"; then
     timeout_seconds="$KDF_TIMEOUT_SECONDS"
   fi
   printf '\n==> %s (wall limit: %ss)\n' "$file" "$timeout_seconds"
+  executed=$((executed + 1))
   timeout --signal=TERM --kill-after=15s "${timeout_seconds}s" \
     flutter test --concurrency=1 --timeout="${timeout_seconds}s" "$file"
   local status=$?
@@ -51,6 +55,19 @@ else
   mapfile -t files < <(find test -type f -name '*_test.dart' -print | LC_ALL=C sort)
 fi
 
+discovered=${#files[@]}
+if [ "$discovered" -eq 0 ]; then
+  printf 'No test files discovered; refusing to report success.\n' >&2
+  exit 1
+fi
+
+for file in "${files[@]}"; do
+  if [ ! -f "$file" ]; then
+    printf 'Required test file is missing: %s\n' "$file" >&2
+    exit 1
+  fi
+done
+
 for file in "${files[@]}"; do
   elapsed=$(( $(date +%s) - started_epoch ))
   if [ "$elapsed" -ge "$GLOBAL_TIMEOUT_SECONDS" ]; then
@@ -64,9 +81,14 @@ for file in "${files[@]}"; do
 done
 
 elapsed=$(( $(date +%s) - started_epoch ))
+skipped=$((discovered - executed))
 printf '\n=== test-suite summary ===\n'
-printf 'files passed: %s\nfiles failed: %s\nfiles timed out: %s\nelapsed seconds: %s\n' \
-  "$passed" "$failed" "$timed_out" "$elapsed"
+printf 'files discovered: %s\nfiles executed: %s\nfiles passed: %s\nfiles failed: %s\nfiles skipped: %s\nfiles timed out: %s\nelapsed seconds: %s\n' \
+  "$discovered" "$executed" "$passed" "$failed" "$skipped" "$timed_out" "$elapsed"
+if [ "$skipped" -ne 0 ]; then
+  printf 'unexecuted files (global watchdog): %s\n' "${files[*]:$executed}" >&2
+  exit 1
+fi
 if [ "${#failed_files[@]}" -gt 0 ]; then
   printf 'non-passing files: %s\n' "${failed_files[*]}" >&2
   exit 1

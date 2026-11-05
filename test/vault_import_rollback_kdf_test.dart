@@ -102,7 +102,9 @@ void main() {
   });
 
   tearDown(() async {
-    appState.lock();
+    // Do not call `lock()` here: it asynchronously appends an audit event,
+    // which can recreate a file while this isolated data directory is being
+    // deleted.  The following setUp always locks the shared state first.
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });

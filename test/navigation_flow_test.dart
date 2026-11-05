@@ -95,7 +95,10 @@ void main() {
   tearDown(() async {
     AppState.vaultEncryptOverride = null;
     AppState.vaultDecryptOverride = null;
-    appState.lock();
+    // The next setUp locks the shared state.  Doing it here launches an
+    // asynchronous encrypted audit append that races deletion of this
+    // fixture's application-data directory and previously consumed the
+    // driver's 120-second watchdog.
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });

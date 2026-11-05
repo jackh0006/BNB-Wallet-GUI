@@ -52,7 +52,6 @@ void main() {
   late Directory tmp;
   late AppState state;
   late int previousUmask;
-  var stateInitialized = false;
 
   setUp(() async {
     PosixFs.selfCheck();
@@ -72,12 +71,14 @@ void main() {
     await File('${vault.parent.path}/device_secret_v2.drawer')
         .writeAsString(_deviceSecret, flush: true);
     state = AppState();
-    stateInitialized = true;
     state.lock();
   });
 
   tearDown(() async {
-    if (stateInitialized) state.lock();
+    // `lock()` emits an asynchronous encrypted audit entry.  Calling it here
+    // races the immediate removal of this fixture's application-data
+    // directory, leaving a newly-created log file behind.  Each setUp creates
+    // a fresh state and locks it before use, so no teardown lock is needed.
     StorageDebugHooks.reset();
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
