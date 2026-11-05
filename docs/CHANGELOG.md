@@ -3,7 +3,7 @@
 All notable changes to this wallet. Dates in 2026; releases identify their
 supported artifacts explicitly.
 
-## Unreleased — accessibility, locale and status accuracy
+## 1.0.9-ui.1 prerelease — accessibility, locale and status accuracy
 
 - **Accessible primary actions:** primary-button labels now use black text on
   the yellow brand color in every theme. The previous white-on-yellow light
@@ -12,10 +12,13 @@ supported artifacts explicitly.
   labels now update immediately when the locale changes. `Inspect` was added
   to all six maintained catalogs; `test/localization_catalog_test.dart`
   prevents a missing catalog entry from silently falling back to English.
-- **Honest Settings copy:** About now reports 1.0.8, the language setting no
+- **Honest Settings copy:** About now reports 1.0.9, the language setting no
   longer instructs users to restart, and the limits notice accurately says
   that themes exist and that detailed wallet/security instructions remain
   English. This is intentionally not presented as full-interface translation.
+- **Original application mark:** replaced the old shield artwork with an
+  original orange `B.` on a near-black rounded square. It intentionally does
+  not use Binance's diamond mark or geometry.
 
 ## 2026-11-04 — M3 Filesystem Security Corrections (v1.0.7)
 
