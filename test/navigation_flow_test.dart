@@ -54,9 +54,11 @@ void _bigSurface(WidgetTester tester) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-/// Real (non-fake) async still exists in this flow — the vault path touches
-/// the filesystem and spawns `chmod` — so every cycle gives the real event
-/// loop time AND advances the fake clock for the UI.
+/// Poll through the widget binding only. `pump` yields to pending platform and
+/// filesystem futures as well as advancing the fake clock. Calling `runAsync`
+/// here is unsafe: the unlock handler can itself still be completing an
+/// asynchronous storage operation, which Flutter correctly rejects as a
+/// re-entrant `runAsync` call.
 Future<void> _pumpUntil(
   WidgetTester tester,
   bool Function() done, {
@@ -65,7 +67,6 @@ Future<void> _pumpUntil(
 }) async {
   for (var i = 0; i < tries; i++) {
     if (done()) return;
-    await tester.runAsync(() => Future<void>.delayed(step));
     await tester.pump(step);
   }
   await tester.pump(step);
