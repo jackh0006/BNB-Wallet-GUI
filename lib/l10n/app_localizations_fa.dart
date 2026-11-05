@@ -24,6 +24,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get settings => 'تنظیمات';
 
   @override
+  String get inspect => 'بررسی';
+
+  @override
   String get logs => 'لاگ‌ها';
 
   @override

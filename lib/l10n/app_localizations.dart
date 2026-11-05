@@ -133,6 +133,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// No description provided for @inspect.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspect'**
+  String get inspect;
+
   /// No description provided for @logs.
   ///
   /// In en, this message translates to:

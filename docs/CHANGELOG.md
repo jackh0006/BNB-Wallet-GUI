@@ -1,8 +1,21 @@
 # CHANGELOG.md
 
-All notable changes to this wallet. Dates in 2026; version 1.0.7 is the
-release line built as a deb for Debian/Ubuntu (no APK — the deb is the
-distribution form for this device).
+All notable changes to this wallet. Dates in 2026; releases identify their
+supported artifacts explicitly.
+
+## Unreleased — accessibility, locale and status accuracy
+
+- **Accessible primary actions:** primary-button labels now use black text on
+  the yellow brand color in every theme. The previous white-on-yellow light
+  theme treatment did not provide adequate contrast.
+- **Live navigation localization:** Home, Wallet, Send, Inspect and Settings
+  labels now update immediately when the locale changes. `Inspect` was added
+  to all six maintained catalogs; `test/localization_catalog_test.dart`
+  prevents a missing catalog entry from silently falling back to English.
+- **Honest Settings copy:** About now reports 1.0.8, the language setting no
+  longer instructs users to restart, and the limits notice accurately says
+  that themes exist and that detailed wallet/security instructions remain
+  English. This is intentionally not presented as full-interface translation.
 
 ## 2026-11-04 — M3 Filesystem Security Corrections (v1.0.7)
 

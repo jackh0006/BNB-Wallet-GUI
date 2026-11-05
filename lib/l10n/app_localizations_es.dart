@@ -24,6 +24,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settings => 'Ajustes';
 
   @override
+  String get inspect => 'Inspeccionar';
+
+  @override
   String get logs => 'Registros';
 
   @override

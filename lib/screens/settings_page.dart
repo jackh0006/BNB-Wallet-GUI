@@ -1595,9 +1595,13 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _showThemeDialog(context),
           ),
           const Divider(height: 24),
-          const Text(
-            'Language requires app restart to apply fully.',
-            style: TextStyle(color: Colors.white70, fontSize: 12.5),
+          Text(
+            'Navigation labels update immediately. Detailed wallet and security '
+            'instructions are currently English; they are never presented as translated when they are not.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12.5,
+            ),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -1719,7 +1723,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (locale != null) {
       await appState.setLocale(locale);
       if (!context.mounted) return;
-      showInfo(context, 'Language changed. Restart the app for full effect.');
+      showInfo(context, 'Language changed. Navigation labels updated.');
     }
   }
 
@@ -1840,7 +1844,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionTitle('About'),
           const SizedBox(height: 8),
           const Text(
-            'BNB Wallet 1.0.5',
+            'BNB Wallet 1.0.8',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
@@ -1949,8 +1953,9 @@ class _SettingsPageState extends State<SettingsPage> {
               'issuer before trusting it.\n\n'
               '• The clipboard clears after 30 seconds, but another app can '
               'read it during that window.\n\n'
-              '• Light/AMOLED themes and translations are not available yet; '
-              'the interface is English and dark.\n\n'
+              '• Light, dark and AMOLED themes are available. Navigation labels '
+              'are available in the selected language; detailed wallet and security '
+              'instructions are currently English.\n\n'
               '• This is not financial, legal or tax advice, and it comes with '
               'no warranty. Keep only what you can afford to lose.',
               style: TextStyle(fontSize: 12.5, height: 1.45),

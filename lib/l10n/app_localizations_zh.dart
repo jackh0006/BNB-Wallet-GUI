@@ -24,6 +24,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get inspect => '检查';
+
+  @override
   String get logs => '日志';
 
   @override

@@ -267,9 +267,9 @@ class _BnbWalletAppState extends State<BnbWalletApp>
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
-          foregroundColor: brightness == Brightness.light
-              ? Colors.white
-              : Colors.black,
+          // Binance yellow is too light for white text (about 1.8:1).  Black
+          // remains comfortably readable in every supported theme.
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -493,6 +493,7 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     final pages = [
       const HomePage(),
       const WalletPage(),
@@ -505,31 +506,31 @@ class _ShellState extends State<Shell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: appState.tab,
         onDestinationSelected: (i) => appState.focusTab(i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            label: strings.home,
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Wallet',
+            label: strings.wallet,
           ),
           NavigationDestination(
             icon: Icon(Icons.send_outlined),
             selectedIcon: Icon(Icons.send),
-            label: 'Send',
+            label: strings.send,
           ),
           NavigationDestination(
             icon: Icon(Icons.travel_explore_outlined),
             selectedIcon: Icon(Icons.travel_explore),
-            label: 'Inspect',
+            label: strings.inspect,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            label: strings.settings,
           ),
         ],
       ),
