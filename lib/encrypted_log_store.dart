@@ -250,7 +250,7 @@ Future<void> logEvent({
     'category': category.name,
     'level': level.name,
     'msg': message,
-    if (extra != null) ...extra,
+    ...?extra,
   };
   // Fire-and-forget; log failures must never break the app
   EncryptedLogStore.append(entry).catchError((_) {});

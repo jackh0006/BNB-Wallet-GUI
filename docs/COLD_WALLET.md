@@ -137,7 +137,7 @@ The online companion never trusts the cold device's claims. It re-derives:
 
 The independent implementation in
 [`verification/verify.cjs`](../verification/verify.cjs) uses **ethers.js
-6.13.2** (not web3dart) on a synthetic public test vector. It checks the same
+6.17.0** (not web3dart) on a synthetic public test vector. It checks the same
 payload/digest/raw bytes/hash/signature/recovered signer and rejects eight
 field substitutions. CI runs it on every push.
 

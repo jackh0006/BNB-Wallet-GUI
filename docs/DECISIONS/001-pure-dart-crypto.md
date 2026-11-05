@@ -19,7 +19,7 @@ The original wallet spec called for a Rust crypto core bridged via `flutter_rust
 3. **Reproducible builds**: Standard `flutter build linux` with pinned Dart/Flutter versions
 4. **Worker isolates solve UI freeze**: `compute()` moves Argon2id to background isolate — byte-identical output, same security
 5. **Maintained dependencies**: `cryptography` (Argon2id, XChaCha20-Poly1305, HKDF), `web3dart`/`wallet` (secp256k1, BIP-32/44, EIP-55) are well-reviewed
-6. **Cold codec cross-checked**: `verification/verify.cjs` (ethers.js 6.13.2) independently verifies EIP-1559 serialization
+6. **Cold codec cross-checked**: `verification/verify.cjs` (ethers.js 6.17.0) independently verifies EIP-1559 serialization
 
 ## Trade-offs
 

@@ -75,7 +75,7 @@ distribution form for this device).
   digest, signed bytes and parsed transaction. The parser rejects
   non-canonical RLP, bad scalars, high-s, wrong field counts and access lists.
 - **Independent verification:** `verification/verify.cjs` uses ethers.js
-  6.13.2 (not web3dart) to check the exact bytes, digest, fields, `r`/`s`/
+  6.17.0 (not web3dart) to check the exact bytes, digest, fields, `r`/`s`/
   `yParity`, hash and recovered signer, and rejects 8 substitutions.
 - **TLS pinning:** standard CA/hostname validation first, then SPKI pin;
   corrected the v3 certificate SPKI index (extensions were hashed instead of

@@ -35,7 +35,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M1-02**: Cold protocol envelopes | ✅ DONE | `lib/cold_wallet_protocol.dart`, `test/cold_wallet_protocol_test.dart` (15/15) |
 | **M1-03**: Cold wallet service | ✅ DONE | `lib/cold_wallet_service.dart`, `test/cold_wallet_service_test.dart` (15/15) |
 | **M1-04**: Strict response verification | ✅ DONE | `lib/wallet_core.dart::verifyColdSignatureDetailed` |
-| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.13.2) |
+| **M1-05**: Independent ethers.js verification | ✅ DONE | `verification/verify.cjs` (ethers 6.17.0) |
 | **M1-06**: TLS SPKI pinning (standard first) | ✅ DONE | `lib/net/privacy_client.dart`, `test/tls_pinning_test.dart` (6/6) |
 | **M1-07**: Fixed v3 cert SPKI index bug | ✅ DONE | Was hashing extensions (idx 7), now public key (idx 6) |
 | **M1-08**: Memory hardening (FFI) | ✅ DONE | `lib/memory_protection.dart`, `test/memory_protection_test.dart` (2/2) |

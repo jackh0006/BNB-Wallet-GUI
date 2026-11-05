@@ -3,7 +3,7 @@
 /// This file contains all types needed for the cold wallet flow that must be
 /// shared between the cold device (signer) and the online companion.
 /// It avoids importing wallet_core.dart to prevent circular dependencies.
-library cold_wallet;
+library;
 
 import 'package:flutter/foundation.dart';
 

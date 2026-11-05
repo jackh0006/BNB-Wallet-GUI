@@ -55,8 +55,9 @@ Future<Uint8List> renderReceiptPng(LocalReceipt receipt) async {
   add('Network: BSC ${receipt.network} · chain ${receipt.chainId}');
   add('Block: ${receipt.blockNumber}');
   if (receipt.blockHash != null) add('Block hash: ${receipt.blockHash}');
-  if (receipt.transactionIndex != null)
+  if (receipt.transactionIndex != null) {
     add('Position in block: ${receipt.transactionIndex}');
+  }
   add('Confirmations: ${receipt.confirmations}');
   add('Finality: ${receipt.finalized ? 'final' : 'waiting for finality'}');
   add('Nonce: ${receipt.nonce}');

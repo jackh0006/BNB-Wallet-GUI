@@ -1,7 +1,7 @@
 # Independent cold-signing verification
 
 This directory is deliberately separate from the Flutter code. It uses
-**ethers.js 6.13.2** — not web3dart — to parse the exact signed bytes emitted
+**ethers.js 6.17.0** — not web3dart — to parse the exact signed bytes emitted
 by the Dart cold-wallet codec and to recover the signer with an independent
 secp256k1 implementation.
 

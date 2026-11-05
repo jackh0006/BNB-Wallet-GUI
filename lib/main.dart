@@ -177,7 +177,6 @@ class _BnbWalletAppState extends State<BnbWalletApp>
           secondary: goldLight,
           surface: surface,
           onSurface: Colors.white,
-          background: bg,
         );
     return _baseTheme(scheme, Brightness.dark, bg, surface);
   }

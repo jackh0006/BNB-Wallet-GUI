@@ -560,8 +560,9 @@ Future<File> _createSecureTempFile(File destination) async {
     tempName = '.${destination.uri.pathSegments.last}.tmp.$hex';
     tempFile = File('${parent.path}/$tempName');
     if (!await tempFile.exists()) break;
-    if (attempt == 9)
+    if (attempt == 9) {
       throw StateError('Could not generate unique temporary filename');
+    }
   }
   // Create the file exclusively - this uses O_CREAT|O_EXCL on POSIX
   await tempFile!.create(exclusive: true);

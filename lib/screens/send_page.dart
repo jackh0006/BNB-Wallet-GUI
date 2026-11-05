@@ -316,7 +316,7 @@ class _SendPageState extends State<SendPage>
               OutlinedButton.icon(
                 onPressed: () async {
                   await appState.closeWatchOnly();
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   showInfo(context, 'Watch-only profile closed.');
                 },
                 icon: const Icon(Icons.visibility_off_outlined),
@@ -1311,6 +1311,7 @@ class _SendPageState extends State<SendPage>
         return;
       }
       // §9: the final action is a deliberate hold, not a single stray click.
+      if (!mounted) return;
       final held = await showHoldToConfirm(
         context,
         title: appState.onlineMode ? 'Hold to create request' : 'Hold to sign',
@@ -1657,8 +1658,7 @@ class _SendPageState extends State<SendPage>
             {
               'address': log.address?.with0x ?? '',
               'topics': [
-                for (final topic in log.topics ?? const <String?>[])
-                  if (topic != null) topic,
+                for (final topic in log.topics ?? const <String?>[]) ?topic,
               ],
               'data': log.data ?? '',
             },
@@ -1998,8 +1998,9 @@ class _SendPageState extends State<SendPage>
     var newMax = bumpFee(
       oldMax > BigInt.zero ? oldMax : newPriority * BigInt.two,
     );
-    if (newMax < newPriority * BigInt.two)
+    if (newMax < newPriority * BigInt.two) {
       newMax = newPriority * BigInt.from(3);
+    }
     final newPrice = bumpFee(
       oldPrice > BigInt.zero ? oldPrice : BigInt.from(bumpSeed),
     );

@@ -3,13 +3,14 @@
 # Build a signed Debian/Ubuntu amd64 .deb of BNB Wallet GUI (Linux release bundle).
 #
 # Output:
-#   /home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.2-amd64.deb
+#   /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<pubspec version>-amd64.deb
 #   plus .sha256 and a GPG detached signature (.asc).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTDIR="/home/mhh06/Downloads/BNB Wallet"
-VERSION="1.0.7"
+VERSION="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$ROOT/pubspec.yaml" | head -1)"
+VERSION="${VERSION:-0.0.0}"
 DEB="$OUTDIR/bnb-wallet-${VERSION}-amd64.deb"
 
 mkdir -p "$OUTDIR"

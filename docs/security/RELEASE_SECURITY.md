@@ -57,6 +57,7 @@ export BNB_KEYSTORE=/path/to/release.keystore   # Must exist, NOT tracked by git
 export BNB_KEY_ALIAS=mykeyalias                 # Alias in keystore
 export BNB_STORE_PASS=keystore_password         # Keystore password
 export BNB_KEY_PASS=key_password                # Key password (may equal store)
+export BNB_EXPECTED_SIGNER_SHA256=<64-hex-digest> # Approved replacement cert
 # Optional:
 export BNB_GPG_KEY=0xABCDEF...                  # GPG key for .asc signature
 export BNB_VERSION=1.0.8                        # Override pubspec version
@@ -69,7 +70,7 @@ export BNB_OUTDIR=./dist                        # Output directory
 2. **Refuses tracked keystore**: `git ls-files` check
 3. **Builds**: `flutter build apk --release --target-platform android-arm64`
 4. **Signs**: `apksigner` v3 scheme, min SDK 29
-5. **Verifies**: `apksigner verify --print-certs`
+5. **Verifies**: `apksigner verify --print-certs` and exact signer SHA-256
 6. **Outputs**: `.apk`, `.apk.sha256`, optional `.apk.asc` (GPG)
 
 ### No Keystore Generation
@@ -251,3 +252,14 @@ python3 scripts/sbom.py --out docs/SBOM.json
 ---
 
 *This document describes release security practices. The old keystore is compromised — rotation is an operational requirement, not a code change.*
+
+## Release signer identity is mandatory
+
+Android APK creation requires `BNB_EXPECTED_SIGNER_SHA256`, the 64-hex
+SHA-256 digest of the approved replacement release-signing certificate. The
+build script verifies the emitted APK's signer against that value and refuses
+to publish an artifact if they differ. Store this fingerprint in the
+maintainer's protected release procedure, not in this repository. This check
+does not prove a historical key was revoked; the historical exposure remains
+an operational release blocker until the maintainer documents rotation and
+the distribution migration.

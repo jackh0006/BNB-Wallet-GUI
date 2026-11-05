@@ -223,7 +223,7 @@ class RpcService extends ChangeNotifier {
   static const int _storyBudgetPerSecond = 30;
 
   final List<RpcStoryLine> _story = [];
-  int _storySecond = -1;
+  DateTime? _storyWindowStartedAt;
   int _storyCountThisSecond = 0;
   bool _cycleReported = false;
   bool _notifyScheduled = false;
@@ -242,9 +242,10 @@ class RpcService extends ChangeNotifier {
     RpcStoryKind kind = RpcStoryKind.info,
     String? detail,
   }) {
-    final second = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    if (second != _storySecond) {
-      _storySecond = second;
+    final now = DateTime.now();
+    if (_storyWindowStartedAt == null ||
+        now.difference(_storyWindowStartedAt!) >= const Duration(seconds: 1)) {
+      _storyWindowStartedAt = now;
       _storyCountThisSecond = 0;
       _cycleReported = false;
     }
@@ -257,7 +258,7 @@ class RpcService extends ChangeNotifier {
             'normally.',
             kind: RpcStoryKind.wait,
             detail: '$_storyBudgetPerSecond lines per second budget',
-            at: DateTime.now().toUtc(),
+            at: now.toUtc(),
           ),
         );
       }
@@ -265,12 +266,7 @@ class RpcService extends ChangeNotifier {
     }
     _storyCountThisSecond++;
     _appendStory(
-      RpcStoryLine(
-        text,
-        kind: kind,
-        detail: detail,
-        at: DateTime.now().toUtc(),
-      ),
+      RpcStoryLine(text, kind: kind, detail: detail, at: now.toUtc()),
     );
   }
 
@@ -319,7 +315,7 @@ class RpcService extends ChangeNotifier {
   /// Clears the in-memory story log (used on full erase and by the UI).
   void clearStory() {
     _story.clear();
-    _storySecond = -1;
+    _storyWindowStartedAt = null;
     _storyCountThisSecond = 0;
     _cycleReported = false;
     _scheduleNotify();
@@ -1217,75 +1213,6 @@ class RpcService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Round-robin counter for node rotation.
-  int _roundRobinIndex = 0;
-
-  /// Selects the best node for a request based on the current selection mode.
-  /// Returns the selected node and the list of fallback nodes.
-  (RpcNode?, List<RpcNode>) _selectNodeForRequest({
-    required bool forBroadcast,
-  }) {
-    final candidates = forBroadcast
-        ? broadcastCandidatePool(
-            active: _poolNode(_activeRpc),
-            configured:
-                _poolNode(_configuredRpc) ??
-                RpcNode(label: 'configured', url: _configuredRpc),
-            userPool: _userNodePool,
-            builtInFallbacks: _network == 'testnet'
-                ? BnbNetworks.testnetFallbacks
-                : BnbNetworks.mainnetFallbacks,
-            strict: _strictFlag,
-          )
-        : _feeCandidates();
-
-    if (candidates.isEmpty) {
-      return (null, []);
-    }
-
-    RpcNode? selected;
-    final fallbacks = candidates
-        .where((n) => n.url != (candidates.first).url)
-        .toList();
-
-    switch (_selectionMode) {
-      case NodeSelectionMode.manual:
-        // Use the first candidate (active or first in list)
-        selected = candidates.first;
-        break;
-      case NodeSelectionMode.autoFastest:
-        // Sort by latency (lowest first), prefer nodes with recent successful probes
-        final withLatency = candidates
-            .where((n) => n.latencyMs != null)
-            .toList();
-        if (withLatency.isNotEmpty) {
-          withLatency.sort(
-            (a, b) => (a.latencyMs ?? 9999).compareTo(b.latencyMs ?? 9999),
-          );
-          selected = withLatency.first;
-        } else {
-          selected = candidates.first;
-        }
-        break;
-      case NodeSelectionMode.roundRobin:
-        // Rotate through candidates
-        if (candidates.isNotEmpty) {
-          _roundRobinIndex = _roundRobinIndex % candidates.length;
-          selected = candidates[_roundRobinIndex];
-          _roundRobinIndex = (_roundRobinIndex + 1) % candidates.length;
-        } else {
-          selected = candidates.first;
-        }
-        break;
-      case NodeSelectionMode.quorum:
-        // For quorum, use the first node but return all for cross-check
-        selected = candidates.first;
-        break;
-    }
-
-    return (selected, fallbacks);
-  }
-
   /// Independent nodes usable for cross-checks — the phone book's other
   /// enabled doors first, then the built-in fallbacks. Strict mode: none.
   static List<RpcNode> independentNodeList({
@@ -1868,7 +1795,7 @@ class RpcService extends ChangeNotifier {
       final rawHex = bytesToHex(signed, include0x: true, padToEvenLength: true);
       final hash = await sendRawHex(rawHex);
       _tell(
-        'Dust transaction sent: $hash (value: ${value} wei)',
+        'Dust transaction sent: $hash (value: $value wei)',
         kind: RpcStoryKind.info,
         detail: 'R4 dust mode — decoy traffic',
       );
