@@ -92,7 +92,7 @@ def evidence_only_ok(source_commit: str) -> bool:
         text=True,
     ).splitlines()
     return all(
-        path == "README.md"
+        path in {"README.md", "IMPLEMENTATION_STATUS.md"}
         or path.startswith("docs/")
         or path.startswith("release/")
         for path in changed
