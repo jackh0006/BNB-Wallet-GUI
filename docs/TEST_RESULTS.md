@@ -26,7 +26,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 14 | `.deb` build | `bash scripts/build-deb.sh` | `90d0f7c` | PASS (unsigned) | 26 s | `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244` |
 | 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `90d0f7c` | PASS; all libs resolve; no secret-bearing names | — | local |
 | 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 90d0f7c` | `90d0f7c` | PASS; identical archive `134e6b06…` and manifests | 275 s | `release/checks.json` |
-| 17 | Hosted CI | GitHub Actions push `42278713164`, PR `42278724511` | `1429293` | PASS: all required contexts | 3m52s / 3m52s | GitHub Actions |
+| 17 | Hosted CI | GitHub Actions push `42293751342`, PR `42293761453` | `52928c8` | PASS: all required contexts incl. Anvil and identity | 4m47s / 4m41s | GitHub Actions |
 | 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `90d0f7c` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m49s | GitHub run `42289751525` |
 | 19 | Real EVM integration | `scripts/run-anvil-tests.sh` against Anvil 1.9.0, chain 97 | `90d0f7c` | PASS 3/3: native transfer, wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert | 14 s | `release/checks.json` |
 | 22 | Mutation testing | `python3 scripts/security_mutation_check.py` | `90d0f7c` | PASS 5/5 mutations killed | 97 s | `release/checks.json` |
@@ -38,9 +38,9 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 
 ## Notes on commit binding
 
-The original wallet-code commit is `e474b89`. The final candidate
-`1429293` includes release/test-tooling fixes (package smoke, test watchdog,
-test inventory) and documentation; the wallet crypto/transaction code is
-unchanged. Hosted CI ran the full suite on `1429293` and passed. The `.deb`
-and reproducibility archives were built from `1429293`; the artifact is
-unsigned and is not published.
+The original wallet-code commit is `e474b89`. The final code/test tree is
+`90d0f7c`; it adds real-EVM, mutation, backup, signing and identity tests.
+The evidence bundle source `5cfa1b0` adds only CI workflow and documentation
+changes. Hosted CI ran the full suite on `52928c8` and passed. The `.deb` and
+reproducibility archive were built from a clean archive of `90d0f7c`; the
+artifact is unsigned and not published.
