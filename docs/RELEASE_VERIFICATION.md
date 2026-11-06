@@ -20,8 +20,8 @@
 
 ## Verified checks
 
-- Hosted CI on `1429293`: all required contexts pass (push `42273447503`,
-  PR `42273456740`).
+- Hosted CI on `1429293`: all required contexts pass (push `42278713164`,
+  PR `42278724511`).
 - Local full suite: 47/47 files; static analysis clean; secret scan current
   tree clean; dependency audit clean; SBOM current; test inventory current.
 - Independent ethers.js cold-signature verification passes; 8 substitutions

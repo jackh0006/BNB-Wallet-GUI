@@ -26,7 +26,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 14 | `.deb` build | `bash scripts/build-deb.sh` | `1429293` | PASS (unsigned) | 24 s | `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
 | 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `1429293` | PASS; all libs resolve; no secret-bearing names | — | local |
 | 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 1429293` | `1429293` | PASS; identical archive `134e6b06…` and manifests | 251 s | `docs/evidence/2026-11-06/reproducibility-final.log` |
-| 17 | Hosted CI | GitHub Actions push `42273447503`, PR `42273456740` | `1429293` | PASS: all required contexts | 3m52s / 3m52s | GitHub Actions |
+| 17 | Hosted CI | GitHub Actions push `42278713164`, PR `42278724511` | `1429293` | PASS: all required contexts | 3m52s / 3m52s | GitHub Actions |
 | 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `1429293` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m41s | GitHub run `42273456783` |
 | 19 | Real BSC/Anvil integration | — | — | NOT TESTED | — | mock RPC only |
 | 20 | Startup / RSS | — | — | NOT TESTED | — | needs real display session |

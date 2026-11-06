@@ -2,7 +2,8 @@
 
 **Candidate:** `1.0.10+4`
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
-**Final HEAD:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
+**Final evidence HEAD:** `9e2d23fa6bfbff8c4868dcf891e02658fac695eb`
+**Tested code commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 **PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
 
 | File | Contents |
