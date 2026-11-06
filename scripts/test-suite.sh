@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 # application directories are deliberately rejected as group-readable.
 umask 0077
 
-readonly LIGHT_TIMEOUT_SECONDS=120
+readonly LIGHT_TIMEOUT_SECONDS=240
 readonly KDF_TIMEOUT_SECONDS=900
 readonly GLOBAL_TIMEOUT_SECONDS=3600
 

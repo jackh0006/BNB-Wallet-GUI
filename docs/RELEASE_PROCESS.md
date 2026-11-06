@@ -32,6 +32,20 @@ python3 scripts/generate_docs.py --check
 Record each result with `scripts/record_check.py`; never paste a result that a
 command did not produce.
 
+Package smoke and reproducibility:
+
+```bash
+# On a disposable Ubuntu 24.04 runner with root/apt:
+bash scripts/package-smoke.sh \
+  --deb "dist/bnb-wallet-<version>-amd64.deb" \
+  --previous previous-1.0.9.deb \
+  --seconds 20
+
+# Fixed absolute path is required: Flutter embeds it.
+BNB_REPRO_PATH=/tmp/bnb-repro-final \
+  bash scripts/reproducibility-check.sh <commit>
+```
+
 ## Build and sign
 
 ```bash

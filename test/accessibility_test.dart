@@ -16,6 +16,7 @@ void main() {
   testWidgets('hold-to-confirm exposes a label and a keyboard hold', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     var confirmed = false;
     final focus = FocusNode();
     addTearDown(focus.dispose);
@@ -49,7 +50,8 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
     await tester.pump();
     expect(confirmed, isTrue);
-  });
+    semantics.dispose();
+  }, timeout: const Timeout(Duration(seconds: 30)));
 
   testWidgets('an early key release does not confirm', (tester) async {
     var confirmed = false;
@@ -73,7 +75,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
     await tester.pump(const Duration(milliseconds: 600));
     expect(confirmed, isFalse);
-  });
+  }, timeout: const Timeout(Duration(seconds: 30)));
 
   testWidgets('200% text scale does not overflow the confirmation widget', (
     tester,
@@ -93,7 +95,7 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
     expect(find.textContaining('press and hold'), findsOneWidget);
-  });
+  }, timeout: const Timeout(Duration(seconds: 30)));
 }
 
 void _noop() {}

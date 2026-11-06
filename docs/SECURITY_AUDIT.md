@@ -5,6 +5,8 @@ This is an internal self-audit index, **not an independent audit**.
 - Current findings register: [`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md)
 - 2026-11-04 adversarial audit: [`SECURITY_AUDIT_2026-11-04.md`](SECURITY_AUDIT_2026-11-04.md)
 - Threat model: [`THREAT_MODEL.md`](THREAT_MODEL.md)
+- Three-pass self-audit: [`SELF_AUDIT_2026-11-06.md`](SELF_AUDIT_2026-11-06.md)
+- Independent review guide: [`INDEPENDENT_REVIEW_GUIDE.md`](INDEPENDENT_REVIEW_GUIDE.md)
 - Risk register: [`SECURITY_RISK_REGISTER.md`](SECURITY_RISK_REGISTER.md)
 - Scorecard: [`SECURITY_SCORECARD.md`](SECURITY_SCORECARD.md)
 - Incident: [`security/INCIDENT_2026-11-KEYSTORE.md`](security/INCIDENT_2026-11-KEYSTORE.md)

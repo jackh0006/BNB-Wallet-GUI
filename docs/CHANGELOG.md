@@ -25,6 +25,10 @@ supported artifacts explicitly.
   never shown in a transaction confirmation.
 - **Honesty:** hardware-wallet matrix corrected to `NOT IMPLEMENTED`; Android
   releases remain blocked by the historical signing-key incident.
+- **Package smoke:** Ubuntu 24.04 CI installs the `.deb`, launches it under
+  Xvfb, upgrades from 1.0.9 with a data marker, uninstalls, and reinstalls.
+- **Reproducibility:** fixed-path two-build comparison passes; Flutter embeds
+  absolute paths, so different paths are not guaranteed to match.
 
 ## 1.0.9-ui.1 prerelease — accessibility, locale and status accuracy
 

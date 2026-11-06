@@ -35,7 +35,7 @@
 | Gate | Status |
 |---|---|
 | GPG signature and verification | MISSING |
-| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42268826642` |
+| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42270460913` |
 | Android key rotation and denylist | BLOCKED |
 | Independent security audit | NOT AVAILABLE |
 | Independent-machine reproducibility | NOT TESTED |

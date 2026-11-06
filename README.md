@@ -59,6 +59,8 @@ and limitations needed to judge it:
 | Risk register | [Security risk register](docs/SECURITY_RISK_REGISTER.md) |
 | Threats, protections, and residual risks | [Threat model](docs/THREAT_MODEL.md) |
 | Security findings and exact scope | [Security self-assessment](SECURITY_AUDIT.md) |
+| Three-pass self-audit | [Self-audit 2026-11-06](docs/SELF_AUDIT_2026-11-06.md) |
+| Independent review guide | [Review guide](docs/INDEPENDENT_REVIEW_GUIDE.md) |
 | Generated status, checks, and limitations | [Generated status](docs/GENERATED_STATUS.md) |
 | Machine-readable release manifest | [Manifest](release/manifest.json) |
 | Test inventory (47 files) | [Test inventory](docs/testing/test-inventory.json) |

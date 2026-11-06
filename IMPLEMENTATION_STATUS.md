@@ -34,7 +34,7 @@ human-readable index, not a second source of truth.
   Different absolute paths are not guaranteed to match because Flutter embeds
   the path in `libapp.so` and plugin libraries.
 - Clean install/launch/upgrade/uninstall smoke: GitHub `ubuntu-24.04` run
-  `42268826642` installs the `.deb`, launches under Xvfb, upgrades from the
+  `42270460913` installs the `.deb`, launches under Xvfb, upgrades from the
   public 1.0.9 package with a data marker, uninstalls, and reinstalls.
 
 ## Not verified / blocked

@@ -85,7 +85,9 @@ entries and mark superseded claims.
   path, `SOURCE_DATE_EPOCH=0`, and `gzip -n`.
 - Reproducibility result: PASS at `/tmp/bnb-repro-final`, archive
   `388f94bf…`; different absolute paths still differ.
-- Provisional self-assessed score: **72/100**, with release blockers listed.
+- Provisional self-assessed score: **73/100**, with release blockers listed.
+- Added the three-pass self-audit (`docs/SELF_AUDIT_2026-11-06.md`) and an
+  independent-review guide (`docs/INDEPENDENT_REVIEW_GUIDE.md`).
 
 ## Superseded claims
 
