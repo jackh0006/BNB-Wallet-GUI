@@ -27,6 +27,12 @@ python3 scripts/test_inventory.py --check
 python3 scripts/check_release_evidence.py
 python3 scripts/release_manifest.py --check
 python3 scripts/generate_docs.py --check
+python3 scripts/check_release_identity.py
+python3 scripts/test_release_identity.py
+python3 scripts/security_mutation_check.py
+bash scripts/run-anvil-tests.sh
+bash scripts/test_release_signing.sh
+bash scripts/test_android_inventory.sh
 ```
 
 Record each result with `scripts/record_check.py`; never paste a result that a
@@ -60,8 +66,9 @@ gpg --batch --yes --detach-sign --armor \
   "/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb"
 ```
 
-The `.deb`, `.asc`, and `SHA256SUMS` must all be produced from the same source
-commit. If documentation changed after the build, rebuild or explicitly record
+Run `scripts/check_release_identity.py --artifact <deb>` before signing. The
+`.deb`, `.asc`, and `SHA256SUMS` must all be produced from the same source
+commit. See `docs/SIGNING_CHECKLIST.md` for the owner procedure. If documentation changed after the build, rebuild or explicitly record
 which documentation is not in the package.
 
 ## Verify

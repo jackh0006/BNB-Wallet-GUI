@@ -36,11 +36,20 @@ paying for repeated 64 MiB derivations.
 |-----------|-------|-----|--------|----------|
 | `fuzz_and_property_test.dart` | 10 | (light) | ✅ PASS | Amount round-trips, checksum invariants, canonical RLP fuzz, vault/envelope fuzz, ERC-20 calldata totality |
 
+### Real EVM Integration (tag: `integration`)
+
+| Test File | Tests | Tag | Status | Coverage |
+|-----------|-------|-----|--------|----------|
+| `anvil_test.dart` | 3 | `integration` | ✅ PASS | Native transfer, wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert against Anvil chain 97 |
+
+These tests are excluded from the default 47-file suite and run in the
+`integration` workflow with a pinned Anvil 1.9.0 node.
+
 ### Cold Wallet
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `cold_tx_codec_test.dart` | 4 | (light) | ✅ PASS | Canonical payload, digest, signed tx parsing, field validation |
+| `cold_tx_codec_test.dart` | 6 | (light) | ✅ PASS | Canonical payload, digest, signed tx parsing, field validation |
 | `cold_wallet_protocol_test.dart` | 15 | (light) | ✅ PASS | Pairing/request/signature envelopes, checksums, expiry, substitutions |
 | `cold_wallet_service_test.dart` | 15 | (light) | ✅ PASS | Persistence, replay, signing, verification, broadcast, burn list |
 | `cold_wallet_test.dart` | 8 | (light) | ✅ PASS | Existing cold wallet tests |
@@ -75,6 +84,7 @@ paying for repeated 64 MiB derivations.
 | `clipboard_guard_test.dart` | 4 | (light) | ✅ PASS | Secret detection (mnemonic, hex key), auto-clear |
 | `drawer_secret_test.dart` | 5 | (light) | ✅ PASS | Device key memoization, fallback, migration |
 | `memory_protection_test.dart` | 2 | (light) | ✅ PASS | Kernel state: dumpable=0, core limit=0 |
+| `backup_restore_e2e_test.dart` | 4 | `kdf` | ✅ PASS | Synthetic create → encrypted backup → wipe → restore; wrong password, tamper, truncation |
 | `filesystem_security_test.dart` | See test file | (light) | Historical focused PASS | Linux atomic-write, permissions, no-follow, and race protections |
 | `rollback_injection_test.dart` | See test file | `kdf` | Historical focused PASS | Rollback after controlled post-commit verification failure |
 | `vault_header_validation_test.dart` | See test file | (light) | Historical focused PASS | Rejects unsafe or malformed vault headers |

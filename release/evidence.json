@@ -304,6 +304,7 @@
     }
   ],
   "checksCommit": "142929315b7df572ffae93cbc5ab1a2ec2395724",
+  "identityNote": "checksCommit 1429293 is the tested wallet/test tree; sourceCommit is a later release-tooling/docs commit; artifactSourceCommit equals checksCommit. No wallet-code change occurred after 1429293.",
   "notes": [
     "The package is built but unsigned in this environment.",
     "No independent security audit is available.",
@@ -314,5 +315,6 @@
   ],
   "schemaVersion": 1,
   "sourceCommit": "53468e13e450c12ca2c191aef5a47e86862e94e9",
-  "status": "PARTIALLY VERIFIED"
+  "status": "PARTIALLY VERIFIED",
+  "version": "1.0.10+4"
 }

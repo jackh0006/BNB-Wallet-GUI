@@ -12,7 +12,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 |---|---|---|---|---|---|---|
 | 1 | Formatting | `dart format --output=none --set-exit-if-changed lib test tool` | `e474b89` | PASS | 1.5 s | local terminal; CI `flutter` job |
 | 2 | Static analysis | `flutter analyze --no-pub` | `e474b89` | PASS (no issues) | 11.3 s | local; CI `flutter` job |
-| 3 | Full suite (local) | `bash scripts/test-suite.sh` | `e474b89` | PASS 47/47 files, 0 failed, 0 timed out | 577 s | `/tmp/opencode/evidence/full-suite-3.log`; summary in `docs/IMPLEMENTATION_LOG.md` |
+| 3 | Default suite (local) | `bash scripts/test-suite.sh` | working tree | PASS 48/48 files, 0 failed, 0 timed out (49 files total incl. integration) | 600 s | `/tmp/opencode/evidence/full-suite-4.log` |
 | 4 | Production KDF | `flutter test test/kdf_production_test.dart` | `e474b89` | PASS | < 10 s | native 344 ms; pure-Dart cross-check; one real 64 MiB round-trip |
 | 5 | Independent cold signature | `(cd verification && npm ci && node verify.cjs)` | `e474b89` | PASS; 8 substitutions rejected | ~7 s | local; CI `cold-signature` |
 | 6 | Secret scan (current tree) | `bash scripts/secret-scan.sh` | `e474b89` | PASS | 1.8 s | local; CI `secret-scan` |
@@ -28,7 +28,11 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 1429293` | `1429293` | PASS; identical archive `134e6b06…` and manifests | 251 s | `docs/evidence/2026-11-06/reproducibility-final.log` |
 | 17 | Hosted CI | GitHub Actions push `42278713164`, PR `42278724511` | `1429293` | PASS: all required contexts | 3m52s / 3m52s | GitHub Actions |
 | 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `1429293` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m41s | GitHub run `42273456783` |
-| 19 | Real BSC/Anvil integration | — | — | NOT TESTED | — | mock RPC only |
+| 19 | Real EVM integration | `scripts/run-anvil-tests.sh` against Anvil 1.9.0, chain 97 | working tree | PASS 3/3: native transfer, wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert | ~2 s | `docs/evidence/2026-11-06/anvil-integration.log` |
+| 22 | Mutation testing | `python3 scripts/security_mutation_check.py` | working tree | PASS 5/5 mutations killed | ~2 min | local log |
+| 23 | Backup/restore E2E | `flutter test test/backup_restore_e2e_test.dart` | working tree | PASS 4/4: create/backup/wipe/restore, wrong password, tamper, truncation | 3 s | local |
+| 24 | Release signing tools | `bash scripts/test_release_signing.sh` | working tree | PASS: valid, wrong key, tampered package/sums, missing sig, unknown key | ~2 s | local |
+| 25 | Android signer inventory | `bash scripts/test_android_inventory.sh` | working tree | PASS: synthetic keystore fingerprint, no password leak | ~1 s | local |
 | 20 | Startup / RSS | — | — | NOT TESTED | — | needs real display session |
 | 21 | Independent audit | — | — | NOT AVAILABLE | — | none performed |
 

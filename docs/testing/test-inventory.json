@@ -1,5 +1,5 @@
 {
-  "fileCount": 47,
+  "fileCount": 49,
   "files": [
     {
       "lines": 101,
@@ -16,6 +16,15 @@
       "tests": 5
     },
     {
+      "lines": 99,
+      "path": "test/backup_restore_e2e_test.dart",
+      "sha256": "04e45825fe3f807e4283e91f3bb2f749de81ee44e4e68977b8c3a11407a0f889",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 4
+    },
+    {
       "lines": 70,
       "path": "test/clipboard_guard_test.dart",
       "sha256": "b204d7c59d3a471196abdcd2d6f70eb44e1a7968b5feee7fefe66d9bf4db8e45",
@@ -23,11 +32,11 @@
       "tests": 4
     },
     {
-      "lines": 127,
+      "lines": 182,
       "path": "test/cold_tx_codec_test.dart",
-      "sha256": "cc68392826069247880bf87504e00a14c0158476d3ce563f43814fa852d9bcea",
+      "sha256": "d13338ee6770dc56303ce47122f64960e20b7ecd105857d65c05c7a203b164b7",
       "tags": [],
-      "tests": 4
+      "tests": 6
     },
     {
       "lines": 363,
@@ -119,6 +128,15 @@
       "sha256": "9995bd0ebcc972b5292d94109677bb1fa11b6dc03c17dcc058a4333238ab3433",
       "tags": [],
       "tests": 1
+    },
+    {
+      "lines": 295,
+      "path": "test/integration/anvil_test.dart",
+      "sha256": "04a478baea5bf2df5d836e447278a1f7b0746e58ed491bfc3062107a53aa2ebc",
+      "tags": [
+        "integration"
+      ],
+      "tests": 3
     },
     {
       "lines": 132,
@@ -345,7 +363,7 @@
       "tests": 3
     }
   ],
-  "kdfFileCount": 6,
+  "kdfFileCount": 7,
   "schemaVersion": 1,
-  "testCount": 299
+  "testCount": 308
 }

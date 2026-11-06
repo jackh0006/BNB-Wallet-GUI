@@ -7,7 +7,7 @@
   },
   "evidenceBundle": {
     "path": "release/evidence.json",
-    "sha256": "74c32dae1fb57a1df566525f5d48af292bd4f6de5e8875cb31d123c379566a28",
+    "sha256": "0843614362e95ef2ac4b3229107316573328277b35adf04935d534647d2577b1",
     "sourceCommit": "53468e13e450c12ca2c191aef5a47e86862e94e9"
   },
   "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
@@ -29,11 +29,11 @@
   },
   "schemaVersion": 1,
   "tests": {
-    "files": 47,
+    "files": 49,
     "matches": true,
     "path": "docs/testing/test-inventory.json",
-    "recordedFiles": 47,
-    "sha256": "1096c7fa4f03369972831f2e6078310c1a6eb3af0fdcec5f649037686b5dbf46"
+    "recordedFiles": 49,
+    "sha256": "a9836549bbd7e4defff0b6cf3dced556887b8b0a17d6983e2f7657ed82d54a5c"
   },
   "toolchain": {
     "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",

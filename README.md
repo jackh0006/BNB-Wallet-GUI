@@ -18,7 +18,7 @@ per-version evidence and release status are maintained in
 > **Generated release status** — do not edit this block by hand.
 >
 > Version `1.0.10+4` · status **PARTIALLY VERIFIED**
-> Tests: 47 files / 299 declarations · SBOM `f992deb3fc34bdb6`
+> Tests: 49 files / 308 declarations · SBOM `f992deb3fc34bdb6`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
 > See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
@@ -73,6 +73,8 @@ and limitations needed to judge it:
 | Release verification | [Release verification](docs/RELEASE_VERIFICATION.md) |
 | Platform support | [Compatibility](docs/COMPATIBILITY.md) |
 | Backup and recovery | [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) |
+| Release signing checklist | [Signing checklist](docs/SIGNING_CHECKLIST.md) |
+| High-value custody guidance | [High-value custody](docs/HIGH_VALUE_CUSTODY.md) |
 | Incident response | [Incident response](docs/INCIDENT_RESPONSE.md) |
 | Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
 | Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |

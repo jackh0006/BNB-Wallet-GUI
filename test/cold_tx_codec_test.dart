@@ -124,4 +124,59 @@ void main() {
       throwsA(isA<ColdTxFormatException>()),
     );
   });
+  test('validateFields rejects the zero address', () {
+    expect(
+      () => ColdTxCodec.validateFields(
+        chainId: 56,
+        nonce: BigInt.zero,
+        maxPriorityFeePerGas: BigInt.one,
+        maxFeePerGas: BigInt.from(2),
+        gasLimit: BigInt.from(21000),
+        to: '0x0000000000000000000000000000000000000000',
+        value: BigInt.zero,
+        data: Uint8List(0),
+        accessList: const [],
+      ),
+      throwsA(
+        isA<ColdTxFormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('zero address'),
+        ),
+      ),
+    );
+  });
+
+  test('signedPayload rejects a high-s signature', () {
+    final fields = ColdTxFields(
+      chainId: 56,
+      nonce: BigInt.zero,
+      maxPriorityFeePerGas: BigInt.one,
+      maxFeePerGas: BigInt.from(2),
+      gasLimit: BigInt.from(21000),
+      to: to,
+      value: BigInt.zero,
+      data: Uint8List(0),
+      accessList: const [],
+    );
+    final halfN = BigInt.parse(
+      '7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0',
+      radix: 16,
+    );
+    expect(
+      () => ColdTxCodec.signedPayload(
+        fields,
+        yParity: 0,
+        r: BigInt.one,
+        s: halfN + BigInt.one,
+      ),
+      throwsA(
+        isA<ColdTxFormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('low-s'),
+        ),
+      ),
+    );
+  });
 }

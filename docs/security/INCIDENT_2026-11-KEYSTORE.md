@@ -81,6 +81,18 @@ or move funds by itself. It is a distribution-authenticity compromise.
 8. Only then remove the `BLOCKED` status from this record and from the release
    evidence.
 
+## Inventory tooling
+
+`scripts/inventory-android-signers.sh` enumerates **public** certificate
+SHA-256 fingerprints from keystores and APKs. It never prints passwords or
+private key material. The owner should run it on an isolated machine with the
+historical keystore/APKs and record the output fingerprints in
+`release/android-signer-denylist.txt`.
+
+`scripts/test_android_inventory.sh` verifies the tool with a disposable test
+keystore and confirms that the password does not appear in output. This test
+does not resolve the incident.
+
 ## 6. Verification commands (no secret material)
 
 ```bash

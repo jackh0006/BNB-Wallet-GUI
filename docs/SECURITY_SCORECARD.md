@@ -17,21 +17,21 @@ audit.** A score never overrides a release blocker.
 - Any critical/high unresolved finding blocks production approval regardless of
   score.
 
-## Provisional score: 73 / 100
+## Provisional score: 79 / 100
 
 | Category | Weight | Score | Evidence | Why not full |
 |---|---:|---:|---|---|
 | Cryptography and key protection | 20 | 16 | Native Argon2id + pure-Dart cross-check; fixed 64 MiB/t=3/p=4; double-wrapped vault; tamper/wrong-password/v1-migration tests; no plaintext logs | No independent audit; no hardware-backed key; Dart memory cannot be securely erased; same-UID malware remains out of scope |
-| Transaction and blockchain security | 15 | 10 | Exact ERC-20 calldata; chain-ID validation; EIP-1559 codec; fee/nonce/zero-address checks; signature verification; independent ethers.js check | No token-approval UI (scope); no real BSC/Anvil integration; RPC data is not light-client verified |
-| Testing, fuzzing and reliability | 15 | 11 | 47 files / 299 declarations; deterministic fuzz/property tests; mock-RPC adversarial tests; UI/a11y tests; hosted CI green | No coverage-guided fuzzing; no mutation testing; no real-node integration; no long-running soak |
+| Transaction and blockchain security | 15 | 12 | Exact ERC-20 calldata; chain-ID validation; EIP-1559 codec; fee/nonce/zero-address checks; signature verification; independent ethers.js check; real Anvil native/ERC-20 tests | No token-approval UI (scope); RPC data is not light-client verified |
+| Testing, fuzzing and reliability | 15 | 14 | 49 files / 308 declarations; deterministic fuzz/property; mock-RPC adversarial; real Anvil integration; mutation score 5/5; backup E2E; UI/a11y; hosted CI green | No coverage-guided fuzzing; no long-running soak |
 | Supply-chain and CI/CD | 10 | 8 | Pinned action SHAs; CodeQL; secret scan; dependency review; licence inventory; SBOM; least-privilege workflows | Dependabot PRs unreviewed; no published artifact provenance yet; no independent rebuild |
 | Reproducible builds and release integrity | 10 | 6 | Fixed-path reproducible archive `388f94bf…`; deterministic gzip; SBOM; release gate; provenance workflow | Different absolute paths differ; no independent-machine proof; `.deb` unsigned; no published attestation |
-| Backup, recovery and operational safety | 10 | 7 | Atomic writes; rollback injection; encrypted backup import/export; v1 migration; crash tests | No clean-machine restore test; no UI end-to-end restore test; disk-full/power-loss coverage incomplete |
+| Backup, recovery and operational safety | 10 | 8 | Atomic writes; rollback; encrypted backup create/wipe/restore E2E; wrong-password/tamper/truncation; v1 migration | No clean-machine UI restore; disk-full/power-loss coverage incomplete |
 | Privacy and network security | 5 | 4 | HTTPS-only policy; SPKI pinning after CA validation; Tor/SOCKS fail-closed; UA scrubbing | No light-client proof; traffic analysis and compromised OS remain out of scope |
 | Platform compatibility and performance | 5 | 3 | Ubuntu 24.04 build + `.deb`; package-smoke install/launch/upgrade/uninstall; KDF measured (344 ms) | No startup/RSS; Debian/Fedora/ARM64/Windows/macOS untested |
 | UI, accessibility and user safety | 5 | 4 | Keyboard hold-to-confirm; semantics; 200% text scale; full address review; donation separation | No screen-reader session or real display test; warning UX not independently evaluated |
 | Documentation, transparency and governance | 5 | 4 | Threat model; known limitations; incident record; generated status; manifest; PR evidence; self-audit | Some records still to be consolidated; stale PRs; no independent review |
-| **Total** | **100** | **73** | | |
+| **Total** | **100** | **79** | | |
 
 ## Blockers regardless of score
 
@@ -46,7 +46,7 @@ audit.** A score never overrides a release blocker.
 - Owner-signed artifact with a published fingerprint and verified signature.
 - Clean-install CI on Ubuntu 24.04 and Debian 12.
 - Independent-machine reproducibility proof at a fixed path.
-- Anvil/real-EVM integration tests.
+- (done) Anvil/real-EVM integration tests.
 - Mutation testing and coverage reporting.
 - Android key rotation and denylist verification.
 - Independent professional audit.

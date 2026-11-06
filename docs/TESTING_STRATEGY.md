@@ -10,7 +10,7 @@ not verification.
 |---|---|---|
 | Formatting | `dart format --output=none --set-exit-if-changed lib test tool` | PASS |
 | Static analysis | `flutter analyze --no-pub` | PASS: no issues |
-| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 47 files / 299 declarations, serial, 0 failed locally; hosted CI on `773f0db` also PASS |
+| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 48 default files, 0 failed, 0 timed out; 49 files total including the separate Anvil suite |
 | Production KDF | `test/kdf_production_test.dart` | PASS: fixed 64 MiB/t=3/p=4, native vs pure-Dart agreement, one real round-trip < 60 s |
 | Property/fuzz-style parsers | `test/fuzz_and_property_test.dart` | PASS: deterministic seeds, 2000-iteration RLP/calldata/vault/envelope mutations |
 | RPC adversarial responses | `test/rpc_adversarial_test.dart` | PASS: wrong chain, non-JSON/HTML, oversized/malformed balance, network switch |
@@ -38,6 +38,7 @@ the observable state, and preservation of unrelated data.
 | Property-based | `test/fuzz_and_property_test.dart` | Seeded `Random`; reproducible failures |
 | Fuzz-style | `test/fuzz_and_property_test.dart` | Deterministic mutation, not coverage-guided fuzzing |
 | Integration (mock RPC) | `test/rpc_adversarial_test.dart` | Malicious and malformed JSON-RPC responses |
+| Integration (real EVM) | `test/integration/anvil_test.dart` | Anvil 1.9.0, chain 97: native transfer, ERC-20 deploy/transfer/approve/revoke, wrong chain, revert |
 | Security | vault/envelope/cold/RPC suites | Tamper, replay, wrong chain, lookalike addresses |
 | Widget/UI | `test/navigation_flow_test.dart`, `test/*_dialog*`, `test/accessibility_test.dart` | Flows, keyboard, semantics |
 | Performance | `release/benchmarks.json` | Native KDF measured; startup/RSS still `NOT TESTED` |

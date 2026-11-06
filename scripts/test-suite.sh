@@ -52,7 +52,9 @@ run_one() {
 if [ "$#" -gt 0 ]; then
   files=("$@")
 else
-  mapfile -t files < <(find test -type f -name '*_test.dart' -print | LC_ALL=C sort)
+  # Real-EVM tests run in the separate integration workflow and are not part
+  # of the default 47-file suite; they require a live Anvil node.
+  mapfile -t files < <(find test -type f -name '*_test.dart' ! -path 'test/integration/*' -print | LC_ALL=C sort)
 fi
 
 discovered=${#files[@]}

@@ -50,10 +50,18 @@ python3 scripts/test_inventory.py --check
 python3 scripts/release_manifest.py --check
 python3 scripts/generate_docs.py --check
 python3 scripts/release-gate.py
+python3 scripts/check_release_identity.py
+python3 scripts/test_release_identity.py
+python3 scripts/security_mutation_check.py
+bash scripts/run-anvil-tests.sh
+bash scripts/test_release_signing.sh
+bash scripts/test_android_inventory.sh
 ```
 
-`package-smoke` and the full suite are also run on GitHub Actions; the exact
-run IDs are in `docs/TEST_RESULTS.md`.
+`package-smoke`, `integration` (Anvil 1.9.0 chain 97), and the full suite run on
+GitHub Actions; exact run IDs are in `docs/TEST_RESULTS.md`. Startup/RSS is a
+separate `benchmark` workflow. Signing tests use a disposable test key, never
+the owner key.
 
 ## High-value review targets
 

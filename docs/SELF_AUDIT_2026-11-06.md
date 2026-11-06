@@ -39,7 +39,7 @@ parameter downgrade.
 | B-05 | Address poisoning | High | Mitigated heuristic | Full checksummed address, grouped display, affix warning; user can still confirm a wrong valid address |
 | B-06 | Approval/unlimited-allowance abuse | Medium | Not applicable today | No approval UI; any future approval requires a cap and review |
 | B-07 | Ambiguous broadcast could be retried and double-send | High | Mitigated | Unknown outcome is explicit; no automatic retry; `tx_lifecycle_test` |
-| B-08 | Real BSC/Anvil integration not tested | High | Open | Mock RPC only; `TEST_RESULTS.md` marks NOT TESTED |
+| B-08 | Real BSC/Anvil integration not tested | High | Remediated (local EVM) | `test/integration/anvil_test.dart`: native transfer, wrong chain, ERC-20 deploy/mint/transfer/approve/revoke/revert against Anvil 1.9.0 chain 97. Not an independent node. |
 | B-09 | Cold-signing two-device physical test absent | Medium | Open | Codec/protocol/service tests and ethers.js cross-check pass; no two-device exercise |
 
 Verdict: the transfer path is substantially constrained and tested, but real
@@ -72,7 +72,7 @@ unsigned artifact, and absent independent audit.
 - The release remains **PARTIALLY VERIFIED / NOT RELEASABLE**.
 - The largest remaining risks are owner-controlled signing, absence of an
   independent audit, RPC trust, and device/OS compromise.
-- Provisional self-assessed score: **73/100** (see
+- Provisional self-assessed score: **79/100** (see
   `SECURITY_SCORECARD.md`), not 100.
 
 ## Reproduction
@@ -80,3 +80,19 @@ unsigned artifact, and absent independent audit.
 Every command and result is listed in `docs/TEST_RESULTS.md`. The exact
 candidate commit and artifact hashes are in `release/manifest.json` and
 `docs/RELEASE_VERIFICATION.md`.
+
+---
+
+## Post-remediation update (final tranche)
+
+| ID | Finding | Severity | Status | Evidence |
+|---|---|---|---|---|
+| A-08 | Low-s signature and zero-address checks lacked direct regression tests | Medium | Remediated | Mutation harness found both; tests added; mutation score 5/5 |
+| B-08 | Real EVM integration absent | High | Remediated (local) | Anvil 1.9.0 chain 97: native transfer, wrong chain, ERC-20 deploy/mint/transfer/approve/revoke/revert |
+| C-09 | No fail-closed release identity validator | High | Remediated | `scripts/check_release_identity.py`; 12 negative tests |
+| C-10 | No signing verification tooling/tests | High | Tooling implemented; key still owner-gated | `scripts/sign-release.sh`, `scripts/verify-release-signature.sh`, `scripts/test_release_signing.sh` |
+| C-11 | Android signer inventory absent | Medium | Tooling implemented; incident still blocked | `scripts/inventory-android-signers.sh`; test uses a synthetic keystore |
+| C-12 | Cross-runner reproducibility and startup/RSS need measurement | Medium | Workflows added; results pending | `.github/workflows/reproducibility.yml`, `.github/workflows/benchmark.yml` |
+
+These changes do not resolve the owner-controlled signing key, Android rotation,
+or the absence of an independent audit.

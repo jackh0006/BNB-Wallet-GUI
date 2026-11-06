@@ -23,9 +23,9 @@ Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY 
 
 ## Test inventory
 
-- Test files: **47**
-- Test/testWidgets declarations: **299**
-- Real-KDF files: **6**
+- Test files: **49**
+- Test/testWidgets declarations: **308**
+- Real-KDF files: **7**
 - Inventory: `docs/testing/test-inventory.json`
 
 A declaration count is not a pass count. Pass/fail evidence comes only from a committed evidence bundle for this exact commit.

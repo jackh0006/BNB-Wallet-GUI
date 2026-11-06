@@ -24,7 +24,7 @@ human-readable index, not a second source of truth.
 - Native Argon2id (`lib/kdf.dart`) with fixed 64 MiB / t=3 / p=4; measured
   **344 ms** vs ~110 s for the debug pure-Dart fallback.
 - Exact ERC-20 transfer calldata in `SendIntent`; trailing bytes rejected.
-- 47 test files / 299 declarations; local 47/47 pass and hosted CI pass.
+- 49 test files / 308 declarations; default suite 48/48 pass in 600 s; 3 real-Anvil tests; mutation score 5/5; backup E2E 4/4.
 - Independent ethers.js cold-signature verification; 8 substitutions rejected.
 - Linux `flutter build linux --release` pass; `.deb` package built.
 - Secret scan, dependency advisory audit, licence inventory, SBOM, test
@@ -46,7 +46,7 @@ human-readable index, not a second source of truth.
 | `.deb` GPG signature | **MISSING** | No release GPG key in this environment |
 | Independent security audit | **NOT AVAILABLE** | None performed |
 | Hardware wallet | **NOT IMPLEMENTED** | No Ledger/Trezor code path or device |
-| Real BSC/Anvil integration | **NOT TESTED** | Mock RPC only |
+| Real BSC/Anvil integration | **PASS (local Anvil)** | Native transfer, wrong chain, ERC-20 deploy/transfer/approve/revoke/revert on Anvil 1.9.0 chain 97 |
 | Windows / macOS / ARM64 | **NOT TESTED** | No builds or hardware |
 | Startup / RSS performance | **NOT TESTED** | Needs a real display session |
 | Multisig / large-value architecture | **RESEARCH ONLY** | No custom contract deployed |
@@ -57,7 +57,7 @@ human-readable index, not a second source of truth.
    `release/android-signer-denylist.txt`, approve the new signer.
 2. Owner: provide GPG signing key/approved release host; sign and verify the
    final `.deb`.
-3. Engineering: add an Anvil integration job and a clean-install CI job.
+3. Engineering: integration and package-smoke CI jobs are implemented and passing.
 4. Engineering: complete the three-pass self-audit and update
    `docs/SECURITY_SCORECARD.md`.
 5. Owner: review and merge PR #10; do not publish while any gate is incomplete.
