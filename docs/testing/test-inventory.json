@@ -2,9 +2,9 @@
   "fileCount": 47,
   "files": [
     {
-      "lines": 99,
+      "lines": 101,
       "path": "test/accessibility_test.dart",
-      "sha256": "66923c0391870c9a634b326f8ae0c590c8174960295049dc797c7e80117ec4ae",
+      "sha256": "0e6dec617dd399d960634317ccd987b06b2eae3e7b454225d02ca3aaf011de49",
       "tags": [],
       "tests": 3
     },
