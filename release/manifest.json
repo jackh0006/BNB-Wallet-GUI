@@ -7,8 +7,8 @@
   },
   "evidenceBundle": {
     "path": "release/evidence.json",
-    "sha256": "4d120741595d7937a1d248949c1d015381525629eb095f6e28cc627accd2928c",
-    "sourceCommit": "b7925734cc565812babd1052c95ef9e295ccd465"
+    "sha256": "c492e4fe43431f65264bdf9fda306688b3c04a884abf10ac03c4705d09e420ec",
+    "sourceCommit": "53468e13e450c12ca2c191aef5a47e86862e94e9"
   },
   "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
   "knownLimitations": "docs/KNOWN_LIMITATIONS.md",
