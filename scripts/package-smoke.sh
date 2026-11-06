@@ -30,6 +30,11 @@ done
 
 [ -n "$DEB" ] || usage
 [ -f "$DEB" ] || { echo "ERROR: package not found: $DEB" >&2; exit 1; }
+DEB="$(cd "$(dirname "$DEB")" && pwd)/$(basename "$DEB")"
+if [ -n "$PREVIOUS" ]; then
+  [ -f "$PREVIOUS" ] || { echo "ERROR: previous package not found: $PREVIOUS" >&2; exit 1; }
+  PREVIOUS="$(cd "$(dirname "$PREVIOUS")" && pwd)/$(basename "$PREVIOUS")"
+fi
 
 install_pkg() {
   local path="$1"
