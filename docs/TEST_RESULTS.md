@@ -26,7 +26,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 14 | `.deb` build | `bash scripts/build-deb.sh` | `0cd7cd6` | PASS (unsigned) | 25 s | `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
 | 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `0cd7cd6` | PASS; all libs resolve; no secret-bearing names | — | local |
 | 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 0cd7cd6` | `0cd7cd6` | PASS; identical archive `0e3cb4c1…` and manifests | 254 s | `release/checks.json` |
-| 17 | Hosted CI | GitHub Actions push `42293751342`, PR `42293761453` | `52928c8` | PASS: all required contexts incl. Anvil and identity | 4m47s / 4m41s | GitHub Actions |
+| 17 | Hosted CI | GitHub Actions push `42306383769`, PR `42306389744` | `dd57ea9` | PASS: all required contexts incl. Anvil, identity, package smoke | 4m28s / 4m02s | GitHub Actions |
 | 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `0cd7cd6` | PASS: x-wallet install, upgrade from bnb-wallet 1.0.9, launch, uninstall, reinstall | 2m45s | GitHub run `42302764476` |
 | 19 | Real EVM integration | `scripts/run-anvil-tests.sh` against Anvil 1.9.0, chain 97 | `0cd7cd6` | PASS 3/3: native transfer, wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert | 10 s | `release/checks.json` |
 | 22 | Mutation testing | `python3 scripts/security_mutation_check.py` | `90d0f7c` | PASS 5/5 mutations killed | 97 s | `release/checks.json` |

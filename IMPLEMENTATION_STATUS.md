@@ -12,10 +12,10 @@ human-readable index, not a second source of truth.
 | Version | `1.1.0+5` |
 | Branch | `release/1.0.10` |
 | Tested source commit | `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54` |
-| Evidence bundle | `release/evidence.json` (source/checks/artifact `0cd7cd6`) |
+| Evidence bundle | `release/evidence.json` (source `b50ad2c`, checks/artifact `0cd7cd6`) |
 | Code commit | `e474b8956a68febf44ef780c7decf898e9050018` |
 | Pull request | <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10> |
-| Hosted CI | All required checks pass on `52928c8` (push `42293751342`, PR `42293761453`) |
+| Hosted CI | All required checks pass on `dd57ea9` (push `42306383769`, PR `42306389744`) |
 | Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
 | Final unsigned package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
 

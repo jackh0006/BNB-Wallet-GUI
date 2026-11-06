@@ -2,7 +2,7 @@
 
 **Candidate:** `1.0.10+4`
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
-**Evidence bundle source:** `5cfa1b03128e8c0ea705f8d4d4d6d36c567c8a88`
+**Evidence bundle source:** `b50ad2c95fb2c204fbb7803ffcc27d30483538cb`
 **Tested code commit:** `90d0f7cce3c535455495e29a03c0f35e8d91de6c`
 **PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
 
@@ -11,7 +11,7 @@
 | `environment.txt` | Host OS/kernel/CPU/RAM and Flutter/Dart versions |
 | `full-suite-summary.txt` | Local serial full-suite summary (47/47) |
 | `ci-checks.txt` | GitHub required-check results for PR #10 |
-| `reproducibility-final.log` | Two clean fixed-path builds at the final commit; identical archive `134e6b06…` |
+| `reproducibility-x-wallet.log` | X Wallet two clean fixed-path builds; identical archive `0e3cb4c1…` |
 | `reproducibility-fixed.log` | Earlier fixed-path investigation (historical; archive `388f94bf…`) |
 | `same-path-diff.txt` | Same-path rebuild diff (only a stale `native_assets.json`) |
 | `package-sha256.txt` | Unsigned `.deb` SHA-256 |

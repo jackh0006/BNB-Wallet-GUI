@@ -1,1 +1,1 @@
-d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244  /tmp/opencode/deb-90/bnb-wallet-1.0.10-amd64.deb
+0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab  /tmp/opencode/x-deb-final/x-wallet-1.1.0-amd64.deb
