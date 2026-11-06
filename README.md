@@ -53,15 +53,25 @@ and limitations needed to judge it:
 
 | Evidence | Where to inspect |
 |---|---|
+| Current implementation status and blockers | [Implementation status](IMPLEMENTATION_STATUS.md) |
+| Chronological implementation log | [Implementation log](docs/IMPLEMENTATION_LOG.md) |
+| Security scorecard and evidence | [Security scorecard](docs/SECURITY_SCORECARD.md) |
+| Risk register | [Security risk register](docs/SECURITY_RISK_REGISTER.md) |
 | Threats, protections, and residual risks | [Threat model](docs/THREAT_MODEL.md) |
 | Security findings and exact scope | [Security self-assessment](SECURITY_AUDIT.md) |
 | Generated status, checks, and limitations | [Generated status](docs/GENERATED_STATUS.md) |
 | Machine-readable release manifest | [Manifest](release/manifest.json) |
 | Test inventory (47 files) | [Test inventory](docs/testing/test-inventory.json) |
+| Test results and environment | [Test results](docs/TEST_RESULTS.md) |
 | Reproducible automated checks | [Testing strategy](docs/TESTING_STRATEGY.md) |
 | Dependency inventory | [SBOM](docs/SBOM.json) |
+| Supply-chain controls | [Supply-chain security](docs/SUPPLY_CHAIN_SECURITY.md) |
 | Build/install gate | [Release checklist](docs/RELEASE_CHECKLIST.md) |
-| Per-version status and confirmation rule | [Release evidence](docs/RELEASE_EVIDENCE.md) |
+| Release process | [Release process](docs/RELEASE_PROCESS.md) |
+| Release verification | [Release verification](docs/RELEASE_VERIFICATION.md) |
+| Platform support | [Compatibility](docs/COMPATIBILITY.md) |
+| Backup and recovery | [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) |
+| Incident response | [Incident response](docs/INCIDENT_RESPONSE.md) |
 | Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
 | Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |
 | Private vulnerability reporting | [Security policy](SECURITY.md) |

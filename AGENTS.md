@@ -244,9 +244,15 @@ Every meaningful change must update:
 
 ---
 
-**At session start**: Read this file, `docs/PROJECT_STATUS.md`, and `docs/PROJECT_MASTER_PLAN.md`.
+**At session start**: Read this file, `IMPLEMENTATION_STATUS.md`,
+`docs/IMPLEMENTATION_LOG.md`, `docs/SECURITY_SCORECARD.md`,
+`docs/SECURITY_RISK_REGISTER.md`, `docs/THREAT_MODEL.md`,
+`docs/TEST_RESULTS.md`, `docs/RELEASE_PROCESS.md`, and the release manifest.
 
-**At session end**: Update `docs/PROJECT_STATUS.md`, `docs/PROJECT_MASTER_PLAN.md`, and task ledger. Record exact next steps.
+**At session end**: Append to `docs/IMPLEMENTATION_LOG.md`, update
+`IMPLEMENTATION_STATUS.md` and `docs/SECURITY_SCORECARD.md`, and record exact
+next steps. Never claim a check passed without a command, exit code, commit,
+and log.
 
 ## Mandatory GitHub Publication and Version Evidence
 

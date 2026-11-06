@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUTDIR="/home/mhh06/Downloads/BNB Wallet"
+OUTDIR="${BNB_OUTDIR:-$HOME/Downloads/BNB Wallet}"
 VERSION="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$ROOT/pubspec.yaml" | head -1)"
 VERSION="${VERSION:-0.0.0}"
 DEB="$OUTDIR/bnb-wallet-${VERSION}-amd64.deb"

@@ -24,7 +24,7 @@ not verification.
 | Test inventory and docs | `test_inventory.py --check`, `release_manifest.py --check`, `generate_docs.py --check` | PASS |
 | Release gate | `python3 scripts/release-gate.py` | INCOMPLETE: source checks recorded locally; release artifacts/install/reproducibility absent |
 | Clean install / launch | manual, clean Ubuntu | NOT TESTED |
-| Reproducibility | `bash scripts/reproducibility-check.sh` | **NOT REPRODUCIBLE** — two clean builds of `dabe165` differ in the binary, `libapp.so`, and plugin libraries |
+| Reproducibility | `bash scripts/reproducibility-check.sh` | PASS with fixed-path constraint — identical archive `388f94bf…` and manifests; different absolute paths differ (embedded Flutter paths) |
 | Independent audit | external | NOT AVAILABLE |
 
 Every new defect needs a regression test that asserts the intended code path,

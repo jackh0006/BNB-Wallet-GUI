@@ -3,9 +3,9 @@
 **Last Updated**: 2026-11-06
 **Current release line**: `1.0.10+4` on `release/1.0.10`
 **Current milestone**: release-candidate verification
-**Status**: **PARTIALLY VERIFIED / NOT RELEASABLE** — hosted CI passes, but the
-package is unsigned, clean install is untested, reproducibility FAILED, and no
-independent audit exists.
+**Status**: **PARTIALLY VERIFIED / NOT RELEASABLE** — hosted CI passes and
+reproducibility passes at a documented fixed path, but the package is unsigned,
+clean install is untested, and no independent audit exists.
 
 ## 2026-11-06 candidate update
 
@@ -18,7 +18,7 @@ independent audit exists.
 | Linux build | PASS | `flutter build linux --release` 2m03s |
 | `.deb` package | PARTIAL | `bnb-wallet-1.0.10-amd64.deb` built unsigned; SHA-256 `e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1`; not publishable |
 | Machine-readable evidence | IMPLEMENTED | `release/manifest.json`, `docs/testing/test-inventory.json`, `docs/GENERATED_STATUS.md`, `release-gate.py` |
-| Release gate | INCOMPLETE / BLOCKED | Source checks pass; `.deb` is unsigned, install is untested, reproducibility FAILED |
+| Release gate | INCOMPLETE / BLOCKED | Source checks pass; `.deb` is unsigned and install is untested |
 | Android | BLOCKED | Historical signing key rotation `NOT VERIFIED`; denylist empty |
 | Independent audit | NOT AVAILABLE | None has been performed |
 

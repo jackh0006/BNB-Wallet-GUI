@@ -1,0 +1,59 @@
+name: package-smoke
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'scripts/build-deb.sh'
+      - 'scripts/package-smoke.sh'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'linux/**'
+      - '.github/workflows/package-smoke.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-launch-upgrade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.47.6'
+          cache: true
+      - name: Install Linux build dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install --yes
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
+      - run: flutter pub get
+      - name: Build the candidate .deb
+        run: |
+          set -euo pipefail
+          export BNB_OUTDIR="$PWD/dist"
+          bash scripts/build-deb.sh
+          ls -l dist
+      - name: Download the previous public package
+        run: |
+          curl -fL --retry 3 -o previous.deb \
+            https://github.com/jackh0006/BNB-Wallet-GUI/releases/download/v1.0.9-ui.1/bnb-wallet-1.0.9-amd64.deb
+          sha256sum previous.deb
+      - name: Install, launch, upgrade, uninstall, reinstall
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' pubspec.yaml | head -1)"
+          bash scripts/package-smoke.sh \
+            --deb "dist/bnb-wallet-${VERSION}-amd64.deb" \
+            --previous previous.deb \
+            --seconds 20
