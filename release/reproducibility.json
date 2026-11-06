@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3aef4b908fded5e92823c76f02d4016265c8bf12",
+  "status": "PASS_FIXED_PATH",
+  "buildPath": "/tmp/bnb-repro-final",
+  "environment": {
+    "os": "Ubuntu 24.04.5 LTS",
+    "architecture": "x86_64",
+    "flutter": "3.47.6 stable",
+    "dart": "3.13.5",
+    "sourceDateEpoch": 0,
+    "gzip": "gzip -n"
+  },
+  "archiveSha256": "388f94bf49c946c9d3da89c5df8f2de1e8cfeae389c0733b155001d3c40165ab",
+  "fileManifestsIdentical": true,
+  "constraint": "Flutter embeds the absolute build path in libapp.so and plugin .so files. Two different absolute paths are NOT guaranteed to match; this result is not an independent-machine proof.",
+  "evidence": "docs/evidence/2026-11-06/reproducibility-fixed.log"
+}

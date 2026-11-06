@@ -49,7 +49,14 @@ dpkg-deb -c "/home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.10-amd64.deb"
 python3 scripts/release-gate.py
 ```
 
+## Machine-readable records
+
+- `release/reproducibility.json` — fixed-path result and constraint.
+- `release/package-smoke.json` — install/launch/upgrade/uninstall run.
+- `release/manifest.json` — source/toolchain/SBOM/test-inventory identity.
+- `docs/evidence/2026-11-06/` — logs and environment.
+
 Do not call this release verified, signed, independently audited, or suitable
-for significant funds. The exact evidence commit for CI is `3aef4b9`; the
-artifact was produced from `b37cede` and is recorded here, but it is unsigned
-and not install-tested.
+for significant funds. The exact evidence commit for CI is `3aef4b9`; later
+commits add release tooling and documentation. The artifact is unsigned and
+not published.

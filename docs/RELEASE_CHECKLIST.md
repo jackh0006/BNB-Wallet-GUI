@@ -38,7 +38,9 @@ that items are complete.
       signature and `SHA256SUMS`.
 - [ ] `BNB_RELEASE_DEB=<artifact> bash scripts/release-check.sh` passes against
       that exact artifact.
-- [ ] Installed and launched on a clean supported Ubuntu environment.
+- [ ] `package-smoke` passed on `ubuntu-24.04`: install, Xvfb launch, upgrade
+      from the previous public package with data preservation, uninstall, and
+      reinstall.
 - [ ] Fresh install, upgrade, uninstall, data preservation, file permissions,
       and offline-routing failure behavior verified.
 - [ ] Artifact SHA-256 and signature fingerprint are recorded in the release
@@ -46,9 +48,10 @@ that items are complete.
 
 ## Reproducibility
 
-- [ ] `bash scripts/reproducibility-check.sh` has a recorded result. If the
-      archives differ, the release is marked **not reproducible**; provenance
-      evidence must not be described as reproducibility.
+- [ ] `bash scripts/reproducibility-check.sh` has a recorded result. The
+      procedure uses a fixed absolute build path because Flutter embeds it; a
+      different-path result is not evidence. If the archives differ, the
+      release is marked **not reproducible**.
 - [ ] The exact Flutter/Dart toolchain is pinned for the release build.
 
 ## Documentation
