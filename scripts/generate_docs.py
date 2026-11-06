@@ -44,6 +44,22 @@ def head_commit() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
 
+def candidate_head() -> str:
+    """PR merge commits have two parents; the second is the actual PR head.
+
+    Evidence must be compared against the code the PR introduces, not against
+    unrelated base-branch changes that happen to be in the merge commit.
+    """
+    fields = subprocess.check_output(
+        ["git", "rev-list", "--parents", "-n", "1", "HEAD"],
+        cwd=ROOT,
+        text=True,
+    ).strip().split()
+    if len(fields) >= 3:
+        return fields[2]
+    return fields[0]
+
+
 EVIDENCE_ONLY_PATHS = {
     "release/evidence.json",
     "release/manifest.json",
@@ -60,7 +76,7 @@ EVIDENCE_ONLY_PATHS = {
 
 
 def evidence_only_ok(source_commit: str) -> bool:
-    head = head_commit()
+    head = candidate_head()
     if source_commit == head:
         return True
     ancestor = subprocess.run(
