@@ -35,12 +35,12 @@ A declaration count is not a pass count. Pass/fail evidence comes only from a co
 | Check | Exit | Duration (s) | Required | Log SHA-256 |
 |---|---|---|---|---|
 | cold-signature | 0 | 3.759 | yes | 5575c271e9b604d3 |
-| deb-build | 0 | 23.902 | yes | f8709f566b414551 |
+| deb-build | 0 | 24.657 | yes | b0871d41c7c13529 |
 | dependency-audit | 0 | 152.628 | yes | 531db7f60a49620c |
 | full-test-suite | 0 | 593.75 | yes | a2db0056e80e0d9d |
 | install-smoke | 0 | 161 | yes | — |
 | license-inventory | 0 | 0.064 | yes | ab9b22cbedaa80d3 |
-| linux-build | 0 | 14.245 | yes | ceb4fad44ba25641 |
+| linux-build | 0 | 114.281 | yes | ceb4fad44ba25641 |
 | release-evidence | 0 | 0.046 | yes | c3c5f270e643a3bd |
 | reproducibility | 0 | 251.164 | yes | 391f4c7ea096ce59 |
 | sbom | 0 | 0.055 | yes | 2eae3b70d7706078 |

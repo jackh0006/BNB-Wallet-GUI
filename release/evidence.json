@@ -31,12 +31,12 @@
     {
       "command": "bash scripts/build-deb.sh",
       "commit": "142929315b7df572ffae93cbc5ab1a2ec2395724",
-      "durationSeconds": 23.902,
+      "durationSeconds": 24.657,
       "exitCode": 0,
-      "finishedAt": "2026-11-06T18:58:23.620814Z",
+      "finishedAt": "2026-11-06T19:08:55.449458Z",
       "id": "deb-build",
-      "log": "/tmp/opencode/evidence/f3-deb-build.log",
-      "logSha256": "f8709f566b414551bbfc2168bf653862b4f9361f15e24cf1d6a8b663fba3c3e4",
+      "log": "/tmp/opencode/evidence/f3-clean-deb-build.log",
+      "logSha256": "b0871d41c7c13529e2ebda0fbfdf44cc36a0193334c32ead9d127ee1b0382741",
       "machine": {
         "architecture": "x86_64",
         "cpuCount": 2,
@@ -45,7 +45,7 @@
         "os": "Linux-7.0.0-42-generic-x86_64-with-glibc2.39"
       },
       "required": true,
-      "startedAt": "2026-11-06T18:57:59.718743Z",
+      "startedAt": "2026-11-06T19:08:30.792330Z",
       "toolchain": {
         "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
         "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
@@ -144,11 +144,11 @@
     {
       "command": "flutter build linux --release",
       "commit": "142929315b7df572ffae93cbc5ab1a2ec2395724",
-      "durationSeconds": 14.245,
+      "durationSeconds": 114.281,
       "exitCode": 0,
-      "finishedAt": "2026-11-06T18:57:58.555185Z",
+      "finishedAt": "2026-11-06T19:08:29.488555Z",
       "id": "linux-build",
-      "log": "/tmp/opencode/evidence/f3-linux-build.log",
+      "log": "/tmp/opencode/evidence/f3-clean-linux-build.log",
       "logSha256": "ceb4fad44ba256413f7aa6b2f2ac3b5cbae89cd4603ac347caca746817ed5ced",
       "machine": {
         "architecture": "x86_64",
@@ -158,7 +158,7 @@
         "os": "Linux-7.0.0-42-generic-x86_64-with-glibc2.39"
       },
       "required": true,
-      "startedAt": "2026-11-06T18:57:44.310463Z",
+      "startedAt": "2026-11-06T19:06:35.207505Z",
       "toolchain": {
         "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
         "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
