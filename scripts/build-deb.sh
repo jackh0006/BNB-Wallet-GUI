@@ -69,20 +69,17 @@ StartupWMClass=BNB Wallet
 DESKTOP
 chmod 0644 "$STAGE/usr/share/applications/bnb-wallet.desktop"
 
-# Icons (4K source resized to standard hicolor sizes).
-python3 - "$ROOT" "$STAGE" <<'PY'
-import os, sys
-from PIL import Image
-root, stage = sys.argv[1], sys.argv[2]
-src = os.path.join(root, "assets", "icon", "bnb-wallet-1024.png")
-img = Image.open(src).convert("RGBA")
-for size in (16, 32, 48, 64, 128, 256, 512, 1024):
-    d = os.path.join(stage, "usr", "share", "icons", "hicolor",
-                     f"{size}x{size}", "apps")
-    os.makedirs(d, exist_ok=True)
-    img.resize((size, size), Image.LANCZOS).save(
-        os.path.join(d, "bnb-wallet.png"), "PNG")
-PY
+# Icons: the repository ships every hicolor size, so packaging does not need
+# an image-resizing dependency (Pillow) in CI.
+for size in 16 32 48 64 128 256 512 1024; do
+  src="$ROOT/assets/icon/bnb-wallet-${size}.png"
+  if [ ! -f "$src" ]; then
+    echo "ERROR: missing packaged icon: assets/icon/bnb-wallet-${size}.png" >&2
+    exit 1
+  fi
+  install -D -m 0644 "$src" \
+    "$STAGE/usr/share/icons/hicolor/${size}x${size}/apps/bnb-wallet.png"
+done
 
 # control file.
 cat > "$STAGE/DEBIAN/control" <<CONTROL
