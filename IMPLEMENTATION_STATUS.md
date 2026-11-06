@@ -11,12 +11,12 @@ human-readable index, not a second source of truth.
 |---|---|
 | Version | `1.0.10+4` |
 | Branch | `release/1.0.10` |
-| HEAD | `3aef4b908fded5e92823c76f02d4016265c8bf12` |
+| HEAD | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
 | Code commit | `e474b8956a68febf44ef780c7decf898e9050018` |
 | Pull request | <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10> |
-| Hosted CI | All required checks pass on `3aef4b9` (push `42261933060`, PR `42261942195`) |
+| Hosted CI | All required checks pass on `1429293` (push `42273447503`, PR `42273456740`) |
 | Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
-| Final unsigned package | `bnb-wallet-1.0.10-amd64.deb`, SHA-256 `0ab7e99faf4639d3a66fe18509c19d8a5843793cafe6d2addde9e77b4de58349` |
+| Final unsigned package | `bnb-wallet-1.0.10-amd64.deb`, SHA-256 `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
 
 ## Verified
 
@@ -30,11 +30,11 @@ human-readable index, not a second source of truth.
   inventory, generated-doc drift, dependency review, and CodeQL pass.
 - Reproducibility: two clean builds at fixed path `/tmp/bnb-repro-final` with
   `SOURCE_DATE_EPOCH=0` and `gzip -n` produced archive
-  `388f94bf49c946c9d3da89c5df8f2de1e8cfeae389c0733b155001d3c40165ab`.
+  `134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`.
   Different absolute paths are not guaranteed to match because Flutter embeds
   the path in `libapp.so` and plugin libraries.
 - Clean install/launch/upgrade/uninstall smoke: GitHub `ubuntu-24.04` run
-  `42270460913` installs the `.deb`, launches under Xvfb, upgrades from the
+  `42273456783` installs the `.deb`, launches under Xvfb, upgrades from the
   public 1.0.9 package with a data marker, uninstalls, and reinstalls.
 
 ## Not verified / blocked

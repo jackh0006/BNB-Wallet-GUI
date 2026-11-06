@@ -1,1 +1,1 @@
-0ab7e99faf4639d3a66fe18509c19d8a5843793cafe6d2addde9e77b4de58349  /home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.10-amd64.deb
+734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088  /tmp/opencode/deb-final/bnb-wallet-1.0.10-amd64.deb

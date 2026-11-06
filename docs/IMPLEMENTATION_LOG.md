@@ -6,7 +6,7 @@ entries and mark superseded claims.
 ## 2026-11-06 — release/1.0.10 candidate
 
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
-**Final candidate HEAD:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
+**Final candidate HEAD:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 **PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
 
 ### Cryptography and transaction fixes
@@ -59,14 +59,14 @@ entries and mark superseded claims.
   `native_assets.json`.
 - Two clean builds at the same fixed path `/tmp/bnb-repro-final` produced
   identical files and, with `SOURCE_DATE_EPOCH=0` and `gzip -n`, identical
-  archives: `388f94bf49c946c9d3da89c5df8f2de1e8cfeae389c0733b155001d3c40165ab`.
+  archives: `134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`.
 - Constraint documented: different absolute build paths are not guaranteed to
   match; independent-machine proof is still required.
 
 ### Artifact
 
 - Built unsigned `bnb-wallet-1.0.10-amd64.deb` from the final docs state.
-- SHA-256: `0ab7e99faf4639d3a66fe18509c19d8a5843793cafe6d2addde9e77b4de58349`.
+- SHA-256: `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088`.
 - `dpkg-deb -x` + `ldd` resolve all libraries; no secret-bearing filenames.
 - Not signed, not installed, not published.
 

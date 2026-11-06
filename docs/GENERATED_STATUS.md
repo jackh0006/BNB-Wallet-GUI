@@ -7,7 +7,7 @@ Regenerate with `python3 scripts/generate_docs.py`.
 
 - Version: `1.0.10+4`
 - Exact source commit: recorded in `release/evidence.json` when a release bundle is published. It is deliberately not embedded here, because a document cannot contain the hash of the commit that contains it.
-- Status: **INCOMPLETE**
+- Status: **PARTIALLY VERIFIED**
 
 Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY VERIFIED` means source checks passed but a release-only check is missing; `INCOMPLETE` means a required result is absent; `FAILED` means a recorded check or artifact failed.
 
@@ -32,7 +32,21 @@ A declaration count is not a pass count. Pass/fail evidence comes only from a co
 
 ## Recorded checks for this commit
 
-No committed evidence bundle names this commit. **NOT TESTED / INCOMPLETE.**
+| Check | Exit | Duration (s) | Required | Log SHA-256 |
+|---|---|---|---|---|
+| cold-signature | 0 | 3.759 | yes | 5575c271e9b604d3 |
+| deb-build | 0 | 23.902 | yes | f8709f566b414551 |
+| dependency-audit | 0 | 152.628 | yes | 531db7f60a49620c |
+| full-test-suite | 0 | 593.75 | yes | a2db0056e80e0d9d |
+| install-smoke | 0 | 161 | yes | — |
+| license-inventory | 0 | 0.064 | yes | ab9b22cbedaa80d3 |
+| linux-build | 0 | 14.245 | yes | ceb4fad44ba25641 |
+| release-evidence | 0 | 0.046 | yes | c3c5f270e643a3bd |
+| reproducibility | 0 | 251.164 | yes | 391f4c7ea096ce59 |
+| sbom | 0 | 0.055 | yes | 2eae3b70d7706078 |
+| secret-scan | 0 | 1.441 | yes | 7ff728a5877b4846 |
+| static-analysis | 0 | 5.009 | yes | 145eef7ab05943c8 |
+| test-inventory | 0 | 0.102 | yes | 16f3f183de2939cf |
 
 ## Artifacts
 
@@ -88,4 +102,4 @@ Measured on: architecture=x86_64, cpuCount=2, dart=3.13.5, flutter=3.47.6 stable
 
 ## Open gate problems
 
-- no committed evidence bundle for this source commit
+- missing release check: deb-signature

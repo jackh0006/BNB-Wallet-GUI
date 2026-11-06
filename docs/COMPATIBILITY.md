@@ -1,7 +1,7 @@
 # Platform Compatibility
 
 **Date:** 2026-11-06
-**Source commit:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
+**Source commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 
 Status labels are strict: **IMPLEMENTED**, **BUILT**, **INSTALLED**,
 **LAUNCHED**, **FUNCTIONAL**, **SUPPORTED**. A platform that only compiles is
@@ -26,7 +26,7 @@ not supported.
   `libsecret-1-0`, `liblzma5`, `libstdc++6`.
 - `package-smoke` on GitHub `ubuntu-24.04` installs the `.deb`, launches it
   under Xvfb for 20 s, upgrades from the public 1.0.9 package with a data
-  marker, uninstalls, and reinstalls. Run 42270460913 passed.
+  marker, uninstalls, and reinstalls. Run 42273456783 passed.
 - A full interactive UI walkthrough on a physical desktop is still not tested.
 
 ## Hardware wallets

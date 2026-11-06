@@ -1,7 +1,7 @@
 # Security Scorecard
 
 **Date:** 2026-11-06
-**Source commit:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
+**Source commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 **Status:** provisional, internal self-assessment. **This is not an independent
 audit.** A score never overrides a release blocker.
 

@@ -1,7 +1,7 @@
 # Release Verification
 
 **Candidate:** `1.0.10+4`
-**Source commit:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
+**Source commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 **Status:** **PARTIALLY VERIFIED / NOT RELEASABLE**
 
 ## Artifact record
@@ -11,17 +11,17 @@
 | Filename | `bnb-wallet-1.0.10-amd64.deb` |
 | Platform | Linux amd64 |
 | Version | `1.0.10` |
-| Built from | `b37cede4671617c72f644d0c1e22861ac537e13b` (documentation-only ancestor of `3aef4b9`) |
-| SHA-256 | `0ab7e99faf4639d3a66fe18509c19d8a5843793cafe6d2addde9e77b4de58349` |
+| Built from | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
+| SHA-256 | `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
 | Signature | **MISSING** |
 | Signature verified | **NO** |
 | Provenance | Workflow exists; no published attestation |
-| Reproducibility | PASS at fixed path `/tmp/bnb-repro-final`, archive `388f94bf49c946c9d3da89c5df8f2de1e8cfeae389c0733b155001d3c40165ab`; different absolute paths not guaranteed |
+| Reproducibility | PASS at fixed path `/tmp/bnb-repro-final`, archive `134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`; different absolute paths not guaranteed |
 
 ## Verified checks
 
-- Hosted CI on `3aef4b9`: all required contexts pass (push `42261933060`,
-  PR `42261942195`).
+- Hosted CI on `1429293`: all required contexts pass (push `42273447503`,
+  PR `42273456740`).
 - Local full suite: 47/47 files; static analysis clean; secret scan current
   tree clean; dependency audit clean; SBOM current; test inventory current.
 - Independent ethers.js cold-signature verification passes; 8 substitutions
@@ -35,7 +35,7 @@
 | Gate | Status |
 |---|---|
 | GPG signature and verification | MISSING |
-| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42270460913` |
+| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42273456783` |
 | Android key rotation and denylist | BLOCKED |
 | Independent security audit | NOT AVAILABLE |
 | Independent-machine reproducibility | NOT TESTED |
@@ -57,6 +57,5 @@ python3 scripts/release-gate.py
 - `docs/evidence/2026-11-06/` — logs and environment.
 
 Do not call this release verified, signed, independently audited, or suitable
-for significant funds. The exact evidence commit for CI is `3aef4b9`; later
-commits add release tooling and documentation. The artifact is unsigned and
-not published.
+for significant funds. The evidence bundle names `1429293` as the source
+commit. The artifact is unsigned and not published.

@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-06
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
-**Final candidate commit:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
+**Final candidate commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
 **Environment:** Ubuntu 24.04.5 LTS, x86_64, 2 cores, 3.8 GiB RAM,
 Flutter 3.47.6 stable, Dart 3.13.5.
 
@@ -23,19 +23,20 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 11 | Test inventory | `python3 scripts/test_inventory.py --check` | `e474b89` | PASS; 47 files / 299 declarations | 0.1 s | `docs/testing/test-inventory.json` |
 | 12 | Release evidence | `python3 scripts/check_release_evidence.py` | `e474b89` | PASS | 0.05 s | `docs/releases/1.0.10.md` |
 | 13 | Linux build | `flutter build linux --release` | `e474b89` | PASS | 123 s | local; CI `linux-build` |
-| 14 | `.deb` build | `bash scripts/build-deb.sh` | `b37cede` | PASS (unsigned) | 26 s | `0ab7e99faf4639d3a66fe18509c19d8a5843793cafe6d2addde9e77b4de58349` |
-| 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `b37cede` | PASS; all libs resolve; no secret-bearing names | — | local |
-| 16 | Reproducibility (fixed path) | `BNB_REPRO_PATH=/tmp/bnb-repro-final bash scripts/reproducibility-check.sh 3aef4b9` | `3aef4b9` | PASS; identical archive `388f94bf…` and manifests | ~4 min | `docs/evidence/2026-11-06/reproducibility-fixed.log` |
-| 17 | Hosted CI | GitHub Actions push `42261933060`, PR `42261942195` | `3aef4b9` | PASS: all required contexts | 4m05s / 3m53s | GitHub Actions |
-| 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `03839a0` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m40s | GitHub run `42270460913` |
+| 14 | `.deb` build | `bash scripts/build-deb.sh` | `1429293` | PASS (unsigned) | 24 s | `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
+| 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `1429293` | PASS; all libs resolve; no secret-bearing names | — | local |
+| 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 1429293` | `1429293` | PASS; identical archive `134e6b06…` and manifests | 251 s | `docs/evidence/2026-11-06/reproducibility-final.log` |
+| 17 | Hosted CI | GitHub Actions push `42273447503`, PR `42273456740` | `1429293` | PASS: all required contexts | 3m52s / 3m52s | GitHub Actions |
+| 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `1429293` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m41s | GitHub run `42273456783` |
 | 19 | Real BSC/Anvil integration | — | — | NOT TESTED | — | mock RPC only |
 | 20 | Startup / RSS | — | — | NOT TESTED | — | needs real display session |
 | 21 | Independent audit | — | — | NOT AVAILABLE | — | none performed |
 
 ## Notes on commit binding
 
-The local suite and KDF run identify `e474b89`. The final candidate `3aef4b9`
-changes documentation only; the code/test tree is identical. Hosted CI reran
-the full suite on `3aef4b9` and passed. The `.deb` was built from `b37cede`
-(also documentation-only relative to `3aef4b9`), and its hash is recorded in
-`3aef4b9`.
+The original wallet-code commit is `e474b89`. The final candidate
+`1429293` includes release/test-tooling fixes (package smoke, test watchdog,
+test inventory) and documentation; the wallet crypto/transaction code is
+unchanged. Hosted CI ran the full suite on `1429293` and passed. The `.deb`
+and reproducibility archives were built from `1429293`; the artifact is
+unsigned and is not published.

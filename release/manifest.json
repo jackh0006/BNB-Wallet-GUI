@@ -5,7 +5,11 @@
     "incidentStatus": "OPEN \u2014 ROTATION NOT VERIFIED",
     "rotationVerified": false
   },
-  "evidenceBundle": null,
+  "evidenceBundle": {
+    "path": "release/evidence.json",
+    "sha256": "9e190b862fcc396b76f9a19df3621e9548464f7cd459ff00d3112242221200ec",
+    "sourceCommit": "142929315b7df572ffae93cbc5ab1a2ec2395724"
+  },
   "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
   "knownLimitations": "docs/KNOWN_LIMITATIONS.md",
   "lockfiles": {

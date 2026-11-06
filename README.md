@@ -17,7 +17,7 @@ per-version evidence and release status are maintained in
 <!-- BEGIN GENERATED:status -->
 > **Generated release status** — do not edit this block by hand.
 >
-> Version `1.0.10+4` · status **INCOMPLETE**
+> Version `1.0.10+4` · status **PARTIALLY VERIFIED**
 > Tests: 47 files / 299 declarations · SBOM `f992deb3fc34bdb6`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
