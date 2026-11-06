@@ -12,7 +12,7 @@
 | Platform | Linux amd64 |
 | Version | `1.0.10` |
 | Built from | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
-| SHA-256 | `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
+| SHA-256 | `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244` |
 | Signature | **MISSING** |
 | Signature verified | **NO** |
 | Provenance | Workflow exists; no published attestation |
@@ -35,7 +35,7 @@
 | Gate | Status |
 |---|---|
 | GPG signature and verification | MISSING |
-| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42273456783` |
+| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42289751525` |
 | Android key rotation and denylist | BLOCKED |
 | Independent security audit | NOT AVAILABLE |
 | Independent-machine reproducibility | NOT TESTED |

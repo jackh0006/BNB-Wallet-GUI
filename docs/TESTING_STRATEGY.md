@@ -10,7 +10,7 @@ not verification.
 |---|---|---|
 | Formatting | `dart format --output=none --set-exit-if-changed lib test tool` | PASS |
 | Static analysis | `flutter analyze --no-pub` | PASS: no issues |
-| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 48 default files, 0 failed, 0 timed out; 49 files total including the separate Anvil suite |
+| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 48 default files, 0 failed, 0 timed out, 533 s; 49 files total including the separate Anvil suite |
 | Production KDF | `test/kdf_production_test.dart` | PASS: fixed 64 MiB/t=3/p=4, native vs pure-Dart agreement, one real round-trip < 60 s |
 | Property/fuzz-style parsers | `test/fuzz_and_property_test.dart` | PASS: deterministic seeds, 2000-iteration RLP/calldata/vault/envelope mutations |
 | RPC adversarial responses | `test/rpc_adversarial_test.dart` | PASS: wrong chain, non-JSON/HTML, oversized/malformed balance, network switch |

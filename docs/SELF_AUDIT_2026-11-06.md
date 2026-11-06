@@ -54,7 +54,7 @@ node integration and full token-contract semantics remain unverified.
 | C-01 | Historical Android signing keystore exposed | Critical | **BLOCKED** | Rotation `NOT VERIFIED`; denylist empty; `INCIDENT_2026-11-KEYSTORE.md` |
 | C-02 | Builds differ at different absolute paths | High | Mitigated with constraint | Flutter embeds paths; fixed-path builds match `388f94bf…`; independent-machine proof still missing |
 | C-03 | Candidate `.deb` is unsigned | High | **BLOCKED** | No GPG key in this environment; `RELEASE_VERIFICATION.md` |
-| C-04 | Clean install/launch/upgrade/uninstall untested locally | High | Mitigated | GitHub `ubuntu-24.04` package-smoke run `42273456783` passed; full interactive UI walkthrough still untested |
+| C-04 | Clean install/launch/upgrade/uninstall untested locally | High | Mitigated | GitHub `ubuntu-24.04` package-smoke run `42289751525` passed; full interactive UI walkthrough still untested |
 | C-05 | No independent audit | High | Open | Self-audit only |
 | C-06 | Stale/superseded PRs and unreviewed Dependabot updates | Medium | Open | PRs #2–#9; owner decision |
 | C-07 | A failing/timed-out test could be mistaken for a pass | High | Mitigated | `record_check.py`, per-file watchdog, explicit status vocabulary |

@@ -66,7 +66,7 @@ entries and mark superseded claims.
 ### Artifact
 
 - Built unsigned `bnb-wallet-1.0.10-amd64.deb` from the final docs state.
-- SHA-256: `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088`.
+- SHA-256: `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244`.
 - `dpkg-deb -x` + `ldd` resolve all libraries; no secret-bearing filenames.
 - Not signed, not installed, not published.
 
@@ -94,3 +94,24 @@ entries and mark superseded claims.
 - “Reproducibility FAILED” (earlier 2026-11-06 entry) is superseded by the
   fixed-path pass above. Different-path builds still differ; the earlier
   failure was real and is retained as investigation history.
+
+## 2026-11-06 — final engineering tranche
+
+- **Release identity:** `scripts/check_release_identity.py` plus 12 negative
+  tests; fail-closed on missing checks, stale hashes, malformed commits,
+  duplicate checks, missing identity notes, and artifact hash mismatch.
+- **Real EVM:** Anvil 1.9.0 chain 97 integration suite. Native transfer,
+  wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert,
+  signed-field verification. Pinned fixture at
+  `test/integration/fixtures/test_token.json`.
+- **Mutation testing:** `scripts/security_mutation_check.py`; first run found
+  missing zero-address and low-s regressions, both added; final score 5/5.
+- **Backup/restore E2E:** synthetic create → encrypted backup → wipe → restore,
+  wrong password, tamper and truncation tests.
+- **Signing tooling:** owner-only `scripts/sign-release.sh`,
+  `scripts/verify-release-signature.sh`, disposable-key negative tests.
+- **Android inventory:** `scripts/inventory-android-signers.sh` prints public
+  fingerprints only; synthetic-keystore test; incident remains blocked.
+- **CI:** Anvil, signing, inventory, mutation, identity, package-smoke,
+  two-runner reproducibility and startup/RSS workflows.
+- Current scorecard: **79/100**, unsigned and unsigned-for-release.

@@ -17,7 +17,7 @@ human-readable index, not a second source of truth.
 | Pull request | <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10> |
 | Hosted CI | All required checks pass on `1429293` (push `42278713164`, PR `42278724511`) |
 | Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
-| Final unsigned package | `bnb-wallet-1.0.10-amd64.deb`, SHA-256 `734ccd3bbf0754db6c67f8b00d484d6c0751001883cd18a9112a33fa680cf088` |
+| Final unsigned package | `bnb-wallet-1.0.10-amd64.deb`, SHA-256 `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244` |
 
 ## Verified
 
@@ -35,7 +35,7 @@ human-readable index, not a second source of truth.
   Different absolute paths are not guaranteed to match because Flutter embeds
   the path in `libapp.so` and plugin libraries.
 - Clean install/launch/upgrade/uninstall smoke: GitHub `ubuntu-24.04` run
-  `42273456783` installs the `.deb`, launches under Xvfb, upgrades from the
+  `42289751525` installs the `.deb`, launches under Xvfb, upgrades from the
   public 1.0.9 package with a data marker, uninstalls, and reinstalls.
 
 ## Not verified / blocked

@@ -30,9 +30,14 @@ jobs:
         run: |
           set -euo pipefail
           curl -L https://foundry.paradigm.xyz | bash
-          export PATH="$HOME/.foundry/bin:$PATH"
+          for dir in "$HOME/.foundry/bin" "$HOME/.config/.foundry/bin"; do
+            if [ -d "$dir" ]; then
+              export PATH="$dir:$PATH"
+              echo "$dir" >> "$GITHUB_PATH"
+            fi
+          done
+          command -v foundryup
           foundryup -i 1.9.0
-          echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
           anvil --version
       - name: Install Dart dependencies
         run: flutter pub get
