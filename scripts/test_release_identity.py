@@ -25,6 +25,7 @@ FILES = [
     "docs/SBOM.json",
     "docs/testing/test-inventory.json",
     "docs/releases/1.0.10.md",
+    "docs/releases/1.1.0.md",
 ]
 
 
