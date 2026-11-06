@@ -23,7 +23,7 @@ full-release confirmation.
 | Linux `.deb` artifact integrity | NOT BUILT FOR 1.0.10 | The earlier 1.0.9 package and its signature are historical. A 1.0.10 package must be built from the tagged candidate and verified with `release-check.sh`. |
 | Full Linux rebuild from source | PASS (single build) | `flutter build linux --release` completed in 2m03s for 1.0.10. |
 | Bit-for-bit reproducibility | PASS with constraint | Two clean builds at fixed path `/tmp/bnb-repro-final` produced identical archive `388f94bf…` and file manifests. Different absolute paths differ because Flutter embeds them; independent-machine proof is still required. |
-| Clean Ubuntu 24.04 install, launch, upgrade, uninstall, reinstall | PASS (smoke) | GitHub `ubuntu-24.04` run `42289751525`: install, Xvfb launch, upgrade from 1.0.9 with data marker, uninstall, reinstall. A full interactive UI walkthrough is still not tested. |
+| Clean Ubuntu 24.04 install, launch, upgrade, uninstall, reinstall | PASS (smoke) | GitHub `ubuntu-24.04` run `42302764476`: install, Xvfb launch, upgrade from 1.0.9 with data marker, uninstall, reinstall. A full interactive UI walkthrough is still not tested. |
 | Large-value mainnet safety | NEEDS OWNER | Automated tests cannot prove safety against malware, phishing, a compromised OS, or an incorrect recipient. Perform paper-backup restoration and progressively sized transfers. |
 
 ## Release decision

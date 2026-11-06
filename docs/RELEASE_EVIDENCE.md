@@ -50,7 +50,7 @@ embedded in a document that the commit itself contains.
 absolute path, with `SOURCE_DATE_EPOCH=0` and timestamp-free gzip, and compares
 both the archive and the file manifest. On 2026-11-06 two clean builds at
 `/tmp/bnb-repro-final` produced identical archive
-`134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`.
+`0e3cb4c1465ad0ac35f8104560ed623b79c4d7194bdb625119f858de1d0e8d4c`.
 
 This passes only under the documented fixed-path constraint: Flutter embeds
 absolute paths in `libapp.so` and plugin `.so` files, so builds at different

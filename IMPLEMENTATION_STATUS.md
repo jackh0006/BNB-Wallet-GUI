@@ -11,13 +11,13 @@ human-readable index, not a second source of truth.
 |---|---|
 | Version | `1.1.0+5` |
 | Branch | `release/1.0.10` |
-| Tested source commit | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
-| Evidence bundle | `release/evidence.json` (source 5cfa1b0, checks 90d0f7c, artifact 90d0f7c) |
+| Tested source commit | `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54` |
+| Evidence bundle | `release/evidence.json` (source/checks/artifact `0cd7cd6`) |
 | Code commit | `e474b8956a68febf44ef780c7decf898e9050018` |
 | Pull request | <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10> |
 | Hosted CI | All required checks pass on `52928c8` (push `42293751342`, PR `42293761453`) |
 | Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
-| Final unsigned package | `bnb-wallet-1.0.10-amd64.deb`, SHA-256 `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244` |
+| Final unsigned package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
 
 ## Verified
 
@@ -31,11 +31,11 @@ human-readable index, not a second source of truth.
   inventory, generated-doc drift, dependency review, and CodeQL pass.
 - Reproducibility: two clean builds at fixed path `/tmp/bnb-repro-final` with
   `SOURCE_DATE_EPOCH=0` and `gzip -n` produced archive
-  `134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`.
+  `0e3cb4c1465ad0ac35f8104560ed623b79c4d7194bdb625119f858de1d0e8d4c`.
   Different absolute paths are not guaranteed to match because Flutter embeds
   the path in `libapp.so` and plugin libraries.
 - Clean install/launch/upgrade/uninstall smoke: GitHub `ubuntu-24.04` run
-  `42289751525` installs the `.deb`, launches under Xvfb, upgrades from the
+  `42302764476` installs the `.deb`, launches under Xvfb, upgrades from the
   public 1.0.9 package with a data marker, uninstalls, and reinstalls.
 
 ## Not verified / blocked

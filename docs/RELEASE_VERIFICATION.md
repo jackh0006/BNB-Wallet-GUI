@@ -1,7 +1,7 @@
 # Release Verification
 
 **Candidate:** `1.1.0+5`
-**Source commit:** pending final 1.1.0 build
+**Source commit:** `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54`
 **Status:** **PARTIALLY VERIFIED / NOT RELEASABLE**
 
 ## Artifact record
@@ -11,12 +11,12 @@
 | Filename | `x-wallet-1.1.0-amd64.deb` |
 | Platform | Linux amd64 |
 | Version | `1.1.0` |
-| Built from | pending final clean archive |
-| SHA-256 | pending final clean build |
+| Built from | `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54` (clean archive) |
+| SHA-256 | `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
 | Signature | **MISSING** |
 | Signature verified | **NO** |
 | Provenance | Workflow exists; no published attestation |
-| Reproducibility | PASS at fixed path `/tmp/bnb-repro-final`, archive `134e6b064dcc22b57a23136031b3224b6594af2f9efeb2ad388dfc3b2e6c86d4`; different absolute paths not guaranteed |
+| Reproducibility | PASS at fixed path `/tmp/bnb-repro-final`, archive `0e3cb4c1465ad0ac35f8104560ed623b79c4d7194bdb625119f858de1d0e8d4c`; different absolute paths not guaranteed |
 
 ## Verified checks
 
@@ -35,11 +35,11 @@
 | Gate | Status |
 |---|---|
 | GPG signature and verification | MISSING |
-| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42289751525` |
+| Clean install / launch / upgrade / uninstall | PASS (smoke) — GitHub run `42302764476` |
 | Android key rotation and denylist | BLOCKED |
 | Independent security audit | NOT AVAILABLE |
 | Independent-machine reproducibility | NOT TESTED |
-| Real BSC/Anvil integration | NOT TESTED |
+| Real BSC/Anvil integration | PASS (Anvil 1.9.0, 3/3) |
 
 ## Verification commands
 
