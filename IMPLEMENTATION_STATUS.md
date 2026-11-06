@@ -33,6 +33,9 @@ human-readable index, not a second source of truth.
   `388f94bf49c946c9d3da89c5df8f2de1e8cfeae389c0733b155001d3c40165ab`.
   Different absolute paths are not guaranteed to match because Flutter embeds
   the path in `libapp.so` and plugin libraries.
+- Clean install/launch/upgrade/uninstall smoke: GitHub `ubuntu-24.04` run
+  `42268826642` installs the `.deb`, launches under Xvfb, upgrades from the
+  public 1.0.9 package with a data marker, uninstalls, and reinstalls.
 
 ## Not verified / blocked
 
@@ -40,7 +43,6 @@ human-readable index, not a second source of truth.
 |---|---|---|
 | Android signing key rotation | **BLOCKED** | Owner must rotate; denylist is empty; no APK may be published |
 | `.deb` GPG signature | **MISSING** | No release GPG key in this environment |
-| Clean install / launch / upgrade / uninstall | **NOT TESTED** | No clean desktop environment; Docker registry unreachable |
 | Independent security audit | **NOT AVAILABLE** | None performed |
 | Hardware wallet | **NOT IMPLEMENTED** | No Ledger/Trezor code path or device |
 | Real BSC/Anvil integration | **NOT TESTED** | Mock RPC only |

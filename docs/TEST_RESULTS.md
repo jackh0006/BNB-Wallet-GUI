@@ -27,7 +27,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `b37cede` | PASS; all libs resolve; no secret-bearing names | — | local |
 | 16 | Reproducibility (fixed path) | `BNB_REPRO_PATH=/tmp/bnb-repro-final bash scripts/reproducibility-check.sh 3aef4b9` | `3aef4b9` | PASS; identical archive `388f94bf…` and manifests | ~4 min | `docs/evidence/2026-11-06/reproducibility-fixed.log` |
 | 17 | Hosted CI | GitHub Actions push `42261933060`, PR `42261942195` | `3aef4b9` | PASS: all required contexts | 4m05s / 3m53s | GitHub Actions |
-| 18 | Clean install / launch | — | — | NOT TESTED | — | no clean desktop/container base image |
+| 18 | Install/launch/upgrade/uninstall | `scripts/package-smoke.sh` on GitHub `ubuntu-24.04` | `f55dc00` | PASS: install, Xvfb launch, upgrade with data marker, uninstall, reinstall | 2m17s | GitHub run `42268826642` |
 | 19 | Real BSC/Anvil integration | — | — | NOT TESTED | — | mock RPC only |
 | 20 | Startup / RSS | — | — | NOT TESTED | — | needs real display session |
 | 21 | Independent audit | — | — | NOT AVAILABLE | — | none performed |

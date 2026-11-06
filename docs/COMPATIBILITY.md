@@ -9,7 +9,7 @@ not supported.
 
 | Platform | Arch | Package | Build | Install | Launch | Functional | Status |
 |---|---|---|---|---|---|---|---|
-| Ubuntu 24.04.5 LTS | x86_64 | `.deb` / source | PASS (`flutter build linux --release`, 2m03s) | NOT TESTED | NOT TESTED | NOT TESTED | BUILD + PACKAGE ONLY |
+| Ubuntu 24.04.5 LTS | x86_64 | `.deb` / source | PASS (`flutter build linux --release`, 2m03s) | PASS | PASS (Xvfb) | PASS (install/launch/upgrade/uninstall/reinstall) | VERIFIED SMOKE |
 | Debian 12 | x86_64 | `.deb` / source | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED |
 | Fedora 40 | x86_64 | source | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED |
 | Linux | arm64 | source | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED | NOT TESTED |
@@ -24,9 +24,10 @@ not supported.
 - Flutter 3.47.6 stable; Dart 3.13.5.
 - Linux release bundle and `.deb` built; package dependencies now include
   `libsecret-1-0`, `liblzma5`, `libstdc++6`.
-- No clean desktop or container base image was available, so install/launch
-  remains untested. Docker could not pull `ubuntu:24.04` because the environment
-  proxy was unreachable.
+- `package-smoke` on GitHub `ubuntu-24.04` installs the `.deb`, launches it
+  under Xvfb for 20 s, upgrades from the public 1.0.9 package with a data
+  marker, uninstalls, and reinstalls. Run 42268826642 passed.
+- A full interactive UI walkthrough on a physical desktop is still not tested.
 
 ## Hardware wallets
 

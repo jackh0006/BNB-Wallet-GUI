@@ -3,15 +3,8 @@ name: package-smoke
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']
+    branches: [main, 'release/**']
   pull_request:
-    paths:
-      - 'scripts/build-deb.sh'
-      - 'scripts/package-smoke.sh'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - 'linux/**'
-      - '.github/workflows/package-smoke.yml'
 
 permissions:
   contents: read

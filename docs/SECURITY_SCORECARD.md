@@ -17,7 +17,7 @@ audit.** A score never overrides a release blocker.
 - Any critical/high unresolved finding blocks production approval regardless of
   score.
 
-## Provisional score: 72 / 100
+## Provisional score: 73 / 100
 
 | Category | Weight | Score | Evidence | Why not full |
 |---|---:|---:|---|---|
@@ -28,16 +28,16 @@ audit.** A score never overrides a release blocker.
 | Reproducible builds and release integrity | 10 | 6 | Fixed-path reproducible archive `388f94bf…`; deterministic gzip; SBOM; release gate; provenance workflow | Different absolute paths differ; no independent-machine proof; `.deb` unsigned; no published attestation |
 | Backup, recovery and operational safety | 10 | 7 | Atomic writes; rollback injection; encrypted backup import/export; v1 migration; crash tests | No clean-machine restore test; no UI end-to-end restore test; disk-full/power-loss coverage incomplete |
 | Privacy and network security | 5 | 4 | HTTPS-only policy; SPKI pinning after CA validation; Tor/SOCKS fail-closed; UA scrubbing | No light-client proof; traffic analysis and compromised OS remain out of scope |
-| Platform compatibility and performance | 5 | 2 | Ubuntu 24.04 build + `.deb`; KDF measured (344 ms) | No clean install/launch; no startup/RSS; Debian/Fedora/ARM64/Windows/macOS untested |
+| Platform compatibility and performance | 5 | 3 | Ubuntu 24.04 build + `.deb`; package-smoke install/launch/upgrade/uninstall; KDF measured (344 ms) | No startup/RSS; Debian/Fedora/ARM64/Windows/macOS untested |
 | UI, accessibility and user safety | 5 | 4 | Keyboard hold-to-confirm; semantics; 200% text scale; full address review; donation separation | No screen-reader session or real display test; warning UX not independently evaluated |
 | Documentation, transparency and governance | 5 | 4 | Threat model; known limitations; incident record; generated status; manifest; PR evidence; self-audit | Some records still to be consolidated; stale PRs; no independent review |
-| **Total** | **100** | **72** | | |
+| **Total** | **100** | **73** | | |
 
 ## Blockers regardless of score
 
 1. Android historical signing key not rotated (`docs/security/INCIDENT_2026-11-KEYSTORE.md`).
 2. `.deb` unsigned.
-3. Clean install/launch/upgrade/uninstall not tested.
+3. Full interactive clean-desktop test and non-Ubuntu installs not tested.
 4. No independent security audit.
 5. Hardware wallet and real-chain integration not implemented/tested.
 

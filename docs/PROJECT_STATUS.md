@@ -3,9 +3,9 @@
 **Last Updated**: 2026-11-06
 **Current release line**: `1.0.10+4` on `release/1.0.10`
 **Current milestone**: release-candidate verification
-**Status**: **PARTIALLY VERIFIED / NOT RELEASABLE** — hosted CI passes and
-reproducibility passes at a documented fixed path, but the package is unsigned,
-clean install is untested, and no independent audit exists.
+**Status**: **PARTIALLY VERIFIED / NOT RELEASABLE** — hosted CI and the
+Ubuntu package smoke pass, and reproducibility passes at a documented fixed
+path, but the package is unsigned and no independent audit exists.
 
 ## 2026-11-06 candidate update
 
