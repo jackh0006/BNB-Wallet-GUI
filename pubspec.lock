@@ -114,7 +114,7 @@ packages:
     source: hosted
     version: "2.9.0"
   dargon2_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dargon2_core
       sha256: a105fc3837782d02fff09a4aa355181c882962bf2a31c58f1905c401a6d1d6e5

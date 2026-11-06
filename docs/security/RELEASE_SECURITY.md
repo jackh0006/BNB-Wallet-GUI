@@ -24,6 +24,25 @@ This is historical public-repository exposure only. It is not used for Linux
 packages and no Android build, signing, rotation, or distribution work is in
 the active release scope. Treat the old material as compromised permanently.
 
+### Android build gate (blocked until rotation)
+
+`scripts/build-apk.sh` now requires all of the following and fails closed:
+
+1. `BNB_EXPECTED_SIGNER_SHA256` — the approved replacement certificate
+   SHA-256.
+2. `BNB_RELEASE_OWNER_APPROVED=1` — explicit owner approval after the incident
+   runbook is complete.
+3. `release/android-signer-denylist.txt` — at least one confirmed compromised
+   fingerprint. An empty denylist cannot prove an artifact is not signed by
+   the old identity.
+4. `scripts/verify-android-signer.sh` — verifies the built APK against the
+   allowlist and denylist.
+
+Until the historical fingerprint is recorded and a replacement key is
+approved, no Android artifact may be built or published. The full timeline
+and owner actions are in
+[`INCIDENT_2026-11-KEYSTORE.md`](INCIDENT_2026-11-KEYSTORE.md).
+
 ---
 
 ## Linux .deb Signing (`scripts/build-deb.sh`)

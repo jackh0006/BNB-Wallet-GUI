@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -161,7 +162,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openInExplorer => 'Open in explorer';
 
   @override
-  String get warningExplorer => 'This opens an external website. The explorer will see your IP and the transaction you\'re interested in. Continue?';
+  String get warningExplorer =>
+      'This opens an external website. The explorer will see your IP and the transaction you\'re interested in. Continue?';
 
   @override
   String get settingsNetwork => 'Network';
@@ -463,7 +465,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eraseAllData => 'Erase all data';
 
   @override
-  String get eraseWarning => 'This will delete all wallets, keys, history, logs, and settings. Funds can only be recovered with your recovery phrase.';
+  String get eraseWarning =>
+      'This will delete all wallets, keys, history, logs, and settings. Funds can only be recovered with your recovery phrase.';
 
   @override
   String get confirmErase => 'Type \'ERASE\' to confirm';
@@ -496,7 +499,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logsClear => 'Clear logs';
 
   @override
-  String get logsWarning => 'Exporting logs may reveal your activity. Continue?';
+  String get logsWarning =>
+      'Exporting logs may reveal your activity. Continue?';
 
   @override
   String get logLevelError => 'Error';
@@ -766,16 +770,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get needBnb => 'You need BNB to pay for gas. Receive some first.';
 
   @override
-  String get addressPoisoning => 'This address resembles a recent contact but differs. Verify carefully.';
+  String get addressPoisoning =>
+      'This address resembles a recent contact but differs. Verify carefully.';
 
   @override
-  String get selfContract => 'Sending to the token\'s own contract address will burn tokens.';
+  String get selfContract =>
+      'Sending to the token\'s own contract address will burn tokens.';
 
   @override
   String get zeroAddress => 'Sending to the zero address is not allowed.';
 
   @override
-  String get newAddress => 'This address has never been used before. Verify it carefully.';
+  String get newAddress =>
+      'This address has never been used before. Verify it carefully.';
 
   @override
   String tokenSimulationFailed(Object reason) {
@@ -786,7 +793,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tokenUnknown => 'Unknown token';
 
   @override
-  String get unlimitedApproval => 'Unlimited approval — token can spend all your balance';
+  String get unlimitedApproval =>
+      'Unlimited approval — token can spend all your balance';
 
   @override
   String get signUnknownData => 'Sign unknown data (advanced)';
@@ -795,16 +803,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableSignUnknown => 'Enable signing unknown calldata';
 
   @override
-  String get blindSignWarning => 'Blind signing is dangerous. Only enable if you understand the risks.';
+  String get blindSignWarning =>
+      'Blind signing is dangerous. Only enable if you understand the risks.';
 
   @override
   String get disclosure => 'Disclosure';
 
   @override
-  String get nodeSees => 'The node sees: your IP, the RPC method, and parameters. It can infer address linkages.';
+  String get nodeSees =>
+      'The node sees: your IP, the RPC method, and parameters. It can infer address linkages.';
 
   @override
-  String get appDoesNotSend => 'The app does NOT send: device model, OS, app version, language, location, contacts, seed, keys, or passwords.';
+  String get appDoesNotSend =>
+      'The app does NOT send: device model, OS, app version, language, location, contacts, seed, keys, or passwords.';
 
   @override
   String get viewRawRequest => 'View raw request';

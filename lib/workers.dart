@@ -9,8 +9,7 @@ library;
 
 import 'dart:convert';
 
-import 'package:cryptography/cryptography.dart';
-
+import 'kdf.dart';
 import 'vault.dart';
 
 /// [password, plaintext(=vault JSON), deviceSecret] → envelope base64.
@@ -27,15 +26,12 @@ Future<String> vaultDecryptJob(List<String> args) {
 /// main-isolate version used (64 MiB, t=3, p=4, 32-byte tag, salt string as
 /// the raw nonce), so old records keep verifying.
 Future<String> pinHashJob(List<String> args) async {
-  final argon = Argon2id(
-    parallelism: 4,
-    memory: 65536,
+  final derived = await Argon2Kdf.derive(
+    password: utf8.encode(args[0]),
+    salt: utf8.encode(args[1]),
+    memoryKiB: 65536,
     iterations: 3,
-    hashLength: 32,
+    parallelism: 4,
   );
-  final derived = await argon.deriveKey(
-    secretKey: SecretKey(utf8.encode(args[0])),
-    nonce: utf8.encode(args[1]),
-  );
-  return base64Encode(await derived.extractBytes());
+  return base64Encode(derived);
 }

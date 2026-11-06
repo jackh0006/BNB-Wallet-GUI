@@ -2,12 +2,14 @@
 
 Created by jackh0006 (jackh109867@gmail.com)
 
-Implementation: `lib/vault.dart`, `lib/security.dart`, `lib/storage.dart`,
-`lib/cold_tx_codec.dart`, `lib/cold_wallet_protocol.dart`,
-`lib/net/privacy_client.dart`, `lib/memory_protection.dart`.
-Crypto primitives are provided by the `cryptography` package (Argon2id,
-XChaCha20-Poly1305, HKDF-SHA256), `web3dart`/`wallet` (secp256k1, keccak256,
-EIP-55), and `socks5_proxy` for SOCKS5 transport.
+Implementation: `lib/vault.dart`, `lib/kdf.dart`, `lib/security.dart`,
+`lib/storage.dart`, `lib/cold_tx_codec.dart`,
+`lib/cold_wallet_protocol.dart`, `lib/net/privacy_client.dart`,
+`lib/memory_protection.dart`.
+Crypto primitives are provided by the `cryptography` package (XChaCha20-
+Poly1305, HKDF-SHA256), the reference Argon2 implementation via
+`dargon2_core`/`dargon2_flutter` (Argon2id), `web3dart`/`wallet` (secp256k1,
+keccak256, EIP-55), and `socks5_proxy` for SOCKS5 transport.
 
 One serialization component is project code: the canonical EIP-1559/RLP
 codec in `lib/cold_tx_codec.dart`. The available `rlp` helper encoded every
@@ -71,6 +73,37 @@ paperBox = XChaCha20-Poly1305(KEK_pw,  DEK, AAD=header)
 deviceBox= XChaCha20-Poly1305(KEK_dev, DEK, AAD=header)
 payload  = XChaCha20-Poly1305(DEK, plaintext-JSON, AAD=header)
 ```
+
+## Argon2id backend and measured cost
+
+The production parameters are fixed at **64 MiB, t=3, p=4, 32-byte tag**
+(RFC 9106 low-memory profile). The implementation is selected in
+`lib/kdf.dart`:
+
+1. The reference C Argon2 library bundled by `dargon2_flutter`
+   (`libargon2.so` on Linux, `argon2.dll` on Windows, the macOS dylib), or
+   the platform's `libargon2.so.1`.
+2. The pure-Dart `cryptography` Argon2id only when no native library can be
+   loaded. This is the same algorithm and parameters, but much slower.
+
+Measured on the release-check machine (Ubuntu 24.04, 2 physical cores,
+3.8 GiB RAM, Flutter 3.47.6 / Dart 3.13.5): **344 ms** for one 64 MiB,
+t=3, p=4 derivation through the native reference library. The same
+derivation through the debug-mode pure-Dart fallback took roughly **110 s**,
+which is why the native path is the production requirement and why the
+fallback must never be silently accepted for a release.
+
+Tests:
+
+- `test/kdf_production_test.dart` asserts the fixed parameters, cross-checks
+  the native output against the independent pure-Dart Argon2id at 1 MiB, and
+  performs one real 64 MiB vault round-trip with a 60 s performance guard.
+- Envelope/format suites use `VaultCipher.debugKdfOverride`, an
+  assert-guarded test seam compiled out of release builds. It changes no
+  production parameter and cannot be reached in a release binary.
+
+A time-out, OOM, or native-library crash is recorded as `FAILED` or
+`INCOMPLETE`; it is never treated as a passing KDF test.
 
 Decryption opens BOTH wrappers and then compares the two recovered DEKs in
 constant time; a mismatch ("both boxes authenticate but disagree") is a

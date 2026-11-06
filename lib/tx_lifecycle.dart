@@ -4,30 +4,40 @@ import 'rpc_story.dart';
 
 /// Lifecycle of one outgoing transaction, as plain words the UI can show.
 /// The order here is the order of the journey strip.
-enum TxStage { prepared, simulated, signed, broadcast, pending, included, finalized, failed }
+enum TxStage {
+  prepared,
+  simulated,
+  signed,
+  broadcast,
+  pending,
+  included,
+  finalized,
+  failed,
+}
 
 extension TxStageText on TxStage {
   String get label => switch (this) {
-        TxStage.prepared => 'Prepared',
-        TxStage.simulated => 'Simulated',
-        TxStage.signed => 'Signed here',
-        TxStage.broadcast => 'Sent to node',
-        TxStage.pending => 'In line',
-        TxStage.included => 'In a block',
-        TxStage.finalized => 'Final',
-        TxStage.failed => 'Stopped',
-      };
+    TxStage.prepared => 'Prepared',
+    TxStage.simulated => 'Simulated',
+    TxStage.signed => 'Signed here',
+    TxStage.broadcast => 'Sent to node',
+    TxStage.pending => 'In line',
+    TxStage.included => 'In a block',
+    TxStage.finalized => 'Final',
+    TxStage.failed => 'Stopped',
+  };
 
   String get detail => switch (this) {
-        TxStage.prepared => 'Your entries, checked before anything moves.',
-        TxStage.simulated => 'The chain itself rehearsed the exact transfer.',
-        TxStage.signed => 'Signed on this device — the key never left it.',
-        TxStage.broadcast => 'The raw public transaction went to the network.',
-        TxStage.pending => 'Miners can include it at any moment now.',
-        TxStage.included => 'It is inside a block. Waiting for finality.',
-        TxStage.finalized => 'Buried deep enough that reordering is no longer possible.',
-        TxStage.failed => 'Nothing was signed or sent unless stated below.',
-      };
+    TxStage.prepared => 'Your entries, checked before anything moves.',
+    TxStage.simulated => 'The chain itself rehearsed the exact transfer.',
+    TxStage.signed => 'Signed on this device — the key never left it.',
+    TxStage.broadcast => 'The raw public transaction went to the network.',
+    TxStage.pending => 'Miners can include it at any moment now.',
+    TxStage.included => 'It is inside a block. Waiting for finality.',
+    TxStage.finalized =>
+      'Buried deep enough that reordering is no longer possible.',
+    TxStage.failed => 'Nothing was signed or sent unless stated below.',
+  };
 }
 
 /// The visible journey strip during a send (failed is an off-strip state).
@@ -73,50 +83,67 @@ class SendEventNote {
 }
 
 SendEventNote sendEventNote(SendEvent event) => switch (event) {
-      SendEvent.prepared =>
-        const SendEventNote('I checked the recipient and amount before anything else.'),
-      SendEvent.simulated => const SendEventNote(
-          'I rehearsed this exact transfer on the chain: it is what you will see — no surprise gas, no revert waiting for you.'),
-      SendEvent.feePicked => const SendEventNote(
-          'You picked the network fee tier from live data; the maximum it can ever reserve is shown on the review.'),
-      SendEvent.refused => const SendEventNote(
-          'I stopped before signing — nothing left this device.',
-          kind: RpcStoryKind.fail),
-      SendEvent.signed => const SendEventNote(
-          'You confirmed every character. I signed locally — your key never leaves this device.'),
-      SendEvent.broadcast => const SendEventNote(
-          'The raw public transaction went to the node. The network decides the rest.'),
-      SendEvent.acceptedKnown => const SendEventNote(
-          'The node already knew this exact signed transaction — it was in the network before the answer came back. Nothing is duplicated.',
-          kind: RpcStoryKind.ok),
-      SendEvent.pending => const SendEventNote(
-          'Waiting for a miner to include it. Nothing to do on your side.',
-          kind: RpcStoryKind.wait),
-      SendEvent.included => const SendEventNote(
-          'It is inside a block now. Waiting for finality means waiting for the chain to bury it deep.',
-          kind: RpcStoryKind.ok),
-      SendEvent.finalized => const SendEventNote(
-          'Final: the chain buried it deep enough that reordering is no longer possible.',
-          kind: RpcStoryKind.ok),
-      SendEvent.reverted => const SendEventNote(
-          'It was mined but the contract refused it — only the gas was spent. The receipt shows why.',
-          kind: RpcStoryKind.fail),
-      SendEvent.unknownOutcome => const SendEventNote(
-          'The broadcast answer never came back. It may still have reached the chain — do NOT resend blindly.',
-          kind: RpcStoryKind.fail),
-      SendEvent.failed => const SendEventNote(
-          'That attempt failed. Nothing more was sent.', kind: RpcStoryKind.fail),
-      SendEvent.replaced => const SendEventNote(
-          'A replacement with the same nonce is now in the network. Only one of the two can confirm.',
-          kind: RpcStoryKind.wait),
-      SendEvent.cancelled => const SendEventNote(
-          'A cancel transaction is in the network with the same nonce. If it confirms first, the original cannot.',
-          kind: RpcStoryKind.wait),
-    };
+  SendEvent.prepared => const SendEventNote(
+    'I checked the recipient and amount before anything else.',
+  ),
+  SendEvent.simulated => const SendEventNote(
+    'I rehearsed this exact transfer on the chain: it is what you will see — no surprise gas, no revert waiting for you.',
+  ),
+  SendEvent.feePicked => const SendEventNote(
+    'You picked the network fee tier from live data; the maximum it can ever reserve is shown on the review.',
+  ),
+  SendEvent.refused => const SendEventNote(
+    'I stopped before signing — nothing left this device.',
+    kind: RpcStoryKind.fail,
+  ),
+  SendEvent.signed => const SendEventNote(
+    'You confirmed every character. I signed locally — your key never leaves this device.',
+  ),
+  SendEvent.broadcast => const SendEventNote(
+    'The raw public transaction went to the node. The network decides the rest.',
+  ),
+  SendEvent.acceptedKnown => const SendEventNote(
+    'The node already knew this exact signed transaction — it was in the network before the answer came back. Nothing is duplicated.',
+    kind: RpcStoryKind.ok,
+  ),
+  SendEvent.pending => const SendEventNote(
+    'Waiting for a miner to include it. Nothing to do on your side.',
+    kind: RpcStoryKind.wait,
+  ),
+  SendEvent.included => const SendEventNote(
+    'It is inside a block now. Waiting for finality means waiting for the chain to bury it deep.',
+    kind: RpcStoryKind.ok,
+  ),
+  SendEvent.finalized => const SendEventNote(
+    'Final: the chain buried it deep enough that reordering is no longer possible.',
+    kind: RpcStoryKind.ok,
+  ),
+  SendEvent.reverted => const SendEventNote(
+    'It was mined but the contract refused it — only the gas was spent. The receipt shows why.',
+    kind: RpcStoryKind.fail,
+  ),
+  SendEvent.unknownOutcome => const SendEventNote(
+    'The broadcast answer never came back. It may still have reached the chain — do NOT resend blindly.',
+    kind: RpcStoryKind.fail,
+  ),
+  SendEvent.failed => const SendEventNote(
+    'That attempt failed. Nothing more was sent.',
+    kind: RpcStoryKind.fail,
+  ),
+  SendEvent.replaced => const SendEventNote(
+    'A replacement with the same nonce is now in the network. Only one of the two can confirm.',
+    kind: RpcStoryKind.wait,
+  ),
+  SendEvent.cancelled => const SendEventNote(
+    'A cancel transaction is in the network with the same nonce. If it confirms first, the original cannot.',
+    kind: RpcStoryKind.wait,
+  ),
+};
 
 /// Replacement fee bump: go-ethereum requires ≥10% to replace; 12.5% gives
 /// headroom and is rounded UP so repeated bumps never stall.
-BigInt bumpFee(BigInt wei) => (wei * BigInt.from(1125) + BigInt.from(999)) ~/ BigInt.from(1000);
+BigInt bumpFee(BigInt wei) =>
+    (wei * BigInt.from(1125) + BigInt.from(999)) ~/ BigInt.from(1000);
 
 // ------------------------------------------------------------ revert text ---
 
@@ -125,11 +152,15 @@ BigInt bumpFee(BigInt wei) => (wei * BigInt.from(1125) + BigInt.from(999)) ~/ Bi
 /// reason: unknown data is shown as hex, labelled as undecoded.
 String decodeRevertReason(Object error) {
   final raw = error.toString();
-  final text = raw.replaceFirst(RegExp(r'^(Exception|StateError):\s*'), '').trim();
+  final text = raw
+      .replaceFirst(RegExp(r'^(Exception|StateError):\s*'), '')
+      .trim();
 
   // "execution reverted: <text>"
-  final colon = RegExp(r'execution reverted[^:]*:\s*(.+)$', caseSensitive: false)
-      .firstMatch(text);
+  final colon = RegExp(
+    r'execution reverted[^:]*:\s*(.+)$',
+    caseSensitive: false,
+  ).firstMatch(text);
   if (colon != null) {
     final tail = colon.group(1)!.trim();
     final decoded = _decodeAbiString(tail);
@@ -141,8 +172,7 @@ String decodeRevertReason(Object error) {
     final decoded = _decodeAbiString(hex.group(0)!);
     if (decoded != null) return decoded;
   }
-  final anyHex =
-      RegExp(r'0x[0-9a-fA-F]{8,}').firstMatch(text);
+  final anyHex = RegExp(r'0x[0-9a-fA-F]{8,}').firstMatch(text);
   if (anyHex != null && text.toLowerCase().contains('revert')) {
     return 'the contract refused with undecoded data (${anyHex.group(0)!.length > 74 ? '${anyHex.group(0)!.substring(0, 74)}…' : anyHex.group(0)!}). Assume it is not safe to send and verify on the explorer first';
   }
@@ -167,7 +197,10 @@ String? _decodeAbiString(String hexText) {
   if (hex.length < dataStart + charCount) return null;
   final bytes = <int>[];
   for (var i = 0; i < charCount; i += 2) {
-    final byte = int.tryParse(hex.substring(dataStart + i, dataStart + i + 2), radix: 16);
+    final byte = int.tryParse(
+      hex.substring(dataStart + i, dataStart + i + 2),
+      radix: 16,
+    );
     if (byte == null) return null;
     bytes.add(byte);
   }
@@ -208,15 +241,15 @@ BroadcastReading readBroadcastError(String message) {
     return const BroadcastReading(
       BroadcastVerdict.acceptedKnown,
       'The node already knows this signed transaction — it is in the network. '
-          'Do not resend; wait for a confirmation.',
+      'Do not resend; wait for a confirmation.',
     );
   }
   if (lower.contains('nonce too low') || lower.contains('nonce is too low')) {
     return const BroadcastReading(
       BroadcastVerdict.nonceTooLow,
       'The account nonce already moved past this transaction, so the node '
-          'refused it. It was either confirmed already or replaced — check the '
-          'explorer before doing anything else.',
+      'refused it. It was either confirmed already or replaced — check the '
+      'explorer before doing anything else.',
     );
   }
   if (lower.contains('replacement transaction underpriced') ||
@@ -224,8 +257,8 @@ BroadcastReading readBroadcastError(String message) {
     return const BroadcastReading(
       BroadcastVerdict.replacementUnderpriced,
       'The node wants a bigger fee bump than the one offered to replace the '
-          'pending transaction. Nothing was sent — try again with a larger '
-          'increase.',
+      'pending transaction. Nothing was sent — try again with a larger '
+      'increase.',
     );
   }
   if (lower.contains('underpriced') ||
@@ -235,21 +268,22 @@ BroadcastReading readBroadcastError(String message) {
     return const BroadcastReading(
       BroadcastVerdict.underpriced,
       'The node refused the fee as below its minimum — nothing was sent. Pick '
-          'a higher fee tier and try again.',
+      'a higher fee tier and try again.',
     );
   }
-  if (lower.contains('insufficient funds') || lower.contains('insufficient balance')) {
+  if (lower.contains('insufficient funds') ||
+      lower.contains('insufficient balance')) {
     return const BroadcastReading(
       BroadcastVerdict.insufficientFunds,
       'The account cannot cover the amount plus the maximum gas cap with its '
-          'current BNB balance. Nothing was sent.',
+      'current BNB balance. Nothing was sent.',
     );
   }
   if (lower.contains('intrinsic gas')) {
     return const BroadcastReading(
       BroadcastVerdict.intrinsicGas,
       'The gas limit is below the minimum the chain allows for this transfer. '
-          'Nothing was sent.',
+      'Nothing was sent.',
     );
   }
   if (lower.contains('timeout') ||
@@ -261,7 +295,7 @@ BroadcastReading readBroadcastError(String message) {
     return const BroadcastReading(
       BroadcastVerdict.unknownOutcome,
       'The broadcast answer never came back. The transaction may still have '
-          'reached the chain — do NOT resend blindly.',
+      'reached the chain — do NOT resend blindly.',
     );
   }
   return BroadcastReading(BroadcastVerdict.failed, message);
@@ -272,7 +306,11 @@ BroadcastReading readBroadcastError(String message) {
 /// Minimal, dependency-free shape of one EVM log — keeps the decoder pure.
 @immutable
 class EvmLog {
-  const EvmLog({required this.address, required this.topics, required this.data});
+  const EvmLog({
+    required this.address,
+    required this.topics,
+    required this.data,
+  });
   final String address;
   final List<String> topics;
   final String data;
@@ -307,9 +345,6 @@ BigInt? findTransferAmount({
 }
 
 bool topicIsAddress(String topic, String address) {
-  final padded = address
-      .toLowerCase()
-      .replaceFirst('0x', '')
-      .padLeft(64, '0');
+  final padded = address.toLowerCase().replaceFirst('0x', '').padLeft(64, '0');
   return topic.toLowerCase() == '0x$padded';
 }

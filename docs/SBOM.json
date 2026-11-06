@@ -334,7 +334,7 @@
       "properties": [
         {
           "name": "dependency_class",
-          "value": "transitive"
+          "value": "direct main"
         },
         {
           "name": "download_source",
@@ -2915,7 +2915,7 @@
       "description": "Local, non-custodial BNB Smart Chain wallet (deb).",
       "name": "bnb_wallet_gui",
       "type": "application",
-      "version": "1.0.9"
+      "version": "1.0.10"
     },
     "properties": [
       {

@@ -1,5 +1,10 @@
 # BASELINE.md — Repository Baseline Report
 
+> **Historical baseline (2026-11-03).** Current release-candidate evidence for
+> `1.0.10+4` is in [`../GENERATED_STATUS.md`](../GENERATED_STATUS.md),
+> `release/manifest.json`, and [`../releases/1.0.10.md`](../releases/1.0.10.md).
+> Do not use this baseline's test counts or statuses for a new release.
+
 **Date**: 2026-11-03
 **Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
 **Branch**: `main` (up to date with `origin/main`)

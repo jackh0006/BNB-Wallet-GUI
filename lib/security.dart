@@ -77,7 +77,10 @@ class AppSecurity {
     if (count > 0) {
       // Refresh the stored window so calendar skips do not help.
       final scaled = remaining;
-      await AppStorage.setBackoffState(count, DateTime.now().millisecondsSinceEpoch + scaled.inMilliseconds);
+      await AppStorage.setBackoffState(
+        count,
+        DateTime.now().millisecondsSinceEpoch + scaled.inMilliseconds,
+      );
     }
     return remaining;
   }
@@ -138,4 +141,3 @@ class AppSecurity {
     return diff == 0;
   }
 }
-

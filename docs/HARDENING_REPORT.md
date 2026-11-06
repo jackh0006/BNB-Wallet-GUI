@@ -5,8 +5,8 @@ this workspace. **PARTIAL** means source controls exist but cannot establish a
 real-world claim alone. **NEEDS OWNER** means it requires a device, key, or
 operational decision outside this repository.
 
-The evidence record for version 1.0.9 is
-[`docs/releases/1.0.9.md`](releases/1.0.9.md). Its status is partial, not a
+The evidence record for version 1.0.10 is
+[`docs/releases/1.0.10.md`](releases/1.0.10.md). Its status is partial, not a
 full-release confirmation.
 
 ## Current Linux release gate
@@ -15,12 +15,13 @@ full-release confirmation.
 |---|---|---|
 | Current-tree secret scan | DONE | `bash scripts/secret-scan.sh` — `Secret scan: current tree has no tracked keystores, private key blocks, or known leaked credentials.` |
 | Independent signature parsing | DONE | `cd verification && npm ci && node verify.cjs` — `independent ethers verification: PASS`; 8 field substitutions rejected. |
-| SBOM regeneration | DONE | `python3 scripts/sbom.py --out docs/SBOM.json` — 116 packages recorded (25 direct and 91 transitive Dart, 9 npm, 1 direct npm). |
+| SBOM regeneration | DONE | `python3 scripts/sbom.py --out docs/SBOM.json` — 116 packages recorded (26 direct and 90 transitive Dart, 9 npm, 1 direct npm). |
+| Production Argon2id backend | DONE | `test/kdf_production_test.dart` — fixed 64 MiB/t=3/p=4, native reference vs pure-Dart agreement, one real round-trip measured at 344 ms native. |
 | Dependency advisory review | DONE | `python3 scripts/dependency-audit.py` — no current pub.dev advisory flags reported. This is advisory metadata, not an audit. |
 | Static analysis | DONE | `flutter analyze --no-pub` — no issues found. |
-| Full Flutter test suite | FIXED — NOT VERIFIED | Hosted Ubuntu run [42060236057](https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42060236057) exited 1: 37 files passed and 5 files did not. Its exact root causes were: absent `rg` made the driver apply the ordinary 120-second budget to every file (including KDF-tagged suites); redundant teardown calls to `lock()` raced asynchronous encrypted audit logging with removal of the fixture directory; and `vault_rename_test.dart` used real Argon2id without a `kdf` tag. The driver now uses portable `grep`, records discovery/execution/skips, and fails if any file is unexecuted; the teardown races are removed and the rename suite is tagged. A fresh hosted run is required before a pass is claimed. |
-| Linux `.deb` artifact integrity | DONE | `bnb-wallet-1.0.9-amd64.deb` was packaged with the current release documents. `dpkg-deb --info`, `sha256sum --check SHA256SUMS`, and `gpg --verify` passed; the detached release signature is by fingerprint `CC819EF5E109A1518E840379D8C0CEC84BCCE06B`. The exact checksum belongs in the matching external `SHA256SUMS`, not this packaged document. |
-| Full Linux rebuild from source | NOT COMPLETED | The current Flutter build did not complete in the resource-constrained session. The application source is unchanged from the bundle used for the package; only release scripts and documentation changed. A clean full rebuild remains a release gate. |
+| Full Flutter test suite | LOCAL PASS — HOSTED RERUN PENDING | Local serial run on 2026-11-06: 47 files / 299 declarations, 0 failed, 0 timed out. The previous hosted run failed for the reasons recorded in `docs/TESTING_STRATEGY.md`; the fixed runner and KDF backend must pass on the candidate PR before this row becomes hosted-verified. |
+| Linux `.deb` artifact integrity | NOT BUILT FOR 1.0.10 | The earlier 1.0.9 package and its signature are historical. A 1.0.10 package must be built from the tagged candidate and verified with `release-check.sh`. |
+| Full Linux rebuild from source | NOT COMPLETED | `flutter build linux --release` is still required for this candidate. |
 | Clean Ubuntu 22.04/24.04 install and launch | NEEDS OWNER | No clean Ubuntu VM/container with desktop launch support is available in this workspace. |
 | Large-value mainnet safety | NEEDS OWNER | Automated tests cannot prove safety against malware, phishing, a compromised OS, or an incorrect recipient. Perform paper-backup restoration and progressively sized transfers. |
 

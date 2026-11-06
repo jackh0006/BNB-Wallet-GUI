@@ -3,6 +3,29 @@
 All notable changes to this wallet. Dates in 2026; releases identify their
 supported artifacts explicitly.
 
+## 1.0.10+4 candidate — native KDF, exact calldata, evidence system
+
+- **Native Argon2id backend:** `lib/kdf.dart` now uses the reference C Argon2
+  library that the Linux bundle already ships. One 64 MiB / t=3 / p=4
+  derivation measured **344 ms** instead of ~110 s in the debug pure-Dart
+  fallback. Production parameters are unchanged; the pure-Dart implementation
+  remains only as an explicit fallback and is guarded by a performance test.
+- **Exact ERC-20 calldata:** `SendIntent.decodeErc20Transfer` rejects trailing
+  bytes, so a non-standard token cannot act on data the review screen did not
+  show.
+- **Deterministic tests:** navigation no longer starts real RPC timeouts;
+  unlock I/O runs through `runAsync`; storage teardown waits for encrypted-log
+  appends and retries `ENOTEMPTY`. The suite no longer segfaults on a 2-core
+  machine.
+- **Evidence system:** machine-readable test inventory and release manifest,
+  generated status page/README block, `release-gate.py` with explicit
+  `VERIFIED`/`PARTIALLY VERIFIED`/`INCOMPLETE`/`FAILED` states, dependency
+  review, pinned artifact attestations, and a two-build reproducibility check.
+- **Donations:** all 14 published address rows, with in-app copy/QR dialog;
+  never shown in a transaction confirmation.
+- **Honesty:** hardware-wallet matrix corrected to `NOT IMPLEMENTED`; Android
+  releases remain blocked by the historical signing-key incident.
+
 ## 1.0.9-ui.1 prerelease — accessibility, locale and status accuracy
 
 - **Accessible primary actions:** primary-button labels now use black text on

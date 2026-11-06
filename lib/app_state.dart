@@ -303,7 +303,6 @@ class AppState extends ChangeNotifier {
   static Future<String> Function(String password, String blob, String device)?
   vaultDecryptOverride;
 
-
   Future<void> init() async {
     await AppStorage.init();
     rpc.setNetwork(AppStorage.network);
@@ -417,10 +416,10 @@ class AppState extends ChangeNotifier {
       // this line is readable even though the key is dropped right after.
       unawaited(
         logEvent(
-        category: LogCategory.security,
-        level: LogLevel.info,
-        message: 'Wallet locked; keys cleared from memory.',
-        extra: {'simple': 'Wallet locked'},
+          category: LogCategory.security,
+          level: LogLevel.info,
+          message: 'Wallet locked; keys cleared from memory.',
+          extra: {'simple': 'Wallet locked'},
         ).catchError((_) {}),
       );
     }

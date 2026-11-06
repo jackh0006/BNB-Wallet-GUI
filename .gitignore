@@ -66,6 +66,13 @@ release-signing/
 *.aab
 *.deb
 
+# Per-build evidence (recorded locally or uploaded by CI); the committed
+# source manifest is release/manifest.json, and a published bundle is
+# release/evidence.json.
+/release/checks.json
+/release/artifacts.json
+/release/evidence/
+
 # Debug/investigation leftovers
 *.bak
 /test_*.dart

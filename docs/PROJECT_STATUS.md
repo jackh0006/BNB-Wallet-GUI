@@ -1,5 +1,30 @@
 # PROJECT_STATUS.md — Current Project State
 
+**Last Updated**: 2026-11-06
+**Current release line**: `1.0.10+4` on `release/1.0.10`
+**Current milestone**: release-candidate verification
+**Status**: **INCOMPLETE / PARTIALLY VERIFIED** — local source checks pass, but no
+release artifact, clean install, reproducibility result, or independent audit
+exists yet.
+
+## 2026-11-06 candidate update
+
+| Item | Status | Evidence |
+|---|---|---|
+| Native Argon2id backend | DONE | `lib/kdf.dart`; one 64 MiB/t=3/p=4 derivation measured at 344 ms, down from ~110 s pure-Dart debug fallback |
+| KDF test stability | FIXED LOCALLY | `vault_test` 9/9 in 10 s; KDF-tagged suites 4/4 in 48 s; no segfault when tests run serially |
+| Exact ERC-20 calldata | FIXED | `SendIntent.decodeErc20Transfer` rejects trailing bytes; regression test |
+| Test suite | LOCAL PASS | 44/44 files before the new layers; current inventory is 47 files / 299 declarations, final full run in progress |
+| Machine-readable evidence | IMPLEMENTED | `release/manifest.json`, `docs/testing/test-inventory.json`, `docs/GENERATED_STATUS.md`, `release-gate.py` |
+| Release gate | INCOMPLETE | Source checks can pass; `.deb`, signature, install, and reproducibility are absent |
+| Android | BLOCKED | Historical signing key rotation `NOT VERIFIED`; denylist empty |
+| Independent audit | NOT AVAILABLE | None has been performed |
+
+The historical sections below are retained for audit trail. Do not treat their
+older "DONE" rows as evidence for the 1.0.10 candidate.
+
+---
+
 **Last Updated**: 2026-11-05
 **Baseline Commit**: `dc8732f` (working-tree audit in progress)
 **Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)

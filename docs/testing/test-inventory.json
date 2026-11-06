@@ -1,0 +1,351 @@
+{
+  "fileCount": 47,
+  "files": [
+    {
+      "lines": 99,
+      "path": "test/accessibility_test.dart",
+      "sha256": "66923c0391870c9a634b326f8ae0c590c8174960295049dc797c7e80117ec4ae",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 70,
+      "path": "test/backup_quiz_test.dart",
+      "sha256": "cb502aa20c5c3c9d43fce854ad7664faf7d22152006caf2c907fa5731c9d05f2",
+      "tags": [],
+      "tests": 5
+    },
+    {
+      "lines": 70,
+      "path": "test/clipboard_guard_test.dart",
+      "sha256": "b204d7c59d3a471196abdcd2d6f70eb44e1a7968b5feee7fefe66d9bf4db8e45",
+      "tags": [],
+      "tests": 4
+    },
+    {
+      "lines": 127,
+      "path": "test/cold_tx_codec_test.dart",
+      "sha256": "cc68392826069247880bf87504e00a14c0158476d3ce563f43814fa852d9bcea",
+      "tags": [],
+      "tests": 4
+    },
+    {
+      "lines": 363,
+      "path": "test/cold_wallet_protocol_test.dart",
+      "sha256": "4a545d0a5a9f4ebf7e8d1f88d15bc2a8f03e0bbc41355a40238c0da22d11b224",
+      "tags": [],
+      "tests": 15
+    },
+    {
+      "lines": 400,
+      "path": "test/cold_wallet_service_test.dart",
+      "sha256": "0e04846250e6f978859fb5ca2a1e6bd5d15f22043391989a5c1b06a322355352",
+      "tags": [],
+      "tests": 15
+    },
+    {
+      "lines": 459,
+      "path": "test/cold_wallet_test.dart",
+      "sha256": "489a86084f77b987bad08b84b5f2525a043b9ea5ad401f8054303c61bc3262d7",
+      "tags": [],
+      "tests": 8
+    },
+    {
+      "lines": 113,
+      "path": "test/create_wallet_dialog_test.dart",
+      "sha256": "cb641f354ad6307a1748b5b16c248fd401a6c82bdcae077ff54399903b90a151",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 51,
+      "path": "test/donations_test.dart",
+      "sha256": "8e83861714fd4595663b31d80cdd388cc2e91baf3141bd47971c8fdff94356f7",
+      "tags": [],
+      "tests": 2
+    },
+    {
+      "lines": 111,
+      "path": "test/drawer_secret_test.dart",
+      "sha256": "f677ed6a06d98dbaf09410cf04a2a552fb9d2802c4f62f4a4eadcc1c89fee728",
+      "tags": [],
+      "tests": 5
+    },
+    {
+      "lines": 53,
+      "path": "test/encrypted_log_store_test.dart",
+      "sha256": "03198e6d5cb389aefe4b8a8f84d7bffd2cbdd35ff937692bca28d05cedeb9bc8",
+      "tags": [],
+      "tests": 4
+    },
+    {
+      "lines": 79,
+      "path": "test/erase_flow_test.dart",
+      "sha256": "fab8f071e7b1dd74d4b0c9414928ad5d6ba5633860919465ea9b5eaf8514bce8",
+      "tags": [],
+      "tests": 1
+    },
+    {
+      "lines": 277,
+      "path": "test/fee_engine_test.dart",
+      "sha256": "4b0f31e4d6f85dc9fd0be40ccfeaafa0f007c46dbc724259b366b9e4249220f9",
+      "tags": [],
+      "tests": 12
+    },
+    {
+      "lines": 85,
+      "path": "test/fee_parity_test.dart",
+      "sha256": "e6f8a55483443edcbd33d39bbf16673ffd1bd7efff384dd16d661c6ea5d765ae",
+      "tags": [],
+      "tests": 4
+    },
+    {
+      "lines": 754,
+      "path": "test/filesystem_security_test.dart",
+      "sha256": "88a4de08c45b8385a7f37fbeaabef9907d1295eea278dbc0f31f8b7d765348f2",
+      "tags": [],
+      "tests": 25
+    },
+    {
+      "lines": 231,
+      "path": "test/fuzz_and_property_test.dart",
+      "sha256": "86138a42077a08d7b0fef18f76ae87987183be025e2e88859dfebf6388dad46e",
+      "tags": [],
+      "tests": 10
+    },
+    {
+      "lines": 55,
+      "path": "test/hold_to_confirm_test.dart",
+      "sha256": "9995bd0ebcc972b5292d94109677bb1fa11b6dc03c17dcc058a4333238ab3433",
+      "tags": [],
+      "tests": 1
+    },
+    {
+      "lines": 132,
+      "path": "test/journey_map_test.dart",
+      "sha256": "906171a6e558a34a138120cf9f6a90bff1eb15b3c74c1c796beb803a9cbcb5d4",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 74,
+      "path": "test/kdf_production_test.dart",
+      "sha256": "6291a8c75aee2546a93f9e1b50e9dada91ed21038e0aeb7d2db08f11bc4c2f76",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 3
+    },
+    {
+      "lines": 12,
+      "path": "test/localization_catalog_test.dart",
+      "sha256": "838e8461ca34abf33bfadb08e706143a8685093552e686cdcbfbe74bc3eab816",
+      "tags": [],
+      "tests": 1
+    },
+    {
+      "lines": 109,
+      "path": "test/log_canary_test.dart",
+      "sha256": "0dd235517d052f9f51db25d92c2cf8eef9e1a93ebeaed4419f00ebd0b954d002",
+      "tags": [
+        "sequential"
+      ],
+      "tests": 3
+    },
+    {
+      "lines": 59,
+      "path": "test/log_presenter_test.dart",
+      "sha256": "019a7f3fed4b9bb462b10d5ee503f5a6f4730090e938a8b052b0aa801324987e",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 23,
+      "path": "test/memory_protection_test.dart",
+      "sha256": "7dc82403a25e6f9510789118614dba809dfcadc8b17970cf1f68798970499cad",
+      "tags": [],
+      "tests": 2
+    },
+    {
+      "lines": 297,
+      "path": "test/navigation_flow_test.dart",
+      "sha256": "2e166bd0ffecc36b6a64992fd465f312c2ac7fdbf840fa1708096ad62c2ae895",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 277,
+      "path": "test/node_manager_test.dart",
+      "sha256": "215783028213285ba3b3be72e0aee596005930db7922690b3909ceaefc0af12c",
+      "tags": [],
+      "tests": 17
+    },
+    {
+      "lines": 98,
+      "path": "test/nodes_test.dart",
+      "sha256": "08c743e30d3628c6d0768f4bbe2b8df7be3626516e261c21c940aae123e08578",
+      "tags": [],
+      "tests": 6
+    },
+    {
+      "lines": 157,
+      "path": "test/privacy_config_test.dart",
+      "sha256": "2ec1e5106cdec592376acc5bba720d3d7bd1ab617abd0a56cab1ecc1eda1c8c0",
+      "tags": [],
+      "tests": 9
+    },
+    {
+      "lines": 99,
+      "path": "test/privacy_dialogs_test.dart",
+      "sha256": "7fb2d4e0affe57ac38bcd5aa988369330fd309597bec2c198f3483e8f527e8f5",
+      "tags": [],
+      "tests": 2
+    },
+    {
+      "lines": 56,
+      "path": "test/receipt_image_test.dart",
+      "sha256": "a70abc7acb9282e957a64c73150dffa82b222ce32079747abf75817a3f643db6",
+      "tags": [],
+      "tests": 1
+    },
+    {
+      "lines": 179,
+      "path": "test/receipt_store_test.dart",
+      "sha256": "b05967cd911a3796fe562dcc85cc62b7d2abd7a341de500c8fc85cb3b1877af0",
+      "tags": [],
+      "tests": 8
+    },
+    {
+      "lines": 195,
+      "path": "test/rollback_injection_test.dart",
+      "sha256": "81dc9a1edcb324b5a46267f7e1fc62a450c59ddfd77d79ea7c452fc3c209ee18",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 2
+    },
+    {
+      "lines": 140,
+      "path": "test/rpc_adversarial_test.dart",
+      "sha256": "c611ba19a249e127672d8b44f6c19e01f91b6d742703b7c8b4004fd5c032e049",
+      "tags": [],
+      "tests": 6
+    },
+    {
+      "lines": 327,
+      "path": "test/send_intent_test.dart",
+      "sha256": "b55d7da026d4eec2d804bab31f62d5b2488c369de98908befd8dd4baddd58122",
+      "tags": [],
+      "tests": 19
+    },
+    {
+      "lines": 130,
+      "path": "test/story_test.dart",
+      "sha256": "49603ae8f8deb11fed2ea400ffeeec04d871883f0d21d7e6df620ef2987a97b5",
+      "tags": [],
+      "tests": 7
+    },
+    {
+      "lines": 258,
+      "path": "test/tls_pinning_test.dart",
+      "sha256": "3bac5b43734a7163b0d2c0d5e01bec5843fe0129455ec661a5088cfc9bb8ba54",
+      "tags": [],
+      "tests": 7
+    },
+    {
+      "lines": 93,
+      "path": "test/token_sources_test.dart",
+      "sha256": "0a362fec85ec5603ea15faa7e3da88a173c815cda8ecdff41714c9f0f7a43bd4",
+      "tags": [],
+      "tests": 4
+    },
+    {
+      "lines": 241,
+      "path": "test/tx_lifecycle_test.dart",
+      "sha256": "175fdce80acdcda4c2a549deee690433df034f1827ac43d4c8d882d366d0768e",
+      "tags": [],
+      "tests": 20
+    },
+    {
+      "lines": 70,
+      "path": "test/ua_scrub_test.dart",
+      "sha256": "6e51e09d41023ab7a09cb3d9f5f3a495068b45bfd26b96571d4171ac298ed7f9",
+      "tags": [],
+      "tests": 1
+    },
+    {
+      "lines": 55,
+      "path": "test/vault_header_validation_test.dart",
+      "sha256": "ce9638b64bb38cd1527446ceaa13645bf825dec7583ec35a33283917ec0e916a",
+      "tags": [],
+      "tests": 2
+    },
+    {
+      "lines": 553,
+      "path": "test/vault_import_rollback_kdf_test.dart",
+      "sha256": "827f925d1be64fef47e2c9b85dc9dad530d8008ae05653c9f397956abb16e0a3",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 10
+    },
+    {
+      "lines": 191,
+      "path": "test/vault_management_test.dart",
+      "sha256": "8d8d14d4f703d32a1479ab8badb7440db862c79af88a612b5589b6c413f6a1ba",
+      "tags": [],
+      "tests": 9
+    },
+    {
+      "lines": 63,
+      "path": "test/vault_rename_test.dart",
+      "sha256": "13e342a3a35ef04ba38af882fedb53bd5f6045159a9681154d198e24bc9eb5b1",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 1
+    },
+    {
+      "lines": 259,
+      "path": "test/vault_test.dart",
+      "sha256": "d1066041da97e2b0ea70dc4c038580bd374df6599e20b42af6a51d5203437216",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 9
+    },
+    {
+      "lines": 175,
+      "path": "test/wallet_core_test.dart",
+      "sha256": "c2b598f3c7c16f73f19b0a54d619b898c4f134fddaac5686cf174e96807e8a6b",
+      "tags": [],
+      "tests": 12
+    },
+    {
+      "lines": 45,
+      "path": "test/watch_only_test.dart",
+      "sha256": "53d82d0a4063d784f7d65a1b709a89f11b50a1810b8db7bc1ba44c13ddcedc79",
+      "tags": [],
+      "tests": 2
+    },
+    {
+      "lines": 58,
+      "path": "test/widget_test.dart",
+      "sha256": "ef43080c2bff3adf88ec3ed0aa642bc0f51779368a6d1f12dc1a70a45deec0e5",
+      "tags": [],
+      "tests": 3
+    },
+    {
+      "lines": 79,
+      "path": "test/workers_test.dart",
+      "sha256": "a712bed359c02c9fe4489b1ad5b87cf8ffc1a5ab630958ff7f1e09f73f191167",
+      "tags": [
+        "kdf"
+      ],
+      "tests": 3
+    }
+  ],
+  "kdfFileCount": 6,
+  "schemaVersion": 1,
+  "testCount": 299
+}

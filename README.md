@@ -9,10 +9,20 @@ The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
-**Current source candidate: `1.0.9+3`.** The latest GitHub stable release is
-`v1.0.5`; neither it nor the newer candidate is release-confirmed. The exact
+**Current source candidate: `1.0.10+4`.** The latest GitHub stable release is
+`v1.0.5`; neither it nor this candidate is release-confirmed. The exact
 per-version evidence and release status are maintained in
-[docs/releases/1.0.9.md](docs/releases/1.0.9.md).
+[docs/releases/1.0.10.md](docs/releases/1.0.10.md).
+
+<!-- BEGIN GENERATED:status -->
+> **Generated release status** — do not edit this block by hand.
+>
+> Version `1.0.10+4` · status **INCOMPLETE**
+> Tests: 47 files / 299 declarations · SBOM `f992deb3fc34bdb6`
+>
+> The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
+> See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
+<!-- END GENERATED:status -->
 
 > Important: this project is self-assessed, not independently reviewed. No
 > test suite, security score, or software wallet can guarantee the safety of
@@ -45,10 +55,15 @@ and limitations needed to judge it:
 |---|---|
 | Threats, protections, and residual risks | [Threat model](docs/THREAT_MODEL.md) |
 | Security findings and exact scope | [Security self-assessment](SECURITY_AUDIT.md) |
-| Reproducible automated checks | [Testing guide](docs/TESTING.md) |
+| Generated status, checks, and limitations | [Generated status](docs/GENERATED_STATUS.md) |
+| Machine-readable release manifest | [Manifest](release/manifest.json) |
+| Test inventory (47 files) | [Test inventory](docs/testing/test-inventory.json) |
+| Reproducible automated checks | [Testing strategy](docs/TESTING_STRATEGY.md) |
 | Dependency inventory | [SBOM](docs/SBOM.json) |
 | Build/install gate | [Release checklist](docs/RELEASE_CHECKLIST.md) |
 | Per-version status and confirmation rule | [Release evidence](docs/RELEASE_EVIDENCE.md) |
+| Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
+| Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |
 | Private vulnerability reporting | [Security policy](SECURITY.md) |
 
 ## Download and verify the Linux package
@@ -86,6 +101,8 @@ The fuller non-expert instructions are in [docs/FAMILY_GUIDE.md](docs/FAMILY_GUI
 
 This is a feature comparison, not a safety ranking. Features vary by version
 and configuration; verify claims against each project's current documentation.
+The dated, source-linked comparison is in
+[docs/COMPETITORS.md](docs/COMPETITORS.md).
 
 | Property | BNB Wallet | Typical browser-extension wallet | Typical hardware wallet |
 |---|---:|---:|---:|

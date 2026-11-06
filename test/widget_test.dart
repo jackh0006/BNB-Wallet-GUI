@@ -32,8 +32,11 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     appState.rpc.clearStory();
-    appState.rpc.note('I knocked on example-door.org and it answered.',
-        kind: RpcStoryKind.ok, detail: 'in 123 ms');
+    appState.rpc.note(
+      'I knocked on example-door.org and it answered.',
+      kind: RpcStoryKind.ok,
+      detail: 'in 123 ms',
+    );
     await tester.pumpWidget(const BnbWalletApp());
     await tester.pump();
 

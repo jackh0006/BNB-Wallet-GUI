@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -161,7 +162,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get openInExplorer => 'باز کردن در اکسپلورر';
 
   @override
-  String get warningExplorer => 'این یک وب‌سایت خارجی را باز می‌کند. اکسپلورر IP و تراکنش شما را می‌بیند. ادامه دهید؟';
+  String get warningExplorer =>
+      'این یک وب‌سایت خارجی را باز می‌کند. اکسپلورر IP و تراکنش شما را می‌بیند. ادامه دهید؟';
 
   @override
   String get settingsNetwork => 'شبکه';
@@ -463,7 +465,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get eraseAllData => 'حذف تمام داده‌ها';
 
   @override
-  String get eraseWarning => 'این تمام کیف پول‌ها، کلیدها، تاریخچه، لاگ‌ها و تنظیمات را حذف می‌کند. وجه‌ها فقط با عبارت بازیابی قابل بازیابی هستند.';
+  String get eraseWarning =>
+      'این تمام کیف پول‌ها، کلیدها، تاریخچه، لاگ‌ها و تنظیمات را حذف می‌کند. وجه‌ها فقط با عبارت بازیابی قابل بازیابی هستند.';
 
   @override
   String get confirmErase => 'برای تأیید \'ERASE\' تایپ کنید';
@@ -496,7 +499,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get logsClear => 'پاک کردن لاگ‌ها';
 
   @override
-  String get logsWarning => 'صادرات لاگ‌ها می‌تواند فعالیت شما را فاش کند. ادامه دهید؟';
+  String get logsWarning =>
+      'صادرات لاگ‌ها می‌تواند فعالیت شما را فاش کند. ادامه دهید؟';
 
   @override
   String get logLevelError => 'خطا';
@@ -766,10 +770,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get needBnb => 'برای پرداخت گس BNB نیاز دارید. ابتدا بگیرید.';
 
   @override
-  String get addressPoisoning => 'این آدرس شبیه یک مخاطب اخیر است اما متفاوت است. با دقت تأیید کنید.';
+  String get addressPoisoning =>
+      'این آدرس شبیه یک مخاطب اخیر است اما متفاوت است. با دقت تأیید کنید.';
 
   @override
-  String get selfContract => 'ارسال به آدرس قرارداد خود توکن، توکن‌ها را سوختن می‌کند.';
+  String get selfContract =>
+      'ارسال به آدرس قرارداد خود توکن، توکن‌ها را سوختن می‌کند.';
 
   @override
   String get zeroAddress => 'ارسال به آدرس صفر مجاز نیست.';
@@ -786,7 +792,8 @@ class AppLocalizationsFa extends AppLocalizations {
   String get tokenUnknown => 'توکن ناشناس';
 
   @override
-  String get unlimitedApproval => 'تأیید نامحدود — توکن می‌تواند تمام موجودی را خرج کند';
+  String get unlimitedApproval =>
+      'تأیید نامحدود — توکن می‌تواند تمام موجودی را خرج کند';
 
   @override
   String get signUnknownData => 'امضای داده ناشناس (پیشرفته)';
@@ -795,16 +802,19 @@ class AppLocalizationsFa extends AppLocalizations {
   String get enableSignUnknown => 'فعال کردن امضای کال‌دیتا ناشناس';
 
   @override
-  String get blindSignWarning => 'امضای کورانه خطرناک است. فقط در صورت درک ریسک فعال کنید.';
+  String get blindSignWarning =>
+      'امضای کورانه خطرناک است. فقط در صورت درک ریسک فعال کنید.';
 
   @override
   String get disclosure => 'افشا';
 
   @override
-  String get nodeSees => 'نود می‌بیند: IP شما، متد RPC و پارامترها. می‌تواند پیوند آدرس‌ها را حدس بزند.';
+  String get nodeSees =>
+      'نود می‌بیند: IP شما، متد RPC و پارامترها. می‌تواند پیوند آدرس‌ها را حدس بزند.';
 
   @override
-  String get appDoesNotSend => 'برنامه ارسال نمی‌کند: مدل دستگاه، سیستم‌عامل، نسخه برنامه، زبان، موقعیت، مخاطبین، بذر، کلیدها، رمزها.';
+  String get appDoesNotSend =>
+      'برنامه ارسال نمی‌کند: مدل دستگاه، سیستم‌عامل، نسخه برنامه، زبان، موقعیت، مخاطبین، بذر، کلیدها، رمزها.';
 
   @override
   String get viewRawRequest => 'مشاهده درخواست خام';

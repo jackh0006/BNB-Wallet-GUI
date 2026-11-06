@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "machine": {
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "7.0.0-42-generic",
+    "architecture": "x86_64",
+    "cpuCount": 2,
+    "memoryGiB": 3.8,
+    "flutter": "3.47.6 stable",
+    "dart": "3.13.5"
+  },
+  "benchmarks": [
+    {
+      "name": "Argon2id 64 MiB, t=3, p=4 (native reference library)",
+      "value": 0.344,
+      "unit": "s",
+      "status": "MEASURED",
+      "evidence": "tool/argon2_probe.dart, 2026-11-06"
+    },
+    {
+      "name": "Argon2id 64 MiB, t=3, p=4 (debug pure-Dart fallback)",
+      "value": 110,
+      "unit": "s",
+      "status": "MEASURED",
+      "evidence": "test/vault_test.dart timing before native wiring, 2026-11-06"
+    },
+    {
+      "name": "Application startup to first frame",
+      "value": null,
+      "unit": "s",
+      "status": "NOT TESTED",
+      "evidence": "needs an X/Wayland session and a packaged build"
+    },
+    {
+      "name": "Resident memory while idle",
+      "value": null,
+      "unit": "MiB",
+      "status": "NOT TESTED",
+      "evidence": "needs an X/Wayland session and a packaged build"
+    },
+    {
+      "name": "Wallet derivation (BIP-39 to first address)",
+      "value": null,
+      "unit": "ms",
+      "status": "NOT TESTED",
+      "evidence": "planned"
+    }
+  ]
+}

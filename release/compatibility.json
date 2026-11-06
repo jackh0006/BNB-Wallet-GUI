@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "platforms": [
+    {
+      "platform": "Ubuntu 24.04",
+      "arch": "x86_64",
+      "package": ".deb / source",
+      "build": "PASS",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "BUILD + PACKAGE ONLY",
+      "evidence": "flutter build linux --release 2m03s; bnb-wallet-1.0.10-amd64.deb sha256 e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1; dpkg-deb -x + ldd resolved all libraries; no secret-bearing filenames"
+    },
+    {
+      "platform": "Debian 12",
+      "arch": "x86_64",
+      "package": ".deb / source",
+      "build": "NOT TESTED",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "NOT TESTED",
+      "evidence": "container test planned"
+    },
+    {
+      "platform": "Fedora 40",
+      "arch": "x86_64",
+      "package": "source",
+      "build": "NOT TESTED",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "NOT TESTED",
+      "evidence": "container build planned; no .rpm is produced"
+    },
+    {
+      "platform": "Linux",
+      "arch": "arm64",
+      "package": "source",
+      "build": "NOT TESTED",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "NOT TESTED",
+      "evidence": "no arm64 hardware or emulator in this release environment"
+    },
+    {
+      "platform": "Windows",
+      "arch": "x86_64",
+      "package": "source",
+      "build": "NOT TESTED",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "NOT TESTED",
+      "evidence": "not built or tested"
+    },
+    {
+      "platform": "macOS",
+      "arch": "arm64/x86_64",
+      "package": "source",
+      "build": "NOT TESTED",
+      "install": "NOT TESTED",
+      "functional": "NOT TESTED",
+      "status": "NOT TESTED",
+      "evidence": "not built or tested"
+    },
+    {
+      "platform": "Android",
+      "arch": "arm64-v8a",
+      "package": ".apk",
+      "build": "BLOCKED",
+      "install": "BLOCKED",
+      "functional": "BLOCKED",
+      "status": "BLOCKED",
+      "evidence": "historical signing key not rotated; see docs/security/INCIDENT_2026-11-KEYSTORE.md"
+    }
+  ]
+}

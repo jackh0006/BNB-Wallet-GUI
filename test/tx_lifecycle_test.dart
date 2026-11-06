@@ -6,24 +6,42 @@ void main() {
   group('send journey strip', () {
     test('every stage before failed sits on the strip in order', () {
       expect(journeyIndexOf(TxStage.prepared), 0);
-      expect(journeyIndexOf(TxStage.signed), greaterThan(journeyIndexOf(TxStage.simulated)));
+      expect(
+        journeyIndexOf(TxStage.signed),
+        greaterThan(journeyIndexOf(TxStage.simulated)),
+      );
       expect(journeyIndexOf(TxStage.finalized), sendJourney.length - 1);
       expect(journeyIndexOf(TxStage.failed), -1);
     });
 
-    test('every stage carries plain words for screen readers and sighted users', () {
-      for (final stage in TxStage.values) {
-        expect(stage.label.trim(), isNotEmpty, reason: '$stage needs a label');
-        expect(stage.detail.trim(), isNotEmpty, reason: '$stage needs a detail');
-      }
-    });
+    test(
+      'every stage carries plain words for screen readers and sighted users',
+      () {
+        for (final stage in TxStage.values) {
+          expect(
+            stage.label.trim(),
+            isNotEmpty,
+            reason: '$stage needs a label',
+          );
+          expect(
+            stage.detail.trim(),
+            isNotEmpty,
+            reason: '$stage needs a detail',
+          );
+        }
+      },
+    );
   });
 
   group('send events map to story lines exhaustively', () {
     test('no event can exist without words', () {
       for (final event in SendEvent.values) {
         final note = sendEventNote(event);
-        expect(note.text.trim(), isNotEmpty, reason: '$event needs a story line');
+        expect(
+          note.text.trim(),
+          isNotEmpty,
+          reason: '$event needs a story line',
+        );
       }
     });
 
@@ -47,7 +65,9 @@ void main() {
   group('decodeRevertReason — the contract\'s own words when it has any', () {
     test('string revert after a colon', () {
       expect(
-        decodeRevertReason('RPCError: execution reverted: ERC20: transfer amount exceeds balance'),
+        decodeRevertReason(
+          'RPCError: execution reverted: ERC20: transfer amount exceeds balance',
+        ),
         'ERC20: transfer amount exceeds balance',
       );
     });
@@ -73,7 +93,9 @@ void main() {
     });
 
     test('undecodable hex is never invented into words', () {
-      final decoded = decodeRevertReason('execution reverted 0xdeadbeefcafebabe');
+      final decoded = decodeRevertReason(
+        'execution reverted 0xdeadbeefcafebabe',
+      );
       expect(decoded, contains('undecoded'));
       expect(decoded, contains('0xdead'));
     });
@@ -104,8 +126,10 @@ void main() {
     });
 
     test('underpriced vs replacement-underpriced are distinct', () {
-      expect(readBroadcastError('transaction underpriced').verdict,
-          BroadcastVerdict.underpriced);
+      expect(
+        readBroadcastError('transaction underpriced').verdict,
+        BroadcastVerdict.underpriced,
+      );
       expect(
         readBroadcastError('replacement transaction underpriced').verdict,
         BroadcastVerdict.replacementUnderpriced,
@@ -113,17 +137,25 @@ void main() {
     });
 
     test('insufficient funds and intrinsic gas', () {
-      expect(readBroadcastError('insufficient funds for transfer').verdict,
-          BroadcastVerdict.insufficientFunds);
-      expect(readBroadcastError('intrinsic gas too low').verdict,
-          BroadcastVerdict.intrinsicGas);
+      expect(
+        readBroadcastError('insufficient funds for transfer').verdict,
+        BroadcastVerdict.insufficientFunds,
+      );
+      expect(
+        readBroadcastError('intrinsic gas too low').verdict,
+        BroadcastVerdict.intrinsicGas,
+      );
     });
 
     test('transport failures are unknown outcomes — never "failed"', () {
-      expect(readBroadcastError('SocketException: connection closed').verdict,
-          BroadcastVerdict.unknownOutcome);
-      expect(readBroadcastError('ClientException: timeout').verdict,
-          BroadcastVerdict.unknownOutcome);
+      expect(
+        readBroadcastError('SocketException: connection closed').verdict,
+        BroadcastVerdict.unknownOutcome,
+      );
+      expect(
+        readBroadcastError('ClientException: timeout').verdict,
+        BroadcastVerdict.unknownOutcome,
+      );
     });
 
     test('anything else keeps the node\'s text', () {
@@ -142,16 +174,21 @@ void main() {
         '0x000000000000000000000000${address.toLowerCase().replaceFirst('0x', '')}';
 
     EvmLog transfer(String valueHex64) => EvmLog(
-          address: token,
-          topics: [erc20TransferTopic, topic(from), topic(to)],
-          data: '0x$valueHex64',
-        );
+      address: token,
+      topics: [erc20TransferTopic, topic(from), topic(to)],
+      data: '0x$valueHex64',
+    );
 
     test('finds the amount actually sent to the recipient', () {
       final amount = BigInt.from(123456789);
       final hex = amount.toRadixString(16).padLeft(64, '0');
       expect(
-        findTransferAmount(logs: [transfer(hex)], token: token, from: from, to: to),
+        findTransferAmount(
+          logs: [transfer(hex)],
+          token: token,
+          from: from,
+          to: to,
+        ),
         amount,
       );
     });
@@ -163,27 +200,40 @@ void main() {
         topics: [erc20TransferTopic, topic(from), topic(to)],
         data: '0x$hex',
       );
-      expect(findTransferAmount(logs: [foreign], token: token, from: from, to: to),
-          isNull);
+      expect(
+        findTransferAmount(logs: [foreign], token: token, from: from, to: to),
+        isNull,
+      );
       final wrongParty = EvmLog(
         address: token,
         topics: [erc20TransferTopic, topic(to), topic(from)],
         data: '0x$hex',
       );
       expect(
-          findTransferAmount(
-              logs: [wrongParty], token: token, from: from, to: to),
-          isNull);
-      expect(findTransferAmount(logs: const [], token: token, from: from, to: to),
-          isNull);
+        findTransferAmount(
+          logs: [wrongParty],
+          token: token,
+          from: from,
+          to: to,
+        ),
+        isNull,
+      );
+      expect(
+        findTransferAmount(logs: const [], token: token, from: from, to: to),
+        isNull,
+      );
     });
 
     test('a smaller received amount is detectable (fee-on-transfer)', () {
       final sent = BigInt.from(1000000);
       final received = BigInt.from(990000);
       final hex = received.toRadixString(16).padLeft(64, '0');
-      final found =
-          findTransferAmount(logs: [transfer(hex)], token: token, from: from, to: to);
+      final found = findTransferAmount(
+        logs: [transfer(hex)],
+        token: token,
+        from: from,
+        to: to,
+      );
       expect(found, received);
       expect(found! < sent, isTrue);
     });

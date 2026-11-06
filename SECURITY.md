@@ -25,10 +25,24 @@ not prove safety for real-money use. Read [SECURITY_AUDIT.md](SECURITY_AUDIT.md)
 version-specific pass/fail record and confirmation rule are in
 [docs/RELEASE_EVIDENCE.md](docs/RELEASE_EVIDENCE.md).
 
+This project has **no independent third-party security audit**. The
+self-assessment, automated tests, SBOM, and release gate are evidence of
+engineering work, not an audit opinion.
+
+## Supported versions
+
+| Version | Status |
+|---|---|
+| `1.0.10` release line | Supported when its release gate reports `VERIFIED` for the exact commit and artifact |
+| `1.0.9` and earlier | Unmaintained; do not treat their test results as evidence for a new build |
+| Any Android APK | **Blocked** until the historical signing key is rotated and denylisted |
+
 ## Key rotation
 
 If a signing key, seed phrase, device, or release account is suspected
 compromised, stop distributing the affected artifact. Create a replacement
 identity outside the repository, publish its fingerprint through a trusted
 out-of-band channel, and issue a signed release note. The historical Android
-release key is compromised; it must never be reused.
+release key is compromised; it must never be reused. The full timeline,
+impact, owner actions, and current `UNVERIFIED` rotation status are in
+[docs/security/INCIDENT_2026-11-KEYSTORE.md](docs/security/INCIDENT_2026-11-KEYSTORE.md).

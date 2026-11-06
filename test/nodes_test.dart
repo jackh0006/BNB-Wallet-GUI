@@ -13,8 +13,16 @@ void main() {
 
   group('RPC node phone book (terminal-grade management)', () {
     test('adds, filters by network side, rejects duplicates', () async {
-      await state.addNode('My home node', 'https://node.example/test', network: 'testnet');
-      await state.addNode('Other node', 'https://other.example', network: 'mainnet');
+      await state.addNode(
+        'My home node',
+        'https://node.example/test',
+        network: 'testnet',
+      );
+      await state.addNode(
+        'Other node',
+        'https://other.example',
+        network: 'mainnet',
+      );
 
       // currentNetworkNodes filters by the side the RPC is standing on.
       state.rpc.setNetwork('testnet');
@@ -44,7 +52,11 @@ void main() {
     });
 
     test('delete of a non-active node keeps the active door intact', () async {
-      await state.addNode('Victim', 'https://victim.example', network: 'mainnet');
+      await state.addNode(
+        'Victim',
+        'https://victim.example',
+        network: 'mainnet',
+      );
       final victimIndex = state.nodes.indexWhere((n) => n.label == 'Victim');
       final victim = state.nodes[victimIndex];
       final activeBefore = state.rpc.configuredRpc;
@@ -55,8 +67,14 @@ void main() {
 
     test('reset brings back the official doors for both sides', () async {
       await state.resetNodesToDefaults();
-      final mainnet = [for (final n in state.nodes) if (n.network == 'mainnet') n];
-      final testnet = [for (final n in state.nodes) if (n.network == 'testnet') n];
+      final mainnet = [
+        for (final n in state.nodes)
+          if (n.network == 'mainnet') n,
+      ];
+      final testnet = [
+        for (final n in state.nodes)
+          if (n.network == 'testnet') n,
+      ];
       expect(mainnet.length, 4);
       expect(testnet.length, 2);
       expect(mainnet.every((n) => n.url.startsWith('https://')), isTrue);
@@ -65,8 +83,15 @@ void main() {
 
     test('every node mutation writes a story line', () async {
       state.rpc.clearStory();
-      await state.addNode('Storyful', 'https://story.example', network: 'mainnet');
-      expect(state.rpc.story.where((l) => l.text.contains('Storyful')), isNotEmpty);
+      await state.addNode(
+        'Storyful',
+        'https://story.example',
+        network: 'mainnet',
+      );
+      expect(
+        state.rpc.story.where((l) => l.text.contains('Storyful')),
+        isNotEmpty,
+      );
       state.rpc.clearStory();
     });
   });

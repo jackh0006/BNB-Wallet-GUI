@@ -92,7 +92,7 @@ Section: finance
 Priority: optional
 Architecture: amd64
 Maintainer: jackh0006 <jackh109867@gmail.com>
-Depends: libgtk-3-0, libc6
+Depends: libgtk-3-0, libsecret-1-0, liblzma5, libstdc++6, libc6
 Description: BNB Wallet — graphical BNB Smart Chain wallet
  GUI port of the BNB terminal wallet (v1). Local, non-custodial: create or
  import BIP-39 wallets, manage BNB and BEP-20 tokens, send with live EIP-1559
