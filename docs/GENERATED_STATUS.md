@@ -34,19 +34,23 @@ A declaration count is not a pass count. Pass/fail evidence comes only from a co
 
 | Check | Exit | Duration (s) | Required | Log SHA-256 |
 |---|---|---|---|---|
-| cold-signature | 0 | 3.759 | yes | 5575c271e9b604d3 |
-| deb-build | 0 | 24.657 | yes | b0871d41c7c13529 |
-| dependency-audit | 0 | 152.628 | yes | 531db7f60a49620c |
-| full-test-suite | 0 | 593.75 | yes | a2db0056e80e0d9d |
-| install-smoke | 0 | 161 | yes | — |
-| license-inventory | 0 | 0.064 | yes | ab9b22cbedaa80d3 |
-| linux-build | 0 | 114.281 | yes | ceb4fad44ba25641 |
-| release-evidence | 0 | 0.046 | yes | c3c5f270e643a3bd |
-| reproducibility | 0 | 251.164 | yes | 391f4c7ea096ce59 |
-| sbom | 0 | 0.055 | yes | 2eae3b70d7706078 |
-| secret-scan | 0 | 1.441 | yes | 7ff728a5877b4846 |
-| static-analysis | 0 | 5.009 | yes | 145eef7ab05943c8 |
-| test-inventory | 0 | 0.102 | yes | 16f3f183de2939cf |
+| cold-signature | 0 | 6.074 | yes | 5575c271e9b604d3 |
+| deb-build | 0 | 25.743 | yes | ff4e25ffddc29eda |
+| dependency-audit | 0 | 6.894 | yes | 531db7f60a49620c |
+| full-test-suite | 0 | 533.349 | yes | 371fed6a508e2aa9 |
+| identity-negative-tests | 0 | 0.558 | yes | dcf09f3c94e7f44a |
+| install-smoke | 0 | 169 | yes | — |
+| integration | 0 | 14.307 | yes | 923fc43acc8ddb66 |
+| license-inventory | 0 | 0.066 | yes | ab9b22cbedaa80d3 |
+| linux-build | 0 | 116.769 | yes | ceb4fad44ba25641 |
+| release-evidence | 0 | 0.088 | yes | c3c5f270e643a3bd |
+| release-signing-tests | 0 | 1.553 | yes | b4b78940f7174715 |
+| reproducibility | 0 | 275.367 | yes | 18ed8fd0155c2423 |
+| sbom | 0 | 0.054 | yes | 2eae3b70d7706078 |
+| secret-scan | 0 | 2.275 | yes | 7ff728a5877b4846 |
+| security-mutation | 0 | 97.026 | yes | d04b5408453d3d8d |
+| static-analysis | 0 | 10.919 | yes | 3a9ab005cd4378e1 |
+| test-inventory | 0 | 0.101 | yes | a2a0b08287279225 |
 
 ## Artifacts
 
