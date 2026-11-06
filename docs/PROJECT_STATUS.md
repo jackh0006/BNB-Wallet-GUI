@@ -14,7 +14,9 @@ exists yet.
 | Native Argon2id backend | DONE | `lib/kdf.dart`; one 64 MiB/t=3/p=4 derivation measured at 344 ms, down from ~110 s pure-Dart debug fallback |
 | KDF test stability | FIXED LOCALLY | `vault_test` 9/9 in 10 s; KDF-tagged suites 4/4 in 48 s; no segfault when tests run serially |
 | Exact ERC-20 calldata | FIXED | `SendIntent.decodeErc20Transfer` rejects trailing bytes; regression test |
-| Test suite | LOCAL PASS | 44/44 files before the new layers; current inventory is 47 files / 299 declarations, final full run in progress |
+| Test suite | LOCAL PASS | 47/47 files, 0 failed, 0 timed out, 577 s (2026-11-06) |
+| Linux build | PASS | `flutter build linux --release` 2m03s |
+| `.deb` package | PARTIAL | `bnb-wallet-1.0.10-amd64.deb` built unsigned; SHA-256 `e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1`; not publishable |
 | Machine-readable evidence | IMPLEMENTED | `release/manifest.json`, `docs/testing/test-inventory.json`, `docs/GENERATED_STATUS.md`, `release-gate.py` |
 | Release gate | INCOMPLETE | Source checks can pass; `.deb`, signature, install, and reproducibility are absent |
 | Android | BLOCKED | Historical signing key rotation `NOT VERIFIED`; denylist empty |
