@@ -396,6 +396,7 @@
     }
   ],
   "checksCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
+  "identityNote": "checksCommit 0cd7cd6 is the tested wallet/test tree; sourceCommit b50ad2c adds only the identity-test fixture fix; artifactSourceCommit equals checksCommit. No wallet code changed after 0cd7cd6.",
   "notes": [
     "Package is built but unsigned in this environment.",
     "No independent security audit is available.",
@@ -407,7 +408,7 @@
     "missing release check: deb-signature"
   ],
   "schemaVersion": 1,
-  "sourceCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
+  "sourceCommit": "b50ad2c95fb2c204fbb7803ffcc27d30483538cb",
   "status": "PARTIALLY VERIFIED",
   "version": "1.1.0+5"
 }
