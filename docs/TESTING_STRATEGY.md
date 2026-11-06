@@ -10,7 +10,7 @@ not verification.
 |---|---|---|
 | Formatting | `dart format --output=none --set-exit-if-changed lib test tool` | PASS |
 | Static analysis | `flutter analyze --no-pub` | PASS: no issues |
-| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 47 files / 299 declarations, serial, 0 failed |
+| Full unit/widget suite | `bash scripts/test-suite.sh` | PASS: 47 files / 299 declarations, serial, 0 failed locally; hosted CI on `773f0db` also PASS |
 | Production KDF | `test/kdf_production_test.dart` | PASS: fixed 64 MiB/t=3/p=4, native vs pure-Dart agreement, one real round-trip < 60 s |
 | Property/fuzz-style parsers | `test/fuzz_and_property_test.dart` | PASS: deterministic seeds, 2000-iteration RLP/calldata/vault/envelope mutations |
 | RPC adversarial responses | `test/rpc_adversarial_test.dart` | PASS: wrong chain, non-JSON/HTML, oversized/malformed balance, network switch |
@@ -24,7 +24,7 @@ not verification.
 | Test inventory and docs | `test_inventory.py --check`, `release_manifest.py --check`, `generate_docs.py --check` | PASS |
 | Release gate | `python3 scripts/release-gate.py` | INCOMPLETE: source checks recorded locally; release artifacts/install/reproducibility absent |
 | Clean install / launch | manual, clean Ubuntu | NOT TESTED |
-| Reproducibility | `bash scripts/reproducibility-check.sh` | NOT TESTED |
+| Reproducibility | `bash scripts/reproducibility-check.sh` | **NOT REPRODUCIBLE** — two clean builds of `dabe165` differ in the binary, `libapp.so`, and plugin libraries |
 | Independent audit | external | NOT AVAILABLE |
 
 Every new defect needs a regression test that asserts the intended code path,

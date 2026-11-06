@@ -21,7 +21,8 @@ full-release confirmation.
 | Static analysis | DONE | `flutter analyze --no-pub` — no issues found. |
 | Full Flutter test suite | LOCAL PASS — HOSTED RERUN PENDING | Local serial run on 2026-11-06: 47 files / 299 declarations, 0 failed, 0 timed out. The previous hosted run failed for the reasons recorded in `docs/TESTING_STRATEGY.md`; the fixed runner and KDF backend must pass on the candidate PR before this row becomes hosted-verified. |
 | Linux `.deb` artifact integrity | NOT BUILT FOR 1.0.10 | The earlier 1.0.9 package and its signature are historical. A 1.0.10 package must be built from the tagged candidate and verified with `release-check.sh`. |
-| Full Linux rebuild from source | NOT COMPLETED | `flutter build linux --release` is still required for this candidate. |
+| Full Linux rebuild from source | PASS (single build) | `flutter build linux --release` completed in 2m03s for 1.0.10. |
+| Bit-for-bit reproducibility | **FAILED** | Two clean worktrees of `dabe165` produced different archives (`c1165460…` vs `c397c74f…`); `bnb_wallet_gui`, `libapp.so`, and plugin `.so` differ. Provenance is not reproducibility. |
 | Clean Ubuntu 22.04/24.04 install and launch | NEEDS OWNER | No clean Ubuntu VM/container with desktop launch support is available in this workspace. |
 | Large-value mainnet safety | NEEDS OWNER | Automated tests cannot prove safety against malware, phishing, a compromised OS, or an incorrect recipient. Perform paper-backup restoration and progressively sized transfers. |
 
