@@ -16,6 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/temp_dir.dart';
+
 class _MockPathProvider extends PathProviderPlatform {
   _MockPathProvider(this.dir);
   final String dir;
@@ -81,7 +83,7 @@ void main() {
     // a fresh state and locks it before use, so no teardown lock is needed.
     StorageDebugHooks.reset();
     AppStorage.resetDeviceSecretMemo();
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTestDirectory(tmp);
     PosixFs.restoreUmask(previousUmask);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(

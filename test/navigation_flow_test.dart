@@ -89,6 +89,12 @@ void main() {
     tmp = await Directory.systemTemp.createTemp('bnb-nav-test');
     PathProviderPlatform.instance = _MockPathProvider(tmp.path);
     await AppStorage.init();
+    // These are navigation tests, not network tests.  HomePage starts a
+    // refresh as soon as it is mounted; with a real RPC pool that would try
+    // several 10-second timeouts and keep the test isolate alive after the
+    // assertions.  Offline makes connect() fail immediately and keeps the
+    // navigation fixture hermetic.
+    appState.rpc.setOffline(true);
     AppState.vaultEncryptOverride = _testEncrypt;
     AppState.vaultDecryptOverride = _testDecrypt;
     // This fixture shares the global state across widget cases.  It needs the
@@ -104,6 +110,7 @@ void main() {
     await EncryptedLogStore.flush();
     AppState.vaultEncryptOverride = null;
     AppState.vaultDecryptOverride = null;
+    appState.rpc.setOffline(false);
     appState.lockForTest();
     AppStorage.resetDeviceSecretMemo();
     if (await tmp.exists()) await tmp.delete(recursive: true);
@@ -270,7 +277,12 @@ void main() {
     tester,
   ) async {
     _bigSurface(tester);
-    await appState.unlock(WalletCore.privateKeyFromHex(_testKeyHex));
+    // unlock() performs real descriptor-backed storage I/O.  Awaiting it in
+    // the fake-async widget zone blocks the harness forever; give it a real
+    // event-loop turn exactly as the vault-backed cases above do.
+    await tester.runAsync(
+      () => appState.unlock(WalletCore.privateKeyFromHex(_testKeyHex)),
+    );
     await tester.pumpWidget(const MaterialApp(home: HomePage()));
     await tester.pump(const Duration(milliseconds: 100));
     final button = find.widgetWithText(OutlinedButton, 'Send');
