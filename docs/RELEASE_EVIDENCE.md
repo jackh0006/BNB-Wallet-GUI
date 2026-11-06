@@ -56,6 +56,13 @@ change. CI rejects drift; never hand-edit a generated block.
 A result from another commit, another artifact, or another machine is not
 evidence for this release. A cancelled check, timeout, or OOM is not a pass.
 
+A release may add an **evidence-only** follow-up commit (for example
+`release/evidence.json`, the regenerated manifest, and generated docs). The
+bundle's `sourceCommit` names the commit the checks actually ran on. The gate
+accepts that ancestor only when every later change is under `docs/` or
+`release/` or is `README.md`; any source, test, script, or dependency change
+invalidates the bundle.
+
 ## Status vocabulary
 
 - **Confirmed**: every required command exited zero, the artifact matched its

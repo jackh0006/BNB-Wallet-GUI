@@ -44,9 +44,49 @@ def head_commit() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
 
+EVIDENCE_ONLY_PATHS = {
+    "release/evidence.json",
+    "release/manifest.json",
+    "release/compatibility.json",
+    "release/benchmarks.json",
+    "docs/GENERATED_STATUS.md",
+    "docs/testing/test-inventory.json",
+    "docs/testing/TEST_MATRIX.md",
+    "docs/releases/1.0.10.md",
+    "docs/RELEASE_EVIDENCE.md",
+    "docs/HARDENING_REPORT.md",
+    "README.md",
+}
+
+
+def evidence_only_ok(source_commit: str) -> bool:
+    head = head_commit()
+    if source_commit == head:
+        return True
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", source_commit, head],
+        cwd=ROOT,
+        capture_output=True,
+    )
+    if ancestor.returncode != 0:
+        return False
+    changed = subprocess.check_output(
+        ["git", "diff", "--name-only", f"{source_commit}..{head}"],
+        cwd=ROOT,
+        text=True,
+    ).splitlines()
+    return all(
+        path == "README.md"
+        or path.startswith("docs/")
+        or path.startswith("release/")
+        for path in changed
+        if path
+    )
+
+
 def gate_summary(manifest: dict) -> dict:
     bundle = load(EVIDENCE, None)
-    if bundle and bundle.get("sourceCommit") == head_commit():
+    if bundle and evidence_only_ok(bundle.get("sourceCommit", "")):
         return {
             "status": bundle.get("status", "INCOMPLETE"),
             "problems": bundle.get("problems", []),

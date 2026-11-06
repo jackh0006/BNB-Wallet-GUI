@@ -80,17 +80,58 @@ def head_commit() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
 
+EVIDENCE_ONLY_PATHS = {
+    "release/evidence.json",
+    "release/manifest.json",
+    "release/compatibility.json",
+    "release/benchmarks.json",
+    "docs/GENERATED_STATUS.md",
+    "docs/testing/test-inventory.json",
+    "docs/testing/TEST_MATRIX.md",
+    "docs/releases/1.0.10.md",
+    "docs/RELEASE_EVIDENCE.md",
+    "docs/HARDENING_REPORT.md",
+    "README.md",
+}
+
+
+def evidence_commit_ok(source_commit: str) -> bool:
+    """Accept evidence recorded on an ancestor commit only when every change
+    since then is evidence/documentation, never source or tests."""
+    head = head_commit()
+    if source_commit == head:
+        return True
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", source_commit, head],
+        cwd=ROOT,
+        capture_output=True,
+    )
+    if ancestor.returncode != 0:
+        return False
+    changed = subprocess.check_output(
+        ["git", "diff", "--name-only", f"{source_commit}..{head}"],
+        cwd=ROOT,
+        text=True,
+    ).splitlines()
+    return all(
+        path == "README.md"
+        or path.startswith("docs/")
+        or path.startswith("release/")
+        for path in changed
+        if path
+    )
+
+
 def evidence_for(manifest: dict) -> tuple[dict, list]:
     """Return (checks_by_id, artifacts) for the current HEAD commit.
 
-    A committed release/evidence.json is the authoritative bundle when it
-    names the same source commit.  Otherwise, local untracked evidence from
-    scripts/record_check.py is used.  A bundle for a different commit is
-    ignored rather than silently mixed in.
+    A committed release/evidence.json is authoritative when it names HEAD or
+    an ancestor whose only later changes are evidence files.  Otherwise,
+    local untracked evidence from scripts/record_check.py is used.
     """
     commit = head_commit()
     bundle = load(EVIDENCE_FILE, None)
-    if bundle and bundle.get("sourceCommit") == commit:
+    if bundle and evidence_commit_ok(bundle.get("sourceCommit", "")):
         return (
             {item.get("id"): item for item in bundle.get("checks", [])},
             list(bundle.get("artifacts", [])),
@@ -205,8 +246,7 @@ def main() -> int:
     summary = {
         "status": status,
         "commit": head_commit(),
-        "version": manifest.get("version"),
-        "sourceChecksPassed": source_ok,
+        "version": manifest.get("version"),        "sourceChecksPassed": source_ok,
         "releaseChecksMissing": release_missing,
         "problems": problems,
         "artifacts": [artifact.get("path") for artifact in artifacts],
