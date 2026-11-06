@@ -17,7 +17,7 @@ human-readable index, not a second source of truth.
 | Pull request | <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10> |
 | Hosted CI | All required checks pass on `dd57ea9` (push `42306383769`, PR `42306389744`) |
 | Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
-| Final unsigned package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
+| Final unsigned package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `see the SHA-256 published on the v1.1.0 GitHub release` |
 
 ## Verified
 

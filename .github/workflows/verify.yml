@@ -118,6 +118,8 @@ jobs:
         run: python3 scripts/release_manifest.py --check
       - name: Product branding consistency
         run: python3 scripts/check_branding.py
+      - name: Free-use policy
+        run: python3 scripts/check_free_product.py
       - name: Release identity validator
         run: python3 scripts/check_release_identity.py
       - name: Release identity negative tests

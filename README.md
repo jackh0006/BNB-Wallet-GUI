@@ -9,10 +9,9 @@ The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
-**Current source candidate: `1.1.0+5`.** The latest GitHub stable release is
-`v1.0.5`; neither it nor this candidate is release-confirmed. The exact
-per-version evidence and release status are maintained in
-[docs/releases/1.1.0.md](docs/releases/1.1.0.md).
+**Current stable release: X Wallet 1.1.0 (`v1.1.0`).** Download and verify it from
+<https://github.com/jackh0006/BNB-Wallet-GUI/releases/tag/v1.1.0>. The exact
+per-version evidence is in [docs/releases/1.1.0.md](docs/releases/1.1.0.md).
 
 <!-- BEGIN GENERATED:status -->
 > **Generated release status** — do not edit this block by hand.
@@ -81,13 +80,16 @@ and limitations needed to judge it:
 | Incident response | [Incident response](docs/INCIDENT_RESPONSE.md) |
 | Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
 | Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |
+| Final completion guide | [Project completion](docs/PROJECT_COMPLETION.md) |
+| Final internal self-audit | [Self-audit](docs/FINAL_SELF_AUDIT.md) |
 | Private vulnerability reporting | [Security policy](SECURITY.md) |
 
 ## Download and verify the Linux package
 
-Only download a `.deb`, its detached `.asc` signature, and `SHA256SUMS` from
-the same GitHub Release. Obtain the maintainer's GPG fingerprint independently
-before trusting a signature.
+Only download `x-wallet-1.1.0-amd64.deb`, `SHA256SUMS`, and any `.asc` signature
+from the same GitHub Release. Obtain the maintainer's GPG fingerprint
+independently before trusting a signature. If the release is marked UNSIGNED,
+verify the published SHA-256 and do not describe the package as signed.
 
 ```bash
 sha256sum --check SHA256SUMS
@@ -167,6 +169,12 @@ Do not create public vulnerability issues. See [SECURITY.md](SECURITY.md) for
 private reporting and rotation guidance. The [AGPL-3.0-or-later license](LICENSE)
 applies: people who receive and use modified network-interacting versions are
 entitled to the corresponding source under its terms.
+
+## Free to use
+
+X Wallet is free: no subscription, paid license, paywall, advertisement, or
+payment is required for core wallet functions. Blockchain network fees are
+paid to the network, not to X Wallet. Optional donations are separate.
 
 ## Donate
 

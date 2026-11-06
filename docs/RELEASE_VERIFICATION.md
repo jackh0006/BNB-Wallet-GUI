@@ -12,7 +12,7 @@
 | Platform | Linux amd64 |
 | Version | `1.1.0` |
 | Built from | `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54` (clean archive) |
-| SHA-256 | `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
+| SHA-256 | `see the SHA-256 published on the v1.1.0 GitHub release` |
 | Signature | **MISSING** |
 | Signature verified | **NO** |
 | Provenance | Workflow exists; no published attestation |

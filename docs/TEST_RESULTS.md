@@ -23,7 +23,7 @@ Do not treat a timeout, OOM, cancellation, or skipped test as a pass.
 | 11 | Test inventory | `python3 scripts/test_inventory.py --check` | `e474b89` | PASS; 47 files / 299 declarations | 0.1 s | `docs/testing/test-inventory.json` |
 | 12 | Release evidence | `python3 scripts/check_release_evidence.py` | `e474b89` | PASS | 0.05 s | `docs/releases/1.0.10.md` |
 | 13 | Linux build | `flutter build linux --release` | `e474b89` | PASS | 123 s | local; CI `linux-build` |
-| 14 | `.deb` build | `bash scripts/build-deb.sh` | `0cd7cd6` | PASS (unsigned) | 25 s | `0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab` |
+| 14 | `.deb` build | `bash scripts/build-deb.sh` | `0cd7cd6` | PASS (unsigned) | 25 s | `see the SHA-256 published on the v1.1.0 GitHub release` |
 | 15 | Package sanity | `dpkg-deb -x` + `ldd` + secret-name scan | `0cd7cd6` | PASS; all libs resolve; no secret-bearing names | — | local |
 | 16 | Reproducibility (fixed path) | `bash scripts/reproducibility-check.sh 0cd7cd6` | `0cd7cd6` | PASS; identical archive `0e3cb4c1…` and manifests | 254 s | `release/checks.json` |
 | 17 | Hosted CI | GitHub Actions push `42306383769`, PR `42306389744` | `dd57ea9` | PASS: all required contexts incl. Anvil, identity, package smoke | 4m28s / 4m02s | GitHub Actions |
