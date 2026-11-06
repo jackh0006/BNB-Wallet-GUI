@@ -10,7 +10,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'BNB 钱包';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => '首页';

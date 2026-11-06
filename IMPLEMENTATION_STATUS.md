@@ -9,7 +9,7 @@ human-readable index, not a second source of truth.
 
 | Item | Value |
 |---|---|
-| Version | `1.0.10+4` |
+| Version | `1.1.0+5` |
 | Branch | `release/1.0.10` |
 | Tested source commit | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
 | Evidence bundle | `release/evidence.json` (source 5cfa1b0, checks 90d0f7c, artifact 90d0f7c) |

@@ -474,7 +474,7 @@ class ReceiptPage extends StatelessWidget {
 
   String _shareBody() {
     final lines = [
-      'BNB Wallet receipt',
+      'X Wallet receipt',
       '${receipt.amountHuman} ${receipt.assetSymbol}',
       'Status: ${receipt.status}${receipt.finalized ? ' (final)' : ''}',
       'To: ${receipt.to}',

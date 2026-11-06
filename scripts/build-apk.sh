@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a signed Android arm64 release APK of BNB Wallet GUI.
+# Build a signed Android arm64 release APK of X Wallet GUI.
 #
 # Signing material is NEVER stored in this repository. The caller must provide
 # an existing keystore and its credentials through the environment:

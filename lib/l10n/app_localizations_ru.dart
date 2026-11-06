@@ -10,7 +10,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appTitle => 'BNB Кошелёк';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => 'Главная';

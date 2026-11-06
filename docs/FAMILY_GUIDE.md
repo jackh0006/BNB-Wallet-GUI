@@ -1,4 +1,4 @@
-# Family guide: using BNB Wallet safely
+# Family guide: using X Wallet safely
 
 This guide is deliberately cautious. A software wallet can lose money if the
 computer is infected, the recovery phrase is copied, or the wrong address is
@@ -8,7 +8,7 @@ approved. If an amount would be difficult to replace, use a hardware wallet.
 
 1. Download the `.deb`, `.asc`, and `SHA256SUMS` from the same official GitHub
    Release. Check the checksum and GPG signature as shown in the README.
-2. Install with `sudo apt install ./bnb-wallet-<version>-amd64.deb`.
+2. Install with `sudo apt install ./x-wallet-<version>-amd64.deb`.
 3. Keep the computer updated and use a screen lock. Do not install unknown
    browser extensions or remote-access software.
 

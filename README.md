@@ -1,4 +1,4 @@
-# BNB Wallet
+# X Wallet
 
 A Linux amd64 desktop wallet for BNB Smart Chain. It is local, self-custodial,
 AGPL-3.0-or-later software: the wallet owner controls the recovery phrase and
@@ -9,16 +9,16 @@ The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
-**Current source candidate: `1.0.10+4`.** The latest GitHub stable release is
+**Current source candidate: `1.1.0+5`.** The latest GitHub stable release is
 `v1.0.5`; neither it nor this candidate is release-confirmed. The exact
 per-version evidence and release status are maintained in
-[docs/releases/1.0.10.md](docs/releases/1.0.10.md).
+[docs/releases/1.1.0.md](docs/releases/1.1.0.md).
 
 <!-- BEGIN GENERATED:status -->
 > **Generated release status** — do not edit this block by hand.
 >
-> Version `1.0.10+4` · status **PARTIALLY VERIFIED**
-> Tests: 49 files / 308 declarations · SBOM `f992deb3fc34bdb6`
+> Version `1.1.0+5` · status **PARTIALLY VERIFIED**
+> Tests: 49 files / 308 declarations · SBOM `3d3d4ea2e8b43b83`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
 > See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
@@ -74,7 +74,10 @@ and limitations needed to judge it:
 | Platform support | [Compatibility](docs/COMPATIBILITY.md) |
 | Backup and recovery | [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) |
 | Release signing checklist | [Signing checklist](docs/SIGNING_CHECKLIST.md) |
+| Rename compatibility | [Rename compatibility](docs/RENAME_COMPATIBILITY.md) |
 | High-value custody guidance | [High-value custody](docs/HIGH_VALUE_CUSTODY.md) |
+| Hardware-wallet plan | [Hardware-wallet plan](docs/HARDWARE_WALLET_PLAN.md) |
+| Multisignature architecture | [Multisig architecture](docs/MULTISIG_ARCHITECTURE.md) |
 | Incident response | [Incident response](docs/INCIDENT_RESPONSE.md) |
 | Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
 | Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |
@@ -88,8 +91,8 @@ before trusting a signature.
 
 ```bash
 sha256sum --check SHA256SUMS
-gpg --verify bnb-wallet-<version>-amd64.deb.asc bnb-wallet-<version>-amd64.deb
-sudo apt install ./bnb-wallet-<version>-amd64.deb
+gpg --verify x-wallet-<version>-amd64.deb.asc x-wallet-<version>-amd64.deb
+sudo apt install ./x-wallet-<version>-amd64.deb
 ```
 
 Never install a package from a chat attachment, a URL shortener, or an
@@ -118,7 +121,7 @@ and configuration; verify claims against each project's current documentation.
 The dated, source-linked comparison is in
 [docs/COMPETITORS.md](docs/COMPETITORS.md).
 
-| Property | BNB Wallet | Typical browser-extension wallet | Typical hardware wallet |
+| Property | X Wallet | Typical browser-extension wallet | Typical hardware wallet |
 |---|---:|---:|---:|
 | Local signing | Yes | Yes | Yes |
 | Seed exposed to browser extensions | No browser component | Often browser-hosted | No |
@@ -128,7 +131,7 @@ The dated, source-linked comparison is in
 | Protection from a compromised desktop OS | No | No | Better: key remains on device |
 | Independent external security review | No | Varies | Varies |
 
-The point of BNB Wallet is an inspectable Linux-native BSC workflow with
+The point of X Wallet is an inspectable Linux-native BSC workflow with
 encrypted local storage, strict transaction review, privacy routing, and a
 cold-wallet protocol in one codebase. It is not a replacement for a hardware
 wallet when the consequence of loss is high.
@@ -148,12 +151,12 @@ bash scripts/secret-scan.sh
 python3 scripts/dependency-audit.py
 python3 scripts/sbom.py --out docs/SBOM.json
 bash scripts/build-deb.sh
-BNB_RELEASE_DEB='/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb' \
+BNB_RELEASE_DEB='/home/mhh06/Downloads/X Wallet/x-wallet-<version>-amd64.deb' \
   bash scripts/release-check.sh
 ```
 
 `build-deb.sh` creates a `.deb` and `SHA256SUMS` in
-`/home/mhh06/Downloads/BNB Wallet/`. Set `BNB_GPG_KEY` to an available,
+`/home/mhh06/Downloads/X Wallet/`. Set `BNB_GPG_KEY` to an available,
 authorized secret key to also create the detached signature; an unsigned local
 build is diagnostic-only. The release gate refuses a package with no signature
 or matching checksum.

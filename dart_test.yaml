@@ -1,4 +1,4 @@
-# BNB Wallet test policy (weak 2-core release machine).
+# X Wallet test policy (weak 2-core release machine).
 #
 # Why this file exists: on 2026-10-20 the Argon2id-heavy suites
 # (vault_test.dart, workers_test.dart — each test derives a real 64 MiB KDF)

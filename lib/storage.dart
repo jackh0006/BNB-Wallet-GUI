@@ -48,7 +48,7 @@ Future<T> withProcessStorageLock<T>(Future<T> Function() operation) async {
       lockfd = PosixFs.openLockFileAt(dirfd, _processStorageLockName);
       if (!PosixFs.tryExclusiveLock(lockfd)) {
         throw StateError(
-          'Another BNB Wallet process is modifying protected storage; retry '
+          'Another X Wallet process is modifying protected storage; retry '
           'after it completes.',
         );
       }

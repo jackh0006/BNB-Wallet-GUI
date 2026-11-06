@@ -2,7 +2,7 @@
 
 ## Product Mission
 
-**BNB Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source BNB/EVM wallet with:
+**X Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source BNB/EVM wallet with:
 
 - Local encrypted storage (vaults)
 - Tor and proxy support (HTTP, HTTPS, SOCKS5)
@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          BNB Wallet GUI (Flutter/Dart)                  │
+│                          X Wallet GUI (Flutter/Dart)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  UI Layer (lib/screens/, lib/widgets/)                                  │
 │  ├── Dashboard / Home                                                   │
@@ -175,7 +175,7 @@ python3 scripts/sbom.py --out docs/SBOM.json
 ```bash
 # Linux .deb release
 bash scripts/build-deb.sh
-# Output: /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb (+ .sha256 + .asc)
+# Output: /home/mhh06/Downloads/X Wallet/x-wallet-<version>-amd64.deb (+ .sha256 + .asc)
 
 # Android APK (requires external keystore via env)
 export BNB_KEYSTORE=/path/to/release.keystore

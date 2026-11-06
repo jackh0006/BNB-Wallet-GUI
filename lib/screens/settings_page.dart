@@ -1845,7 +1845,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionTitle('About'),
           const SizedBox(height: 8),
           const Text(
-            'BNB Wallet 1.0.10',
+            'X Wallet 1.1.0',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),

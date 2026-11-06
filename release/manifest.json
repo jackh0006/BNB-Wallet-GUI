@@ -19,13 +19,13 @@
   "project": {
     "author": "Jack Hudson <jackh109867@gmail.com>",
     "license": "AGPL-3.0-or-later",
-    "name": "BNB Wallet GUI",
+    "name": "X Wallet GUI",
     "repository": "https://github.com/jackh0006/BNB-Wallet-GUI"
   },
-  "releaseEvidence": "docs/releases/1.0.10.md",
+  "releaseEvidence": "docs/releases/1.1.0.md",
   "sbom": {
     "path": "docs/SBOM.json",
-    "sha256": "f992deb3fc34bdb663512e76d55fd6daabf0c05903b4ea45c1b7e2209854118c"
+    "sha256": "3d3d4ea2e8b43b83ba0fbbdf60d971c1b7956804e36a782d73e4a995fb7738a4"
   },
   "schemaVersion": 1,
   "tests": {
@@ -33,11 +33,11 @@
     "matches": true,
     "path": "docs/testing/test-inventory.json",
     "recordedFiles": 49,
-    "sha256": "a9836549bbd7e4defff0b6cf3dced556887b8b0a17d6983e2f7657ed82d54a5c"
+    "sha256": "a75f632eea263a8d2ff68dafde7d1a6458e10e1f85cd76f9db61a437496bc4b6"
   },
   "toolchain": {
     "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
     "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
   },
-  "version": "1.0.10+4"
+  "version": "1.1.0+5"
 }

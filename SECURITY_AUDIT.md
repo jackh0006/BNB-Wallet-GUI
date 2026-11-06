@@ -1,4 +1,4 @@
-# Security Self-Assessment — BNB Wallet GUI
+# Security Self-Assessment — X Wallet GUI
 
 Date: 2026-11-03
 Scope: Linux cold-wallet transaction path, transaction verification, TLS

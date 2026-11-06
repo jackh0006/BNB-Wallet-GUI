@@ -49,7 +49,7 @@ and owner actions are in
 
 ### Output
 
-- `bnb-wallet-<version>-amd64.deb`
+- `x-wallet-<version>-amd64.deb`
 - `SHA256SUMS` (SHA-256 checksum)
 - Optional `.deb.asc` (GPG detached signature)
 

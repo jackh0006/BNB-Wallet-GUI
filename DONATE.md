@@ -1,6 +1,6 @@
 # Donate
 
-BNB Wallet is free and open source. If it is useful to you, optional donations
+X Wallet is free and open source. If it is useful to you, optional donations
 help fund its continued maintenance.
 
 All addresses below are copied from the author's public

@@ -1,18 +1,18 @@
 # Release Verification
 
-**Candidate:** `1.0.10+4`
-**Source commit:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
+**Candidate:** `1.1.0+5`
+**Source commit:** pending final 1.1.0 build
 **Status:** **PARTIALLY VERIFIED / NOT RELEASABLE**
 
 ## Artifact record
 
 | Field | Value |
 |---|---|
-| Filename | `bnb-wallet-1.0.10-amd64.deb` |
+| Filename | `x-wallet-1.1.0-amd64.deb` |
 | Platform | Linux amd64 |
-| Version | `1.0.10` |
-| Built from | `142929315b7df572ffae93cbc5ab1a2ec2395724` |
-| SHA-256 | `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244` |
+| Version | `1.1.0` |
+| Built from | pending final clean archive |
+| SHA-256 | pending final clean build |
 | Signature | **MISSING** |
 | Signature verified | **NO** |
 | Provenance | Workflow exists; no published attestation |
@@ -44,8 +44,8 @@
 ## Verification commands
 
 ```bash
-sha256sum "/home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.10-amd64.deb"
-dpkg-deb -c "/home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.10-amd64.deb"
+sha256sum "/home/mhh06/Downloads/X Wallet/x-wallet-1.1.0-amd64.deb"
+dpkg-deb -c "/home/mhh06/Downloads/X Wallet/x-wallet-1.1.0-amd64.deb"
 python3 scripts/release-gate.py
 ```
 

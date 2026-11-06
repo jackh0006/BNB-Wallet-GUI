@@ -43,7 +43,7 @@ Package smoke and reproducibility:
 ```bash
 # On a disposable Ubuntu 24.04 runner with root/apt:
 bash scripts/package-smoke.sh \
-  --deb "dist/bnb-wallet-<version>-amd64.deb" \
+  --deb "dist/x-wallet-<version>-amd64.deb" \
   --previous previous-1.0.9.deb \
   --seconds 20
 
@@ -63,7 +63,7 @@ bash scripts/build-deb.sh
 export BNB_GPG_KEY='<approved fingerprint or UID>'
 gpg --batch --yes --detach-sign --armor \
   --default-key "$BNB_GPG_KEY" \
-  "/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb"
+  "/home/mhh06/Downloads/X Wallet/x-wallet-<version>-amd64.deb"
 ```
 
 Run `scripts/check_release_identity.py --artifact <deb>` before signing. The
@@ -75,8 +75,8 @@ which documentation is not in the package.
 
 ```bash
 sha256sum --check SHA256SUMS
-gpg --verify bnb-wallet-<version>-amd64.deb.asc bnb-wallet-<version>-amd64.deb
-dpkg-deb -c bnb-wallet-<version>-amd64.deb
+gpg --verify x-wallet-<version>-amd64.deb.asc x-wallet-<version>-amd64.deb
+dpkg-deb -c x-wallet-<version>-amd64.deb
 python3 scripts/release-gate.py --require-verified
 ```
 

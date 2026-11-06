@@ -1,4 +1,4 @@
-# Threat Model — BNB Wallet GUI
+# Threat Model — X Wallet GUI
 
 Created by jackh0006 (jackh109867@gmail.com)
 

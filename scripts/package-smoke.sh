@@ -10,6 +10,8 @@ set -euo pipefail
 DEB=""
 PREVIOUS=""
 LAUNCH_SECONDS="${LAUNCH_SECONDS:-20}"
+CANDIDATE_PKG="${CANDIDATE_PKG:-x-wallet}"
+PREVIOUS_PKG="${PREVIOUS_PKG:-bnb-wallet}"
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
 
@@ -55,7 +57,7 @@ if [ -n "$PREVIOUS" ]; then
   [ -f "$PREVIOUS" ] || { echo "ERROR: previous package not found: $PREVIOUS" >&2; exit 1; }
   echo "== install previous package =="
   install_pkg "$PREVIOUS"
-  dpkg -s bnb-wallet | grep -E '^(Package|Version):'
+  dpkg -s "$PREVIOUS_PKG" | grep -E '^(Package|Version):'
   # A marker in the per-user data directory must survive the upgrade.
   DATA="${XDG_DATA_HOME:-$HOME/.local/share}/bnb-wallet"
   mkdir -p "$DATA"
@@ -68,7 +70,7 @@ fi
 
 echo "== install candidate =="
 install_pkg "$DEB"
-dpkg -s bnb-wallet | grep -E '^(Package|Version|Depends):'
+dpkg -s "$CANDIDATE_PKG" | grep -E '^(Package|Version|Depends):'
 
 if [ -n "$MARKER" ]; then
   DATA="${XDG_DATA_HOME:-$HOME/.local/share}/bnb-wallet"
@@ -81,10 +83,10 @@ fi
 
 echo "== launch under Xvfb =="
 set +e
-xvfb-run -a timeout "${LAUNCH_SECONDS}s" bnb-wallet >/tmp/bnb-wallet-launch.log 2>&1
+xvfb-run -a timeout "${LAUNCH_SECONDS}s" x-wallet >/tmp/x-wallet-launch.log 2>&1
 launch_code=$?
 set -e
-cat /tmp/bnb-wallet-launch.log || true
+cat /tmp/x-wallet-launch.log || true
 if [ "$launch_code" -ne 124 ]; then
   echo "ERROR: wallet exited before the launch window (exit $launch_code)" >&2
   exit 1
@@ -92,16 +94,16 @@ fi
 echo "launch: PASS (still running after ${LAUNCH_SECONDS}s)"
 
 echo "== uninstall =="
-$SUDO apt-get remove -y bnb-wallet
-if command -v bnb-wallet >/dev/null 2>&1; then
-  echo "ERROR: bnb-wallet binary still present after uninstall" >&2
+$SUDO apt-get remove -y "$CANDIDATE_PKG"
+if command -v x-wallet >/dev/null 2>&1; then
+  echo "ERROR: x-wallet binary still present after uninstall" >&2
   exit 1
 fi
 echo "uninstall: PASS"
 
 echo "== reinstall =="
 install_pkg "$DEB"
-dpkg -s bnb-wallet | grep -E '^Version:'
+dpkg -s "$CANDIDATE_PKG" | grep -E '^Version:'
 echo "reinstall: PASS"
 
 echo "Package smoke: PASS"

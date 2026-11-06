@@ -35,7 +35,7 @@ for i in $(seq 1 "$SAMPLES"); do
   start="$(date +%s%N)"
   "$APP" >/tmp/bnb-benchmark-run.log 2>&1 &
   PID=$!
-  if ! timeout 25s xdotool search --sync --onlyvisible --name 'BNB Wallet' >/dev/null 2>&1; then
+  if ! timeout 25s xdotool search --sync --onlyvisible --name 'X Wallet' >/dev/null 2>&1; then
     echo "ERROR: window did not appear on sample $i" >&2
     cat /tmp/bnb-benchmark-run.log >&2 || true
     kill "$PID" 2>/dev/null || true

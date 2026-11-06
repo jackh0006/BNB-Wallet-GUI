@@ -1,7 +1,11 @@
 # High-Value Custody Architecture
 
+**Status: NOT READY for large-value custody.** X Wallet is a local hot wallet.
+Hardware-wallet support is not implemented and the project has no independent
+security audit. See `HARDWARE_WALLET_PLAN.md` and `MULTISIG_ARCHITECTURE.md`.
+
 This document is guidance, not a claim that the current wallet is suitable for
-large holdings. BNB Wallet GUI is a **local hot wallet**: its signing key lives
+large holdings. X Wallet GUI is a **local hot wallet**: its signing key lives
 in process memory while unlocked.
 
 ## Use the right tool

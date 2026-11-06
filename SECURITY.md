@@ -1,6 +1,6 @@
 # Security policy
 
-BNB Wallet is AI-assisted and self-assessed personal-use software wallet. Do
+X Wallet is AI-assisted and self-assessed personal-use software wallet. Do
 not report a security issue in a public GitHub issue and do not include seed
 phrases, private keys, vault files, passwords, or live transaction data in a
 report. AI assistance and self-assessment are not independent review.

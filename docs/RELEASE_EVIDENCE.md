@@ -26,7 +26,7 @@ python3 scripts/dependency-audit.py
 python3 scripts/sbom.py --out docs/SBOM.json
 git diff --exit-code -- docs/SBOM.json
 bash scripts/build-deb.sh
-BNB_RELEASE_DEB='/absolute/path/to/bnb-wallet-<version>-amd64.deb' \
+BNB_RELEASE_DEB='/absolute/path/to/x-wallet-<version>-amd64.deb' \
   bash scripts/release-check.sh
 ```
 

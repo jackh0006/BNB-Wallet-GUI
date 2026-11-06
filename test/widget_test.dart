@@ -16,14 +16,14 @@ void main() {
     await AppStorage.init();
   }
 
-  testWidgets('app launches with BNB Wallet branding', (tester) async {
+  testWidgets('app launches with X Wallet branding', (tester) async {
     await bootstrap();
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(const BnbWalletApp());
 
-    expect(find.text('BNB Wallet'), findsOneWidget);
+    expect(find.text('X Wallet'), findsOneWidget);
   });
 
   testWidgets('connection story lines appear on the Home tab', (tester) async {

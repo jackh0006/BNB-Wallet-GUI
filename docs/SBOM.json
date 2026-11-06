@@ -2915,7 +2915,7 @@
       "description": "Local, non-custodial BNB Smart Chain wallet (deb).",
       "name": "bnb_wallet_gui",
       "type": "application",
-      "version": "1.0.10"
+      "version": "1.1.0"
     },
     "properties": [
       {

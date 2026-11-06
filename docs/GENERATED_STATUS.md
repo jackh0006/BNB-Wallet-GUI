@@ -5,7 +5,7 @@ Regenerate with `python3 scripts/generate_docs.py`.
 
 ## Release status
 
-- Version: `1.0.10+4`
+- Version: `1.1.0+5`
 - Exact source commit: recorded in `release/evidence.json` when a release bundle is published. It is deliberately not embedded here, because a document cannot contain the hash of the commit that contains it.
 - Status: **PARTIALLY VERIFIED**
 
@@ -19,7 +19,7 @@ Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY 
 | Dart | Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64" |
 | pubspec.lock SHA-256 | c1c31c95438e44de4172d2b27a759bda13fd305981a0bf0dbac32d2868d49e24 |
 | verification/package-lock.json SHA-256 | ad659384d423e91d21aab1d3f7b32d73eb78f6019effa9f6c6b638031363e5e7 |
-| SBOM SHA-256 | f992deb3fc34bdb663512e76d55fd6daabf0c05903b4ea45c1b7e2209854118c |
+| SBOM SHA-256 | 3d3d4ea2e8b43b83ba0fbbdf60d971c1b7956804e36a782d73e4a995fb7738a4 |
 
 ## Test inventory
 

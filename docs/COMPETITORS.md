@@ -8,11 +8,11 @@ this comparison. Every cell that could not be checked from a primary source is
 marked **UNVERIFIED**. A vendor feature claim is not an independent security
 assessment.
 
-This table must never be used as a claim that BNB Wallet is "safer" than any
+This table must never be used as a claim that X Wallet is "safer" than any
 other product. Different threat models need different tools; a hardware wallet
 is the better choice when the consequence of loss is high.
 
-| Property | BNB Wallet GUI | MetaMask | Trust Wallet | Rabby | SafePal | Ledger Live | Trezor Suite |
+| Property | X Wallet GUI | MetaMask | Trust Wallet | Rabby | SafePal | Ledger Live | Trezor Suite |
 |---|---|---|---|---|---|---|---|
 | Native Linux desktop app | **Yes** (Flutter/GTK, `.deb`) | No native Linux desktop app; browser extension/mobile | No native Linux desktop app; mobile/extension | Vendor offers a desktop app; Linux support **UNVERIFIED** | No Linux desktop app; mobile + hardware | **Yes** (desktop app) | **Yes** (desktop app) |
 | Local key management | Yes, encrypted local vault | Yes, local wallet | Yes, local wallet | Yes, local wallet | Keys in hardware device; app is a companion | Keys in hardware device; app is a companion | Keys in hardware device; app is a companion |

@@ -10,7 +10,7 @@ class AppLocalizationsFa extends AppLocalizations {
   AppLocalizationsFa([String locale = 'fa']) : super(locale);
 
   @override
-  String get appTitle => 'کیف پول BNB';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => 'خانه';

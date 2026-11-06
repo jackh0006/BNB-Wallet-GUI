@@ -3,6 +3,24 @@
 All notable changes to this wallet. Dates in 2026; releases identify their
 supported artifacts explicitly.
 
+## 1.1.0+5 — X Wallet product rename
+
+- **Official product name:** X Wallet across the application, six locales,
+  window title, Android label, desktop entry, documentation, and tests.
+- **Compatibility preserved:** Dart package `bnb_wallet_gui`, Linux binary
+  `bnb_wallet_gui`, Android application ID, vault magic/filenames, backups,
+  device-secret identifiers, data paths, and environment variables.
+- **Debian package migration:** `x-wallet` with
+  `Provides/Replaces/Conflicts: bnb-wallet`; `/usr/bin/bnb-wallet` remains a
+  compatibility symlink.
+- **New original X Wallet icon** in all hicolor sizes.
+- **Branding validator:** `scripts/check_branding.py` fails on inconsistent
+  user-facing names and protects compatibility identifiers.
+- **Custody honesty:** hardware-wallet and multisig status remain
+  `NOT IMPLEMENTED`; large-value custody is explicitly `NOT READY`.
+- **Offline signer hardening:** existing cold/offline signing tests and
+  field-binding verification retained.
+
 ## 1.0.10+4 candidate — native KDF, exact calldata, evidence system
 
 - **Native Argon2id backend:** `lib/kdf.dart` now uses the reference C Argon2

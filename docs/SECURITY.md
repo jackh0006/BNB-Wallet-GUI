@@ -1,4 +1,4 @@
-# Security Notes — BNB Wallet GUI
+# Security Notes — X Wallet GUI
 
 Created by jackh0006 (jackh109867@gmail.com)
 
