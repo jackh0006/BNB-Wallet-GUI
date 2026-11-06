@@ -5,15 +5,28 @@ library;
 
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart' as hashes;
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:bnb_wallet_gui/kdf.dart';
 import 'package:bnb_wallet_gui/vault.dart';
 
 void main() {
   const password = 'alpine-vault-#2026';
   const device = 'dev-32b-secret-encoded-AwEAAMmIQca9Di8b04';
   const payload = '{"label":"cold","address":"0xabc…"}';
+
+  // Envelope/format tests do not need to pay for seven 64 MiB Argon2id
+  // derivations. Inject a fast, deterministic test KDF through the
+  // assert-guarded seam; `test/kdf_production_test.dart` separately proves the
+  // real production parameters and cross-checks the native backend against an
+  // independent implementation.
+  setUpAll(() {
+    VaultCipher.debugKdfOverride = fastTestKdf;
+  });
+
+  tearDownAll(VaultCipher.clearDebugKdfOverride);
 
   // One real 64 MiB encrypt shared by every test that needs "a valid v2
   // envelope". Tests that PROVE a property of fresh encryptions still derive
@@ -160,19 +173,19 @@ void main() {
     // Reconstructs the exact v1.0.2 envelope ("BNBVL003") with the same
     // constants the old release shipped: 64 MiB, t=3, p=4, 16-byte salt.
     test('legacy blobs stay readable', () async {
+      // This test proves real KDF compatibility with the old envelope, so it
+      // must not use the injected fast KDF.
+      VaultCipher.clearDebugKdfOverride();
+      addTearDown(() => VaultCipher.debugKdfOverride = fastTestKdf);
       final magic = <int>[0x42, 0x4e, 0x42, 0x56, 0x4c, 0x30, 0x30, 0x33];
       final salt = <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-      final argon = Argon2id(
-        parallelism: 4,
-        memory: 65536,
+      final keyBytes = await Argon2Kdf.derive(
+        password: utf8.encode(password),
+        salt: salt,
+        memoryKiB: 65536,
         iterations: 3,
-        hashLength: 32,
+        parallelism: 4,
       );
-      final key = await argon.deriveKey(
-        secretKey: SecretKey(utf8.encode(password)),
-        nonce: salt,
-      );
-      final keyBytes = await key.extractBytes();
       final cipher = Xchacha20.poly1305Aead();
       final nonce = <int>[for (var i = 0; i < 24; i++) 0xa0 + i];
       final box = await cipher.encrypt(
@@ -225,3 +238,22 @@ List<int> _u32le(int v) => [
   (v >> 16) & 0xff,
   (v >> 24) & 0xff,
 ];
+
+/// Deterministic stand-in for Argon2id in envelope/format tests. It is only
+/// installed through the assert-guarded test seam and never exists in a
+/// release build.
+Future<List<int>> fastTestKdf(
+  String password,
+  List<int> salt,
+  int memoryKiB,
+  int iterations,
+  int parallelism,
+) async {
+  final input = <int>[
+    ...utf8.encode(password),
+    0,
+    ...salt,
+    ...utf8.encode('$memoryKiB:$iterations:$parallelism'),
+  ];
+  return hashes.sha256.convert(input).bytes;
+}

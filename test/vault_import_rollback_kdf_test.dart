@@ -16,6 +16,8 @@ import 'package:bnb_wallet_gui/wallet_core.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/temp_dir.dart';
+
 /// Mock path provider for isolated test directories.
 class _MockPathProvider extends PathProviderPlatform {
   _MockPathProvider(this.dir);
@@ -102,9 +104,11 @@ void main() {
   });
 
   tearDown(() async {
-    appState.lock();
+    // Do not call `lock()` here: it asynchronously appends an audit event,
+    // which can recreate a file while this isolated data directory is being
+    // deleted.  The following setUp always locks the shared state first.
     AppStorage.resetDeviceSecretMemo();
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTestDirectory(tmp);
   });
 
   /// Creates a test vault with real encryption and writes it to the vault file.

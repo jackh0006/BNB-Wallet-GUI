@@ -10,7 +10,7 @@ import 'package:web3dart/web3dart.dart';
 import 'cold_tx_codec.dart';
 import 'cold_wallet.dart';
 
-/// Pure wallet helpers for the BNB Wallet GUI.
+/// Pure wallet helpers for the X Wallet GUI.
 ///
 /// Everything here is deterministic and has no network access. Secrets are
 /// returned as [EthPrivateKey] objects; callers must never log them.

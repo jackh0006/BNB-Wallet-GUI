@@ -1,0 +1,84 @@
+name: reproducibility
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reproducibility-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [a, b]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.47.6'
+          cache: true
+      - name: Install Linux build dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install --yes
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
+      - name: Build at the fixed path
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /build
+          sudo chown "$(id -u):$(id -g)" /build
+          rm -rf /build/bnb-wallet
+          mkdir -p /build/bnb-wallet
+          git archive HEAD | tar -x -C /build/bnb-wallet
+          cd /build/bnb-wallet
+          export SOURCE_DATE_EPOCH=0
+          flutter pub get
+          flutter build linux --release
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 \
+            --numeric-owner -cf - -C build/linux/x64/release/bundle . |
+            gzip -n > "/tmp/repro-${{ matrix.copy }}.tar.gz"
+          sha256sum "/tmp/repro-${{ matrix.copy }}.tar.gz"
+      - name: Upload comparison archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: repro-${{ matrix.copy }}
+          path: /tmp/repro-${{ matrix.copy }}.tar.gz
+          if-no-files-found: error
+
+  compare:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download copy A
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: repro-a
+          path: /tmp/repro-a
+      - name: Download copy B
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: repro-b
+          path: /tmp/repro-b
+      - name: Compare
+        run: |
+          set -euo pipefail
+          A="$(sha256sum /tmp/repro-a/repro-a.tar.gz | cut -d' ' -f1)"
+          B="$(sha256sum /tmp/repro-b/repro-b.tar.gz | cut -d' ' -f1)"
+          echo "A: $A"
+          echo "B: $B"
+          if [ "$A" != "$B" ]; then
+            echo "::error::NOT REPRODUCIBLE at the fixed path across runners"
+            exit 1
+          fi
+          echo "PASS: reproducible at fixed path /build/bnb-wallet across two runners"

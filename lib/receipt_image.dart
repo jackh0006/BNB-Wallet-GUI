@@ -39,7 +39,7 @@ Future<Uint8List> renderReceiptPng(LocalReceipt receipt) async {
     blocks.add(_Block(painter, before, after));
   }
 
-  add('BNB Wallet receipt', size: 32, weight: FontWeight.bold, after: 4);
+  add('X Wallet receipt', size: 32, weight: FontWeight.bold, after: 4);
   add(
     '${receipt.amountHuman} ${receipt.assetSymbol}'
     ' · ${receipt.status}${receipt.finalized ? ' · final' : ''}',

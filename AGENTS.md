@@ -2,11 +2,11 @@
 
 ## Product Mission
 
-**BNB Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source BNB/EVM wallet with:
+**X Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source BNB/EVM wallet with:
 
 - Local encrypted storage (vaults)
 - Tor and proxy support (HTTP, HTTPS, SOCKS5)
-- Hardware wallet and cold wallet support
+- Cold-wallet offline signing (hardware-wallet integration is **not implemented**)
 - Comprehensive BNB Smart Chain / EVM blockchain functionality
 - Transparent, encrypted local activity logs
 - Beautiful, exceptionally easy user experience (black/dark theme, orange/yellow accent)
@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          BNB Wallet GUI (Flutter/Dart)                  │
+│                          X Wallet GUI (Flutter/Dart)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  UI Layer (lib/screens/, lib/widgets/)                                  │
 │  ├── Dashboard / Home                                                   │
@@ -25,7 +25,7 @@
 │  ├── Assets / Token Management                                          │
 │  ├── Send / Receive / Fee Selection                                     │
 │  ├── Transaction History / Explorer                                     │
-│  ├── Hardware Wallet / Cold Wallet                                      │
+│  ├── Cold Wallet (hardware wallet not implemented)                      │
 │  ├── Network Settings / Tor / Proxy                                     │
 │  ├── Storage / Backup / Password                                        │
 │  ├── Activity Center / Security Center                                  │
@@ -35,6 +35,7 @@
 │  ├── app_state.dart         — Central state (ChangeNotifier)            │
 │  ├── wallet_core.dart       — Pure crypto/validation (BIP-39/44, EIP-55)│
 │  ├── vault.dart             — Encrypted vault (Argon2id + XChaCha20)    │
+│  ├── kdf.dart               — Native Argon2id + pure-Dart fallback      │
 │  ├── storage.dart           — Preferences + secure storage              │
 │  ├── cold_wallet*.dart      — Cold wallet protocol & service            │
 │  ├── rpc_service.dart       — RPC engine, node management               │
@@ -174,7 +175,7 @@ python3 scripts/sbom.py --out docs/SBOM.json
 ```bash
 # Linux .deb release
 bash scripts/build-deb.sh
-# Output: /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb (+ .sha256 + .asc)
+# Output: /home/mhh06/Downloads/X Wallet/x-wallet-<version>-amd64.deb (+ .sha256 + .asc)
 
 # Android APK (requires external keystore via env)
 export BNB_KEYSTORE=/path/to/release.keystore
@@ -243,6 +244,70 @@ Every meaningful change must update:
 
 ---
 
-**At session start**: Read this file, `docs/PROJECT_STATUS.md`, and `docs/PROJECT_MASTER_PLAN.md`.
+**At session start**: Read this file, `IMPLEMENTATION_STATUS.md`,
+`docs/IMPLEMENTATION_LOG.md`, `docs/SECURITY_SCORECARD.md`,
+`docs/SECURITY_RISK_REGISTER.md`, `docs/THREAT_MODEL.md`,
+`docs/TEST_RESULTS.md`, `docs/RELEASE_PROCESS.md`, and the release manifest.
 
-**At session end**: Update `docs/PROJECT_STATUS.md`, `docs/PROJECT_MASTER_PLAN.md`, and task ledger. Record exact next steps.
+**At session end**: Append to `docs/IMPLEMENTATION_LOG.md`, update
+`IMPLEMENTATION_STATUS.md` and `docs/SECURITY_SCORECARD.md`, and record exact
+next steps. Never claim a check passed without a command, exit code, commit,
+and log.
+
+## Mandatory GitHub Publication and Version Evidence
+
+These rules apply to every human or AI agent:
+
+1. Do not leave a completed, validated change only in a local checkout. Before
+   reporting completion, commit and push it to GitHub. If `main` is protected,
+   create or update a focused pull request and report its URL and check state.
+2. Do not force-push, disable protections, or claim a merge/release is
+   complete when required checks are pending, cancelled, or failed.
+3. Treat `pubspec.yaml`'s `version:` as the source version. Every version
+   change needs a matching `docs/releases/<major>.<minor>.<patch>.md` record
+   naming the exact version, including its build suffix.
+4. The record must contain a marked `Check / Result / Evidence` table. Mark
+   incomplete work as `IN PROGRESS`, `NOT CONFIRMED`, `NOT TESTED`, or
+   `NOT AVAILABLE`; never invent a `PASS` result.
+5. A Linux release is confirmed only when its tagged source, `.deb`, detached
+   signature, `SHA256SUMS`, SBOM, automated checks, and clean-install evidence
+   all identify the same version and commit. A newer prerelease is not a
+   confirmed stable release merely because it exists.
+6. When adding, renaming, or removing a Flutter test file, update
+   `docs/testing/TEST_MATRIX.md` in the same change. GitHub CI enforces this
+   with `scripts/test_inventory.py --check`; never bypass or remove that check.
+
+## Mandatory Release Evidence Workflow
+
+The machine-readable source of truth is `release/manifest.json`, generated by
+`scripts/release_manifest.py`. Do not hand-edit it.
+
+1. After any source, dependency, test, SBOM, or toolchain change, run:
+   `python3 scripts/test_inventory.py`, `python3 scripts/release_manifest.py`,
+   and `python3 scripts/generate_docs.py`. Commit the generated files.
+2. `docs/GENERATED_STATUS.md` and the README status block are generated. Do
+   not edit them by hand; `docs-sync` CI rejects drift.
+3. Record verification with `scripts/record_check.py` (for example
+   `python3 scripts/record_check.py --id full-test-suite -- bash scripts/test-suite.sh`).
+   Never write a result that a command did not produce. A timeout, OOM, or
+   interrupted run is `FAILED`/`INCOMPLETE`.
+4. `release/checks.json` and `release/artifacts.json` are per-build evidence
+   and are gitignored. A published bundle is `release/evidence.json`, bound to
+   an exact `sourceCommit`. Do not mix results from another commit.
+5. `python3 scripts/release-gate.py` reports `VERIFIED`,
+   `PARTIALLY VERIFIED`, `INCOMPLETE`, or `FAILED`. Do not call a release
+   confirmed unless it is `VERIFIED` for the exact tagged commit and artifact.
+6. Android artifacts are blocked until
+   `docs/security/INCIDENT_2026-11-KEYSTORE.md` is closed, the historical
+   fingerprint is in `release/android-signer-denylist.txt`, and the replacement
+   signer is approved. Never generate or commit a signing key here.
+7. The production KDF is native Argon2id (`lib/kdf.dart`). Never lower the
+   fixed 64 MiB / t=3 / p=4 parameters. Envelope tests may use the
+   assert-guarded `VaultCipher.debugKdfOverride`; a real production-parameter
+   test must remain.
+8. Run `dart format` before committing. Run one Flutter test process at a
+   time on a small machine; concurrent `flutter test` runs have caused native
+   test-device segmentation faults and are not evidence of a code failure.
+9. Do not run `scripts/build-deb.sh`, tag, publish, or upload any release
+   artifact unless the release gate says `VERIFIED` and the owner has approved
+   the signing-key recovery plan.

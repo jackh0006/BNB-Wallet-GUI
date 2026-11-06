@@ -1,4 +1,4 @@
-# ProGuard rules for BNB Wallet GUI (Android release).
+# ProGuard rules for X Wallet GUI (Android release).
 
 # Keep Flutter engine and plugin entry points.
 -keep class io.flutter.** { *; }

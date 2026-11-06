@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -9,7 +10,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'محفظة BNB';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => 'الرئيسية';
@@ -161,7 +162,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get openInExplorer => 'فتح في المستكشف';
 
   @override
-  String get warningExplorer => 'هذا يفتح موقع خارجي. المستكشف سيرى IP والمعاملة. استمر؟';
+  String get warningExplorer =>
+      'هذا يفتح موقع خارجي. المستكشف سيرى IP والمعاملة. استمر؟';
 
   @override
   String get settingsNetwork => 'الشبكة';
@@ -463,7 +465,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get eraseAllData => 'مسح جميع البيانات';
 
   @override
-  String get eraseWarning => 'سيحذف جميع المحافظ، المفاتيح، التاريخ، السجلات، والإعدادات. الأموال قابلة للاسترداد فقط بعبارة الاسترداد.';
+  String get eraseWarning =>
+      'سيحذف جميع المحافظ، المفاتيح، التاريخ، السجلات، والإعدادات. الأموال قابلة للاسترداد فقط بعبارة الاسترداد.';
 
   @override
   String get confirmErase => 'اكتب \'ERASE\' للتأكيد';
@@ -766,7 +769,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get needBnb => 'تحتاج BNB لدفع الغاز. استلم بعضها أولاً.';
 
   @override
-  String get addressPoisoning => 'هذا العنوان يشبه جهة اتصال حديثة لكن يختلف. تحقق بعناية.';
+  String get addressPoisoning =>
+      'هذا العنوان يشبه جهة اتصال حديثة لكن يختلف. تحقق بعناية.';
 
   @override
   String get selfContract => 'الإرسال لعنوان عقد الرمز نفسه سيحرق الرموز.';
@@ -786,7 +790,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tokenUnknown => 'رمز غير معروف';
 
   @override
-  String get unlimitedApproval => 'موافقة غير محدودة — الرمز يمكن أن ينفق كل الرصيد';
+  String get unlimitedApproval =>
+      'موافقة غير محدودة — الرمز يمكن أن ينفق كل الرصيد';
 
   @override
   String get signUnknownData => 'توقيع بيانات غير معروفة (متقدم)';
@@ -795,16 +800,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enableSignUnknown => 'تمكين توقيع كال داتا غير معروف';
 
   @override
-  String get blindSignWarning => 'التوقيع الأعمى خطير. مكن فقط إذا فهمت المخاطر.';
+  String get blindSignWarning =>
+      'التوقيع الأعمى خطير. مكن فقط إذا فهمت المخاطر.';
 
   @override
   String get disclosure => 'إفصاح';
 
   @override
-  String get nodeSees => 'العقدة ترى: IP، طريقة RPC، المعلمات. يمكنها استنتاج روابط العناوين.';
+  String get nodeSees =>
+      'العقدة ترى: IP، طريقة RPC، المعلمات. يمكنها استنتاج روابط العناوين.';
 
   @override
-  String get appDoesNotSend => 'التطبيق لا يرسل: نموذج الجهاز، نظام التشغيل، نسخة التطبيق، اللغة، الموقع، جهات الاتصال، البذرة، المفاتيح، كلمات المرور.';
+  String get appDoesNotSend =>
+      'التطبيق لا يرسل: نموذج الجهاز، نظام التشغيل، نسخة التطبيق، اللغة، الموقع، جهات الاتصال، البذرة، المفاتيح، كلمات المرور.';
 
   @override
   String get viewRawRequest => 'عرض الطلب الخام';

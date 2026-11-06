@@ -13,7 +13,9 @@ FeeSourceSnapshot _source({
   BigInt? legacy,
 }) {
   final baseValue = base ?? BigInt.from(1000000000);
-  final baseFees = [for (var i = 0; i < (p10.isEmpty ? 1 : p10.length) + 1; i++) baseValue];
+  final baseFees = [
+    for (var i = 0; i < (p10.isEmpty ? 1 : p10.length) + 1; i++) baseValue,
+  ];
   return FeeSourceSnapshot(
     source: url,
     baseFees: baseFees,
@@ -33,35 +35,38 @@ List<double> _fillD(int count, double value) => List.filled(count, value);
 
 void main() {
   group('FeeEngine.merge — live data, never hardcoded', () {
-    test('normal conditions: medians across nodes, middle tier recommended', () {
-      final quote = FeeEngine.merge([
-        _source(
-          url: 'https://a',
-          p10: _fill(5, BigInt.from(1)),
-          p50: _fill(5, BigInt.from(2)),
-          p90: _fill(5, BigInt.from(5)),
-          ratios: const [0.5, 0.55, 0.6, 0.5, 0.55],
-        ),
-        _source(
-          url: 'https://b',
-          p10: _fill(5, BigInt.from(3)),
-          p50: _fill(5, BigInt.from(4)),
-          p90: _fill(5, BigInt.from(9)),
-          ratios: const [0.6, 0.6, 0.65, 0.6, 0.6],
-        ),
-      ], tried: 2);
+    test(
+      'normal conditions: medians across nodes, middle tier recommended',
+      () {
+        final quote = FeeEngine.merge([
+          _source(
+            url: 'https://a',
+            p10: _fill(5, BigInt.from(1)),
+            p50: _fill(5, BigInt.from(2)),
+            p90: _fill(5, BigInt.from(5)),
+            ratios: const [0.5, 0.55, 0.6, 0.5, 0.55],
+          ),
+          _source(
+            url: 'https://b',
+            p10: _fill(5, BigInt.from(3)),
+            p50: _fill(5, BigInt.from(4)),
+            p90: _fill(5, BigInt.from(9)),
+            ratios: const [0.6, 0.6, 0.65, 0.6, 0.6],
+          ),
+        ], tried: 2);
 
-      expect(quote.sourcesAnswered, 2);
-      expect(quote.singleSource, isFalse);
-      expect(quote.confidence, 'high');
-      expect(quote.recommendedIndex, 1);
-      expect(quote.presets, hasLength(3));
-      expect(quote.presets[1].label, 'Medium (recommended)');
-      // median of {2,4} = 3 gwei priority
-      expect(quote.presets[1].priorityFeePerGas, BigInt.from(3));
-      expect(quote.reason, contains('Normal conditions'));
-      expect(quote.blockSeconds, 1.5);
-    });
+        expect(quote.sourcesAnswered, 2);
+        expect(quote.singleSource, isFalse);
+        expect(quote.confidence, 'high');
+        expect(quote.recommendedIndex, 1);
+        expect(quote.presets, hasLength(3));
+        expect(quote.presets[1].label, 'Medium (recommended)');
+        // median of {2,4} = 3 gwei priority
+        expect(quote.presets[1].priorityFeePerGas, BigInt.from(3));
+        expect(quote.reason, contains('Normal conditions'));
+        expect(quote.blockSeconds, 1.5);
+      },
+    );
 
     test('empty chain: cheap tier recommended, all ETAs positive', () {
       final quote = FeeEngine.merge([
@@ -77,8 +82,10 @@ void main() {
       expect(quote.presets[0].label, 'Low (recommended)');
       expect(quote.reason, contains('cheap tier'));
       expect(quote.presets[0].etaSecondsLow, greaterThanOrEqualTo(1));
-      expect(quote.presets[0].etaSecondsHigh,
-          greaterThan(quote.presets[0].etaSecondsLow!));
+      expect(
+        quote.presets[0].etaSecondsHigh,
+        greaterThan(quote.presets[0].etaSecondsLow!),
+      );
       expect(quote.presets[0].target, contains('blocks'));
     });
 
@@ -206,7 +213,10 @@ void main() {
       ], tried: 2);
 
       expect(quote.floorWei, BigInt.from(2));
-      expect(quote.presets[0].priorityFeePerGas, greaterThanOrEqualTo(BigInt.from(2)));
+      expect(
+        quote.presets[0].priorityFeePerGas,
+        greaterThanOrEqualTo(BigInt.from(2)),
+      );
       expect(quote.presets[0].warning, contains('floor'));
     });
 
@@ -219,7 +229,8 @@ void main() {
 
       const bps = [9000, 10000, 12500];
       for (var i = 0; i < 3; i++) {
-        final expected = (gasPrice * BigInt.from(bps[i]) + BigInt.from(9999)) ~/
+        final expected =
+            (gasPrice * BigInt.from(bps[i]) + BigInt.from(9999)) ~/
             BigInt.from(10000);
         expect(quote.presets[i].gasPrice, expected);
         expect(quote.presets[i].mode, 'legacy');

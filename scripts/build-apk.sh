@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a signed Android arm64 release APK of BNB Wallet GUI.
+# Build a signed Android arm64 release APK of X Wallet GUI.
 #
 # Signing material is NEVER stored in this repository. The caller must provide
 # an existing keystore and its credentials through the environment:
@@ -29,10 +29,28 @@ cd "$ROOT"
 : "${BNB_STORE_PASS:?BNB_STORE_PASS is required}"
 : "${BNB_KEY_PASS:?BNB_KEY_PASS is required}"
 : "${BNB_EXPECTED_SIGNER_SHA256:?BNB_EXPECTED_SIGNER_SHA256 is required (the approved release signer certificate SHA-256)}"
+: "${BNB_RELEASE_OWNER_APPROVED:?BNB_RELEASE_OWNER_APPROVED=1 is required after the incident runbook is complete}"
 
 EXPECTED_SIGNER="${BNB_EXPECTED_SIGNER_SHA256,,}"
 if [[ ! "$EXPECTED_SIGNER" =~ ^[0-9a-f]{64}$ ]]; then
   echo "ERROR: BNB_EXPECTED_SIGNER_SHA256 must be a 64-character hex digest." >&2
+  exit 1
+fi
+
+if [[ "$BNB_RELEASE_OWNER_APPROVED" != "1" ]]; then
+  echo "ERROR: the release owner has not approved an Android build." >&2
+  echo "Complete docs/security/INCIDENT_2026-11-KEYSTORE.md first." >&2
+  exit 1
+fi
+
+DENYLIST="$ROOT/release/android-signer-denylist.txt"
+if [[ ! -f "$DENYLIST" ]]; then
+  echo "ERROR: missing $DENYLIST; the compromised signer is not denylisted." >&2
+  exit 1
+fi
+if ! grep -Eq '^[[:space:]]*[0-9a-fA-F:]{64,95}[[:space:]]*(#.*)?$' "$DENYLIST"; then
+  echo "ERROR: $DENYLIST contains no confirmed compromised fingerprint." >&2
+  echo "Refusing to build Android until the historical signer is denylisted." >&2
   exit 1
 fi
 
@@ -85,7 +103,7 @@ fi
   --ks-key-alias "$BNB_KEY_ALIAS" \
   --ks-pass env:BNB_STORE_PASS \
   --key-pass env:BNB_KEY_PASS \
-  --min-sdk-version 29 \
+  --min-sdk-version 26 \
   --v3-signing-enabled true \
   --v4-signing-enabled false \
   --out "$APK" \
@@ -101,6 +119,10 @@ if [[ "$ACTUAL_SIGNER" != "$EXPECTED_SIGNER" ]]; then
   echo "Refusing to emit an artifact signed by an unapproved key." >&2
   exit 1
 fi
+bash "$ROOT/scripts/verify-android-signer.sh" "$APK" \
+  --allow "$EXPECTED_SIGNER" \
+  --deny "$DENYLIST" \
+  --require-deny
 
 sha256sum "$APK" > "$APK.sha256"
 echo "[4/4] Done"

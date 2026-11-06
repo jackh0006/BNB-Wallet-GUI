@@ -24,7 +24,8 @@
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Vault uses Argon2id (64 MiB, t=3, p=4) + XChaCha20-Poly1305 | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` (7 KDF tests) |
+| Vault uses Argon2id (64 MiB, t=3, p=4) + XChaCha20-Poly1305 | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` (9 tests), `test/kdf_production_test.dart` |
+| Argon2id runs on the reference native library, with pure-Dart fallback | **TESTED** | `lib/kdf.dart`, `test/kdf_production_test.dart` (native vs pure-Dart agreement, 344 ms measured) |
 | Vault v2 (BNBVL004) double-wrapped (password + device secret) | **TESTED** | `lib/vault.dart`, `test/vault_test.dart` |
 | Vault v1 (BNBVL003) read-only migration | **TESTED** | `test/vault_test.dart` legacy blob test |
 | Argon2id runs on worker isolate (off UI thread) | **TESTED** | `lib/workers.dart`, `test/workers_test.dart` (3 tests) |
@@ -191,20 +192,23 @@ flutter test test/tls_pinning_test.dart
 # 3. Memory hardening (reads real kernel state)
 flutter test test/memory_protection_test.dart
 
-# 4. Full test suite (non-KDF)
-flutter test --exclude-tags kdf --concurrency=2
+# 4. Full test suite (sequential, all files)
+bash scripts/test-suite.sh
 
-# 5. KDF tests (individual, generous timeouts)
-flutter test test/vault_test.dart --plain-name "VaultCipher v2 envelope round-trips"
-flutter test test/workers_test.dart --plain-name "pinHashJob keeps the exact v1.0.4 record format"
+# 5. Production KDF (native reference + independent cross-check)
+flutter test test/kdf_production_test.dart
 
-# 6. Secret scan
+# 6. Secret scan (current tree)
 bash scripts/secret-scan.sh
 
-# 7. Static analysis
+# 7. Static analysis and formatting
 flutter analyze --no-pub
+dart format --output=none --set-exit-if-changed lib test tool
 
-# 8. Build verification (when .deb exists)
+# 8. Release gate summary
+python3 scripts/release-gate.py
+
+# 9. Build verification (when .deb exists)
 dpkg -c bnb-wallet-*.deb | grep -E '\.jks|\.keystore|\.p12|\.pfx|private' && echo "FAIL" || echo "PASS"
 ```
 

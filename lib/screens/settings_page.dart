@@ -12,6 +12,7 @@ import '../wallet_core.dart';
 import 'backup_quiz_dialog.dart';
 import 'cold_wallet_dialogs.dart';
 import 'common.dart';
+import 'donations_dialog.dart';
 import 'logs_page.dart';
 import 'privacy_dialogs.dart';
 
@@ -1844,7 +1845,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionTitle('About'),
           const SizedBox(height: 8),
           const Text(
-            'BNB Wallet 1.0.9',
+            'X Wallet 1.1.0',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
@@ -1890,6 +1891,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: _showHonestLimits,
                 icon: const Icon(Icons.info_outline),
                 label: const Text('Honest limits'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => showDonationsDialog(context),
+                icon: const Icon(Icons.volunteer_activism_outlined),
+                label: const Text('Project donations'),
               ),
             ],
           ),

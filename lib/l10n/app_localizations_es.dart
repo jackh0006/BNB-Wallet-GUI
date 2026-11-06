@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -9,7 +10,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'BNB Wallet';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => 'Inicio';
@@ -161,7 +162,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get openInExplorer => 'Abrir en explorador';
 
   @override
-  String get warningExplorer => 'Esto abre un sitio web externo. El explorador verá tu IP y la transacción. ¿Continuar?';
+  String get warningExplorer =>
+      'Esto abre un sitio web externo. El explorador verá tu IP y la transacción. ¿Continuar?';
 
   @override
   String get settingsNetwork => 'Red';
@@ -463,7 +465,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get eraseAllData => 'Borrar todos los datos';
 
   @override
-  String get eraseWarning => 'Eliminará todos los monederos, claves, historial, logs y ajustes. Los fondos solo se recuperan con la frase de recuperación.';
+  String get eraseWarning =>
+      'Eliminará todos los monederos, claves, historial, logs y ajustes. Los fondos solo se recuperan con la frase de recuperación.';
 
   @override
   String get confirmErase => 'Escribe \'ERASE\' para confirmar';
@@ -496,7 +499,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get logsClear => 'Limpiar logs';
 
   @override
-  String get logsWarning => 'Exportar logs puede revelar tu actividad. ¿Continuar?';
+  String get logsWarning =>
+      'Exportar logs puede revelar tu actividad. ¿Continuar?';
 
   @override
   String get logLevelError => 'Error';
@@ -766,16 +770,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get needBnb => 'Necesitas BNB para pagar gas. Recibe algo primero.';
 
   @override
-  String get addressPoisoning => 'Esta dirección se parece a un contacto reciente pero difiere. Verifica con cuidado.';
+  String get addressPoisoning =>
+      'Esta dirección se parece a un contacto reciente pero difiere. Verifica con cuidado.';
 
   @override
-  String get selfContract => 'Enviar a la dirección del contrato del token quemará tokens.';
+  String get selfContract =>
+      'Enviar a la dirección del contrato del token quemará tokens.';
 
   @override
   String get zeroAddress => 'No se permite enviar a la dirección cero.';
 
   @override
-  String get newAddress => 'Esta dirección nunca se ha usado. Verifica con cuidado.';
+  String get newAddress =>
+      'Esta dirección nunca se ha usado. Verifica con cuidado.';
 
   @override
   String tokenSimulationFailed(Object reason) {
@@ -786,7 +793,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tokenUnknown => 'Token desconocido';
 
   @override
-  String get unlimitedApproval => 'Aprobación ilimitada — el token puede gastar todo tu saldo';
+  String get unlimitedApproval =>
+      'Aprobación ilimitada — el token puede gastar todo tu saldo';
 
   @override
   String get signUnknownData => 'Firmar datos desconocidos (avanzado)';
@@ -795,16 +803,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get enableSignUnknown => 'Activar firma de calldata desconocida';
 
   @override
-  String get blindSignWarning => 'Firma ciega es peligrosa. Solo activa si entiendes los riesgos.';
+  String get blindSignWarning =>
+      'Firma ciega es peligrosa. Solo activa si entiendes los riesgos.';
 
   @override
   String get disclosure => 'Divulgación';
 
   @override
-  String get nodeSees => 'El nodo ve: tu IP, el método RPC y parámetros. Puede inferir vínculos de direcciones.';
+  String get nodeSees =>
+      'El nodo ve: tu IP, el método RPC y parámetros. Puede inferir vínculos de direcciones.';
 
   @override
-  String get appDoesNotSend => 'La app NO envía: modelo de dispositivo, SO, versión de app, idioma, ubicación, contactos, semilla, claves, contraseñas.';
+  String get appDoesNotSend =>
+      'La app NO envía: modelo de dispositivo, SO, versión de app, idioma, ubicación, contactos, semilla, claves, contraseñas.';
 
   @override
   String get viewRawRequest => 'Ver petición cruda';

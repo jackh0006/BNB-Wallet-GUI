@@ -11,7 +11,8 @@ class InspectPage extends StatefulWidget {
   State<InspectPage> createState() => _InspectPageState();
 }
 
-class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClientMixin {
+class _InspectPageState extends State<InspectPage>
+    with AutomaticKeepAliveClientMixin {
   final _address = TextEditingController();
   String? _error;
   Map<String, BigInt>? _balances;
@@ -93,7 +94,11 @@ class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClient
             FilledButton.icon(
               onPressed: _loading ? null : _inspect,
               icon: _loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Icon(Icons.search),
               label: Text(_loading ? 'Fetching…' : 'Fetch public balances'),
             ),
@@ -115,32 +120,47 @@ class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClient
                       Expanded(
                         child: Text(
                           shortAddress(_address.text.trim()),
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.copy, size: 18),
-                        onPressed: () => copyText(context, _address.text.trim(), 'Address'),
+                        onPressed: () =>
+                            copyText(context, _address.text.trim(), 'Address'),
                       ),
                       IconButton(
                         icon: const Icon(Icons.qr_code, size: 18),
-                        onPressed: () => showQrDialog(context, _address.text.trim()),
+                        onPressed: () =>
+                            showQrDialog(context, _address.text.trim()),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   _row('BNB', _balances!['BNB'] ?? BigInt.zero, 18),
-                  for (final token in appState.rpc.tokens.where((t) => !t.native))
-                    _row(token.symbol, _balances![token.symbol] ?? BigInt.zero, token.decimals),
+                  for (final token in appState.rpc.tokens.where(
+                    (t) => !t.native,
+                  ))
+                    _row(
+                      token.symbol,
+                      _balances![token.symbol] ?? BigInt.zero,
+                      token.decimals,
+                    ),
                   const Divider(height: 28),
                   if (_nonce != null && _block != null)
                     Text(
                       'nonce ${_nonce!} · block ${_block!}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                   const SizedBox(height: 12),
                   if (address != null &&
-                      shortAddress(_address.text.trim()) == shortAddress(address))
+                      shortAddress(_address.text.trim()) ==
+                          shortAddress(address))
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
@@ -151,7 +171,8 @@ class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClient
                           label: const Text('My receive QR'),
                         ),
                         OutlinedButton.icon(
-                          onPressed: () => copyText(context, address, 'Address'),
+                          onPressed: () =>
+                              copyText(context, address, 'Address'),
                           icon: const Icon(Icons.copy),
                           label: const Text('Copy my address'),
                         ),
@@ -160,7 +181,10 @@ class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClient
                 ],
               )
             else
-              const Text('Enter an address to see public balances.', style: TextStyle(color: Colors.white54)),
+              const Text(
+                'Enter an address to see public balances.',
+                style: TextStyle(color: Colors.white54),
+              ),
             const SizedBox(height: 18),
             SectionTitle('Safety'),
             const Text(
@@ -179,8 +203,21 @@ class _InspectPageState extends State<InspectPage> with AutomaticKeepAliveClient
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SizedBox(width: 64, child: Text(symbol, style: const TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(child: Text(unavailable ? 'unavailable' : WalletCore.formatUnits(value, decimals), textAlign: TextAlign.right)),
+          SizedBox(
+            width: 64,
+            child: Text(
+              symbol,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              unavailable
+                  ? 'unavailable'
+                  : WalletCore.formatUnits(value, decimals),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );

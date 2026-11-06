@@ -1,4 +1,4 @@
-# Standards & Proof Map — BNB Wallet v1.0.5
+# Standards & Proof Map — X Wallet v1.0.5
 
 Created by jackh0006 (jackh109867@gmail.com)
 

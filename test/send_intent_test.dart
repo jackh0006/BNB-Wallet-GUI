@@ -23,7 +23,10 @@ void main() {
 
   group('gasLimitWithBuffer — terminal v1 formula', () {
     test('exact formula parity: (est*120 + 99) / 100', () {
-      expect(SendIntent.gasLimitWithBuffer(BigInt.from(21000)), BigInt.from(25200));
+      expect(
+        SendIntent.gasLimitWithBuffer(BigInt.from(21000)),
+        BigInt.from(25200),
+      );
       expect(SendIntent.gasLimitWithBuffer(BigInt.from(1)), BigInt.from(2));
       // 7 * 1.2 = 8.4 exactly → rounds UP to 9, never down to 8.
       expect(SendIntent.gasLimitWithBuffer(BigInt.from(7)), BigInt.from(9));
@@ -33,7 +36,11 @@ void main() {
       for (var i = 1; i <= 2000; i++) {
         final estimate = BigInt.from(i);
         final limit = SendIntent.gasLimitWithBuffer(estimate);
-        expect(limit > estimate, isTrue, reason: 'estimate $i produced limit $limit');
+        expect(
+          limit > estimate,
+          isTrue,
+          reason: 'estimate $i produced limit $limit',
+        );
       }
     });
   });
@@ -60,8 +67,23 @@ void main() {
       );
     });
 
+    test('rejects trailing calldata after the two transfer words', () {
+      // A non-standard token could interpret extra bytes (a fee, a hook, a
+      // second recipient) while the review screen still described a plain
+      // transfer.  The intent check must require the exact call shape.
+      final data = Uint8List.fromList([
+        ...transferData(recipient, amount),
+        0xde,
+        0xad,
+        0xbe,
+        0xef,
+      ]);
+      expect(() => SendIntent.decodeErc20Transfer(data), throwsStateError);
+    });
+
     test('rejects a recipient word with a dirty prefix', () {
-      final hex = 'a9059cbb'
+      final hex =
+          'a9059cbb'
           'ff0000000000000000000000001111111111111111111111111111111111111111'
           '${amount.toRadixString(16).padLeft(64, '0')}';
       final data = Uint8List.fromList([
@@ -73,7 +95,11 @@ void main() {
   });
 
   group('verify — refuses to sign anything that changed after review', () {
-    void verifyNative({BigInt? value, int chainId = 56, String txTo = recipient}) {
+    void verifyNative({
+      BigInt? value,
+      int chainId = 56,
+      String txTo = recipient,
+    }) {
       SendIntent.verify(
         chainId: chainId,
         intendedChainId: 56,
@@ -101,7 +127,9 @@ void main() {
 
     test('checksum case differences do not break the comparison', () {
       expect(
-        () => verifyNative(txTo: '0x1111111111111111111111111111111111111111'.toUpperCase()),
+        () => verifyNative(
+          txTo: '0x1111111111111111111111111111111111111111'.toUpperCase(),
+        ),
         returnsNormally,
       );
     });
@@ -121,10 +149,7 @@ void main() {
     });
 
     test('chain switch between review and signing is refused', () {
-      expect(
-        () => verifyNative(chainId: 97),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => verifyNative(chainId: 97), throwsA(isA<StateError>()));
     });
 
     test('missing gas limit is refused', () {

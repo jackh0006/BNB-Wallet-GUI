@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
-# Build a signed Debian/Ubuntu amd64 .deb of BNB Wallet GUI (Linux release bundle).
+# Build a signed Debian/Ubuntu amd64 .deb of X Wallet GUI (Linux release bundle).
 #
 # Output:
-#   /home/mhh06/Downloads/BNB Wallet/bnb-wallet-<pubspec version>-amd64.deb
-#   plus SHA256SUMS and a GPG detached signature (.asc).
+#   /home/mhh06/Downloads/X Wallet/x-wallet-<pubspec version>-amd64.deb
+#   plus SHA256SUMS and, when BNB_GPG_KEY names an available secret key, a
+#   GPG detached signature (.asc).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUTDIR="/home/mhh06/Downloads/BNB Wallet"
+OUTDIR="${BNB_OUTDIR:-$HOME/Downloads/X Wallet}"
 VERSION="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' "$ROOT/pubspec.yaml" | head -1)"
 VERSION="${VERSION:-0.0.0}"
-DEB="$OUTDIR/bnb-wallet-${VERSION}-amd64.deb"
+DEB="$OUTDIR/x-wallet-${VERSION}-amd64.deb"
 
 mkdir -p "$OUTDIR"
 
@@ -34,65 +35,66 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 install -d "$STAGE/DEBIAN" \
-  "$STAGE/usr/lib/bnb-wallet" \
+  "$STAGE/usr/lib/x-wallet" \
   "$STAGE/usr/bin" \
   "$STAGE/usr/share/applications" \
-  "$STAGE/usr/share/doc/bnb-wallet"
+  "$STAGE/usr/share/doc/x-wallet"
 
 # Application bundle.
-cp -a "$BUNDLE/." "$STAGE/usr/lib/bnb-wallet/"
+cp -a "$BUNDLE/." "$STAGE/usr/lib/x-wallet/"
 
 # Launcher.
-cat > "$STAGE/usr/bin/bnb-wallet" <<'LAUNCHER'
+cat > "$STAGE/usr/bin/x-wallet" <<'LAUNCHER'
 #!/bin/sh
-# BNB Wallet launcher for Linux.
+# X Wallet launcher for Linux.
 set -eu
-APP_DIR="/usr/lib/bnb-wallet"
+APP_DIR="/usr/lib/x-wallet"
 exec "$APP_DIR/bnb_wallet_gui" "$@"
 LAUNCHER
-chmod 0755 "$STAGE/usr/bin/bnb-wallet"
+chmod 0755 "$STAGE/usr/bin/x-wallet"
+ln -s x-wallet "$STAGE/usr/bin/bnb-wallet"  # compatibility alias
 
 # .desktop file.
-cat > "$STAGE/usr/share/applications/bnb-wallet.desktop" <<'DESKTOP'
+cat > "$STAGE/usr/share/applications/x-wallet.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
-Name=BNB Wallet
+Name=X Wallet
 Comment=Local non-custodial BNB Smart Chain wallet
-Exec=bnb-wallet
-Icon=bnb-wallet
+Exec=x-wallet
+Icon=x-wallet
 Terminal=false
 Categories=Finance;Office;
 Keywords=bnb;bsc;crypto;wallet;
 StartupNotify=true
-StartupWMClass=BNB Wallet
+StartupWMClass=bnb_wallet_gui
 DESKTOP
-chmod 0644 "$STAGE/usr/share/applications/bnb-wallet.desktop"
+chmod 0644 "$STAGE/usr/share/applications/x-wallet.desktop"
 
-# Icons (4K source resized to standard hicolor sizes).
-python3 - "$ROOT" "$STAGE" <<'PY'
-import os, sys
-from PIL import Image
-root, stage = sys.argv[1], sys.argv[2]
-src = os.path.join(root, "assets", "icon", "bnb-wallet-1024.png")
-img = Image.open(src).convert("RGBA")
-for size in (16, 32, 48, 64, 128, 256, 512, 1024):
-    d = os.path.join(stage, "usr", "share", "icons", "hicolor",
-                     f"{size}x{size}", "apps")
-    os.makedirs(d, exist_ok=True)
-    img.resize((size, size), Image.LANCZOS).save(
-        os.path.join(d, "bnb-wallet.png"), "PNG")
-PY
+# Icons: the repository ships every hicolor size, so packaging does not need
+# an image-resizing dependency (Pillow) in CI.
+for size in 16 32 48 64 128 256 512 1024; do
+  src="$ROOT/assets/icon/x-wallet-${size}.png"
+  if [ ! -f "$src" ]; then
+    echo "ERROR: missing packaged icon: assets/icon/x-wallet-${size}.png" >&2
+    exit 1
+  fi
+  install -D -m 0644 "$src" \
+    "$STAGE/usr/share/icons/hicolor/${size}x${size}/apps/x-wallet.png"
+done
 
 # control file.
 cat > "$STAGE/DEBIAN/control" <<CONTROL
-Package: bnb-wallet
+Package: x-wallet
+Provides: bnb-wallet
+Replaces: bnb-wallet
+Conflicts: bnb-wallet
 Version: ${VERSION}
 Section: finance
 Priority: optional
 Architecture: amd64
 Maintainer: jackh0006 <jackh109867@gmail.com>
-Depends: libgtk-3-0, libc6
-Description: BNB Wallet — graphical BNB Smart Chain wallet
+Depends: libgtk-3-0, libsecret-1-0, liblzma5, libstdc++6, libc6
+Description: X Wallet — graphical BNB Smart Chain wallet
  GUI port of the BNB terminal wallet (v1). Local, non-custodial: create or
  import BIP-39 wallets, manage BNB and BEP-20 tokens, send with live EIP-1559
  / legacy fee tiers, receive with QR, inspect public addresses, manage RPC
@@ -117,30 +119,30 @@ POSTINST
 chmod 0755 "$STAGE/DEBIAN/postinst"
 
 # README + security docs into doc dir.
-cp "$ROOT/README.md" "$STAGE/usr/share/doc/bnb-wallet/README" 2>/dev/null || true
-chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/README" 2>/dev/null || true
+cp "$ROOT/README.md" "$STAGE/usr/share/doc/x-wallet/README" 2>/dev/null || true
+chmod 0644 "$STAGE/usr/share/doc/x-wallet/README" 2>/dev/null || true
 for DOC in THREAT_MODEL SECURITY CRYPTO STANDARDS PRIVACY ARCHITECTURE \
            CONTRIBUTING CHANGELOG SPEC-COMPLIANCE FAMILY_GUIDE HARDENING_REPORT \
            RELEASE_EVIDENCE; do
   if [ -f "$ROOT/docs/$DOC.md" ]; then
-    cp "$ROOT/docs/$DOC.md" "$STAGE/usr/share/doc/bnb-wallet/$DOC"
-    chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/$DOC"
+    cp "$ROOT/docs/$DOC.md" "$STAGE/usr/share/doc/x-wallet/$DOC"
+    chmod 0644 "$STAGE/usr/share/doc/x-wallet/$DOC"
   fi
 done
 # LICENSE (AGPL) + SBOM ship next to the docs.
 if [ -f "$ROOT/LICENSE" ]; then
-  cp "$ROOT/LICENSE" "$STAGE/usr/share/doc/bnb-wallet/LICENSE"
-  chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/LICENSE"
+  cp "$ROOT/LICENSE" "$STAGE/usr/share/doc/x-wallet/LICENSE"
+  chmod 0644 "$STAGE/usr/share/doc/x-wallet/LICENSE"
 fi
 for ROOT_DOC in NOTICE DONATE.md; do
   if [ -f "$ROOT/$ROOT_DOC" ]; then
-    cp "$ROOT/$ROOT_DOC" "$STAGE/usr/share/doc/bnb-wallet/$ROOT_DOC"
-    chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/$ROOT_DOC"
+    cp "$ROOT/$ROOT_DOC" "$STAGE/usr/share/doc/x-wallet/$ROOT_DOC"
+    chmod 0644 "$STAGE/usr/share/doc/x-wallet/$ROOT_DOC"
   fi
 done
 if [ -f "$ROOT/docs/SBOM.json" ]; then
-  cp "$ROOT/docs/SBOM.json" "$STAGE/usr/share/doc/bnb-wallet/SBOM.json"
-  chmod 0644 "$STAGE/usr/share/doc/bnb-wallet/SBOM.json"
+  cp "$ROOT/docs/SBOM.json" "$STAGE/usr/share/doc/x-wallet/SBOM.json"
+  chmod 0644 "$STAGE/usr/share/doc/x-wallet/SBOM.json"
 fi
 
 echo "[3/5] Building $DEB ..."
@@ -150,12 +152,23 @@ echo "[4/5] Checking package ..."
 dpkg-deb -c "$DEB" >/dev/null
 dpkg-deb -I "$DEB"
 
-echo "[5/5] Checksums and GPG signature ..."
+echo "[5/5] Checksums and optional GPG signature ..."
 sha256sum "$DEB" > "$OUTDIR/SHA256SUMS"
-gpg --batch --yes --digest-algo SHA256 \
-    --default-key "jackh0006 <jackh109867@gmail.com>" \
-    --detach-sign --armor "$DEB"
+if [ -n "${BNB_GPG_KEY:-}" ]; then
+  if ! gpg --batch --list-secret-keys --with-colons "$BNB_GPG_KEY" \
+      | grep -q '^sec:'; then
+    echo "ERROR: BNB_GPG_KEY does not identify an available secret signing key." >&2
+    exit 1
+  fi
+  gpg --batch --yes --digest-algo SHA256 --default-key "$BNB_GPG_KEY" \
+      --detach-sign --armor "$DEB"
+  echo "GPG signature: $DEB.asc"
+else
+  echo "No BNB_GPG_KEY supplied; package is unsigned (SHA-256 written)." >&2
+fi
 
 echo "Done: $DEB"
 echo "      $OUTDIR/SHA256SUMS"
-echo "      $DEB.asc"
+if [ -n "${BNB_GPG_KEY:-}" ]; then
+  echo "      $DEB.asc"
+fi

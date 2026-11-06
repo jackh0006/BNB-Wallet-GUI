@@ -158,7 +158,7 @@ Each RPC node can have its own transport:
 1. Run RPC node (Erigon/Geth/Bor) with HTTPS (Let's Encrypt or self-signed + CA)
 2. Restrict access: firewall to Tor exit IPs (optional, but recommended)
 
-### In BNB Wallet
+### In X Wallet
 1. Settings → Nodes → Add Node
 2. URL: `https://your-vps.example.com`
 3. Transport: **Tor** (or Inherit with global Tor)

@@ -8,9 +8,15 @@ void main() {
   group('fee math — terminal v1 parity', () {
     test('median: middle for odd counts, floor for even (fees.js)', () {
       expect(RpcService.feeMedian([BigInt.from(5)]), BigInt.from(5));
-      expect(RpcService.feeMedian([BigInt.from(1), BigInt.from(3)]), BigInt.from(2));
+      expect(
+        RpcService.feeMedian([BigInt.from(1), BigInt.from(3)]),
+        BigInt.from(2),
+      );
       // (1+2)/2 in integer math is 1 (floor) — exactly `(a + b) / 2n`.
-      expect(RpcService.feeMedian([BigInt.from(1), BigInt.from(2)]), BigInt.from(1));
+      expect(
+        RpcService.feeMedian([BigInt.from(1), BigInt.from(2)]),
+        BigInt.from(1),
+      );
       expect(
         RpcService.feeMedian([BigInt.from(9), BigInt.from(3), BigInt.from(5)]),
         BigInt.from(5),
@@ -19,15 +25,23 @@ void main() {
     });
 
     test('bps multiplication rounds UP like fees.js: (v·bps + 9999)/10000', () {
-      expect(RpcService.feeMultiplyBps(BigInt.from(100), 9000), BigInt.from(90));
-      expect(RpcService.feeMultiplyBps(BigInt.from(100), 10000), BigInt.from(100));
-      expect(RpcService.feeMultiplyBps(BigInt.from(100), 12500), BigInt.from(125));
+      expect(
+        RpcService.feeMultiplyBps(BigInt.from(100), 9000),
+        BigInt.from(90),
+      );
+      expect(
+        RpcService.feeMultiplyBps(BigInt.from(100), 10000),
+        BigInt.from(100),
+      );
+      expect(
+        RpcService.feeMultiplyBps(BigInt.from(100), 12500),
+        BigInt.from(125),
+      );
       // Distinguishable from floor: 3·3333 = 0.9999 → must round to 1.
       expect(RpcService.feeMultiplyBps(BigInt.from(3), 3333), BigInt.one);
     });
 
-    test('EIP-1559 tiers: median priority, maxFee = base×2 + tip, expected = base + tip',
-        () {
+    test('EIP-1559 tiers: median priority, maxFee = base×2 + tip, expected = base + tip', () {
       final rpc = RpcService();
       final base = BigInt.from(100);
       final rewards = [

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -9,7 +10,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appTitle => 'BNB Кошелёк';
+  String get appTitle => 'X Wallet';
 
   @override
   String get home => 'Главная';
@@ -161,7 +162,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get openInExplorer => 'Открыть в эксплорере';
 
   @override
-  String get warningExplorer => 'Это откроет внешний сайт. Эксплорер увидит ваш IP и транзакцию. Продолжить?';
+  String get warningExplorer =>
+      'Это откроет внешний сайт. Эксплорер увидит ваш IP и транзакцию. Продолжить?';
 
   @override
   String get settingsNetwork => 'Сеть';
@@ -281,7 +283,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get customHeaders => 'Свои заголовки';
 
   @override
-  String get pinnedSpki => 'Закреплённые SPKI хеши (base64, по одному в строке)';
+  String get pinnedSpki =>
+      'Закреплённые SPKI хеши (base64, по одному в строке)';
 
   @override
   String get useForReads => 'Для чтения';
@@ -463,7 +466,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get eraseAllData => 'Стереть все данные';
 
   @override
-  String get eraseWarning => 'Удалит все кошельки, ключи, историю, логи и настройки. Средства можно вернуть только сид-фразой.';
+  String get eraseWarning =>
+      'Удалит все кошельки, ключи, историю, логи и настройки. Средства можно вернуть только сид-фразой.';
 
   @override
   String get confirmErase => 'Введите \'ERASE\' для подтверждения';
@@ -496,7 +500,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get logsClear => 'Очистить логи';
 
   @override
-  String get logsWarning => 'Экспорт логов может раскрыть вашу активность. Продолжить?';
+  String get logsWarning =>
+      'Экспорт логов может раскрыть вашу активность. Продолжить?';
 
   @override
   String get logLevelError => 'Ошибка';
@@ -766,16 +771,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get needBnb => 'Нужен BNB для оплаты газа. Сначала получите.';
 
   @override
-  String get addressPoisoning => 'Этот адрес похож на недавний контакт, но отличается. Проверьте внимательно.';
+  String get addressPoisoning =>
+      'Этот адрес похож на недавний контакт, но отличается. Проверьте внимательно.';
 
   @override
-  String get selfContract => 'Отправка на адрес контракта токена сожжёт токены.';
+  String get selfContract =>
+      'Отправка на адрес контракта токена сожжёт токены.';
 
   @override
   String get zeroAddress => 'Отправка на нулевой адрес запрещена.';
 
   @override
-  String get newAddress => 'Этот адрес никогда не использовался. Проверьте внимательно.';
+  String get newAddress =>
+      'Этот адрес никогда не использовался. Проверьте внимательно.';
 
   @override
   String tokenSimulationFailed(Object reason) {
@@ -786,7 +794,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tokenUnknown => 'Неизвестный токен';
 
   @override
-  String get unlimitedApproval => 'Неограниченное одобрение — токен может потратить весь баланс';
+  String get unlimitedApproval =>
+      'Неограниченное одобрение — токен может потратить весь баланс';
 
   @override
   String get signUnknownData => 'Подпись неизвестных данных (продвинутый)';
@@ -795,16 +804,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get enableSignUnknown => 'Включить подпись неизвестного calldata';
 
   @override
-  String get blindSignWarning => 'Слепая подпись опасна. Включайте только если понимаете риски.';
+  String get blindSignWarning =>
+      'Слепая подпись опасна. Включайте только если понимаете риски.';
 
   @override
   String get disclosure => 'Раскрытие';
 
   @override
-  String get nodeSees => 'Узел видит: ваш IP, RPC метод и параметры. Может вывести связи адресов.';
+  String get nodeSees =>
+      'Узел видит: ваш IP, RPC метод и параметры. Может вывести связи адресов.';
 
   @override
-  String get appDoesNotSend => 'Приложение НЕ отправляет: модель устройства, ОС, версию приложения, язык, местоположение, контакты, сид, ключи, пароли.';
+  String get appDoesNotSend =>
+      'Приложение НЕ отправляет: модель устройства, ОС, версию приложения, язык, местоположение, контакты, сид, ключи, пароли.';
 
   @override
   String get viewRawRequest => 'Посмотреть сырой запрос';

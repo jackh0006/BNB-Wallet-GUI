@@ -26,11 +26,13 @@ void main() {
 
     await expectLater(
       VaultCipher.decrypt('password', base64Encode(bytes), 'device-secret'),
-      throwsA(isA<VaultException>().having(
-        (error) => error.message,
-        'message',
-        'Unsafe vault parameters.',
-      )),
+      throwsA(
+        isA<VaultException>().having(
+          (error) => error.message,
+          'message',
+          'Unsafe vault parameters.',
+        ),
+      ),
     );
   });
 
@@ -41,11 +43,13 @@ void main() {
         base64Encode('BNBVL003'.codeUnits),
         'device-secret',
       ),
-      throwsA(isA<VaultException>().having(
-        (error) => error.message,
-        'message',
-        'Vault data is malformed.',
-      )),
+      throwsA(
+        isA<VaultException>().having(
+          (error) => error.message,
+          'message',
+          'Vault data is malformed.',
+        ),
+      ),
     );
   });
 }

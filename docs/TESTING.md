@@ -34,15 +34,27 @@ cd verification && npm ci && node verify.cjs && cd ..
 
 # Release hygiene:
 bash scripts/secret-scan.sh
+python3 scripts/dependency-audit.py
+python3 scripts/test_inventory.py --check
+python3 scripts/release_manifest.py --check
+python3 scripts/generate_docs.py --check
+python3 scripts/release-gate.py
 ```
 
-The KDF-tagged tests perform real 64 MiB Argon2id derivations. On the 2-core
-release machine each derivation takes roughly 1m45s; the whole KDF phase can
-take ~10 minutes. The complete driver is serial: parallel workers made
+The production KDF uses the reference native Argon2 library and takes about
+**344 ms** for one 64 MiB / t=3 / p=4 derivation on the release-check machine.
+The debug pure-Dart fallback is ~110 s; it is not acceptable for a release and
+is guarded by `test/kdf_production_test.dart`. Envelope/format suites use an
+assert-guarded test KDF so they do not repeat the expensive derivation.
+
+The complete driver is serial: parallel workers made
 stateful Flutter/widget suites flaky and overlapping KDF derivations can
 exhaust a small release machine. No test is skipped or relaxed.
 
-## Recorded runs (2026-11-03)
+## Recorded runs (2026-11-03, historical)
+
+> Historical results from an earlier commit. Current candidate results are in
+> `docs/GENERATED_STATUS.md` and `docs/TESTING_STRATEGY.md`.
 
 | Suite | Count | Result |
 |---|---|---|

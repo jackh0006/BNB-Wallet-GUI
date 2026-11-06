@@ -1,8 +1,10 @@
 # COMPATIBILITY_MATRIX.md — Hardware Wallet Compatibility
 
-**Date**: 2026-11-03
+**Date**: 2026-11-03 (status corrected 2026-11-06)
 **Baseline Commit**: `68091b06cce3e9c90692e3f632d539ae69734154`
-**Status**: **NO PHYSICAL DEVICES TESTED — ALL ENTRIES NOT TESTED**
+**Status**: **NO HARDWARE-WALLET INTEGRATION EXISTS IN THE CODE. This document
+is a future design note, not evidence of compatibility. Every device below is
+`NOT IMPLEMENTED`, not merely "untested".**
 
 ---
 
@@ -12,7 +14,8 @@
 |--------|---------|
 | **VERIFIED** | Tested with physical device; all claimed features work |
 | **PARTIAL** | Tested; some features work, limitations documented |
-| **NOT TESTED** | Code may exist but no physical verification |
+| **NOT TESTED** | Code exists but no physical verification |
+| **NOT IMPLEMENTED** | No code path exists; do not claim support |
 | **NOT SUPPORTED** | Intentionally not implemented |
 | **BLOCKED** | Known issue preventing support |
 
@@ -22,11 +25,11 @@
 
 | Model | Firmware | Transport | Linux udev | Android USB | EVM App | Sign Types | Status |
 |-------|----------|-----------|------------|-------------|---------|------------|--------|
-| **Nano S** | ≥ 2.0 | USB HID | Required | ❌ | Ethereum | EIP-1559, Legacy, ERC-20 | NOT TESTED |
-| **Nano S Plus** | ≥ 1.0 | USB HID | Required | ❌ | Ethereum | EIP-1559, Legacy, ERC-20 | NOT TESTED |
-| **Nano X** | ≥ 2.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20 | NOT TESTED |
-| **Stax** | ≥ 1.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT TESTED |
-| **Flex** | ≥ 1.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT TESTED |
+| **Nano S** | ≥ 2.0 | USB HID | Required | ❌ | Ethereum | EIP-1559, Legacy, ERC-20 | NOT IMPLEMENTED |
+| **Nano S Plus** | ≥ 1.0 | USB HID | Required | ❌ | Ethereum | EIP-1559, Legacy, ERC-20 | NOT IMPLEMENTED |
+| **Nano X** | ≥ 2.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20 | NOT IMPLEMENTED |
+| **Stax** | ≥ 1.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT IMPLEMENTED |
+| **Flex** | ≥ 1.0 | USB HID / BLE | Required | BLE | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT IMPLEMENTED |
 
 **Linux udev rule needed** (for all Ledger):
 ```udev
@@ -41,10 +44,10 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="2c97", TAG+="uaccess"
 
 | Model | Firmware | Transport | Linux udev | Android USB | EVM Support | Sign Types | Status |
 |-------|----------|-----------|------------|-------------|-------------|------------|--------|
-| **Model One** | ≥ 2.4 | USB HID | Required | ❌ | Ethereum (via Trezor Bridge/Suite) | EIP-1559, Legacy | NOT TESTED |
-| **Model T** | ≥ 2.4 | USB HID | Required | WebUSB | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT TESTED |
-| **Safe 3** | ≥ 1.0 | USB HID | Required | WebUSB | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT TESTED |
-| **Safe 5** | ≥ 1.0 | USB HID / NFC | Required | WebUSB/NFC | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT TESTED |
+| **Model One** | ≥ 2.4 | USB HID | Required | ❌ | Ethereum (via Trezor Bridge/Suite) | EIP-1559, Legacy | NOT IMPLEMENTED |
+| **Model T** | ≥ 2.4 | USB HID | Required | WebUSB | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT IMPLEMENTED |
+| **Safe 3** | ≥ 1.0 | USB HID | Required | WebUSB | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT IMPLEMENTED |
+| **Safe 5** | ≥ 1.0 | USB HID / NFC | Required | WebUSB/NFC | Ethereum | EIP-1559, Legacy, ERC-20, EIP-712 | NOT IMPLEMENTED |
 
 **Linux udev rule needed** (for all Trezor):
 ```udev
@@ -59,8 +62,8 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="5320|5321|0001|0002"
 
 | Model | Firmware | Transport | Linux | Android | EVM Support | Sign Types | Status |
 |-------|----------|-----------|-------|---------|-------------|------------|--------|
-| **S1** | ≥ 4.0 | QR / Bluetooth | ❌ | Bluetooth | BSC/Ethereum | EIP-1559, Legacy | NOT TESTED |
-| **X1** | ≥ 1.0 | QR / Bluetooth / NFC | ❌ | Bluetooth/NFC | BSC/Ethereum | EIP-1559, Legacy | NOT TESTED |
+| **S1** | ≥ 4.0 | QR / Bluetooth | ❌ | Bluetooth | BSC/Ethereum | EIP-1559, Legacy | NOT IMPLEMENTED |
+| **X1** | ≥ 1.0 | QR / Bluetooth / NFC | ❌ | Bluetooth/NFC | BSC/Ethereum | EIP-1559, Legacy | NOT IMPLEMENTED |
 
 **Note**: SafePal uses air-gapped QR signing primarily; Bluetooth for app pairing. No USB/HID.
 
@@ -186,4 +189,5 @@ When tested, record:
 
 ---
 
-*This matrix will be updated when physical devices are available for testing. Until then, all entries are NOT TESTED.*
+*This document is a design note. No hardware-wallet transport is implemented
+in the current source; every entry is `NOT IMPLEMENTED`, not "untested".*

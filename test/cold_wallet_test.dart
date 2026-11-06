@@ -4,10 +4,11 @@ import 'package:bnb_wallet_gui/cold_wallet.dart';
 
 void main() {
   group('Cold wallet signing (EIP-1559)', () {
-    const testPhrase = 'test test test test test test test test test test test junk';
+    const testPhrase =
+        'test test test test test test test test test test test junk';
     const testPassphrase = '';
     const testPath = "m/44'/60'/0'/0/0";
-    
+
     // Known test vector: the junk mnemonic derives to address 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
     const fromAddress = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
     const toAddress = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
@@ -32,7 +33,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-1',
       );
@@ -49,22 +53,22 @@ void main() {
       expect(signature.requestId, 'test-request-1');
       expect(signature.chainId, chainId);
       expect(signature.from, fromAddress);
-      
+
       // r and s should be 64 hex chars (32 bytes each)
       expect(signature.r, startsWith('0x'));
       expect(signature.r.length, 66); // 0x + 64 hex chars
       expect(signature.s, startsWith('0x'));
       expect(signature.s.length, 66);
-      
+
       // v should be 0 or 1 for EIP-1559 (yParity)
       expect(signature.v, startsWith('0x'));
       final v = int.parse(signature.v.substring(2), radix: 16);
       expect(v, anyOf(0, 1));
-      
+
       // signedTxHash should be a valid hash
       expect(signature.signedTxHash, startsWith('0x'));
       expect(signature.signedTxHash.length, 66); // 0x + 64 hex chars
-      
+
       // rawSignedTx should be a valid hex string starting with 0x02 (EIP-1559)
       expect(signature.rawSignedTx, startsWith('0x02'));
     });
@@ -82,7 +86,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-2',
       );
@@ -116,7 +123,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-3',
       );
@@ -141,7 +151,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-3',
       );
@@ -168,7 +181,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-4',
       );
@@ -193,7 +209,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-4',
       );
@@ -220,7 +239,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-5',
       );
@@ -245,7 +267,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-5',
       );
@@ -272,7 +297,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-6',
       );
@@ -297,7 +325,10 @@ void main() {
         nonce: nonce + 1,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-6',
       );
@@ -316,8 +347,9 @@ void main() {
       // Function selector: 0xa9059cbb
       // to: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (padded to 32 bytes)
       // amount: 1000000 (padded to 32 bytes)
-      const erc20Data = '0xa9059cbb00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c800000000000000000000000000000000000000000000000000000000000f4240';
-      
+      const erc20Data =
+          '0xa9059cbb00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c800000000000000000000000000000000000000000000000000000000000f4240';
+
       final request = ColdTxRequest(
         version: 1,
         chainId: chainId,
@@ -336,7 +368,10 @@ void main() {
           name: 'Tether USD',
           decimals: 18,
         ),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-7',
       );
@@ -351,7 +386,7 @@ void main() {
       expect(signature.version, 1);
       expect(signature.from, fromAddress);
       expect(signature.rawSignedTx, startsWith('0x02'));
-      
+
       final isValid = WalletCore.verifyColdSignature(
         request: request,
         signature: signature,
@@ -374,7 +409,10 @@ void main() {
         nonce: nonce,
         data: data,
         assetInfo: const ColdTxAssetInfo(isNative: true),
-        expiresAt: DateTime.now().add(const Duration(minutes: 10)).toUtc().toIso8601String(),
+        expiresAt: DateTime.now()
+            .add(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String(),
         createdAt: DateTime.now().toUtc().toIso8601String(),
         id: 'test-request-8',
       );
@@ -398,10 +436,24 @@ void main() {
       expect(sig1.s, sig2.s);
       expect(sig1.v, sig2.v);
       expect(sig1.rawSignedTx, sig2.rawSignedTx);
-      
+
       // And should verify correctly
-      expect(WalletCore.verifyColdSignature(request: request, signature: sig1, expectedFrom: fromAddress), isTrue);
-      expect(WalletCore.verifyColdSignature(request: request, signature: sig2, expectedFrom: fromAddress), isTrue);
+      expect(
+        WalletCore.verifyColdSignature(
+          request: request,
+          signature: sig1,
+          expectedFrom: fromAddress,
+        ),
+        isTrue,
+      );
+      expect(
+        WalletCore.verifyColdSignature(
+          request: request,
+          signature: sig2,
+          expectedFrom: fromAddress,
+        ),
+        isTrue,
+      );
     });
   });
 }

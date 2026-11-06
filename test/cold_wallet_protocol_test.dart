@@ -7,8 +7,7 @@ import 'package:bnb_wallet_gui/cold_wallet_protocol.dart';
 import 'package:bnb_wallet_gui/wallet_core.dart';
 
 void main() {
-  const phrase =
-      'test test test test test test test test test test test junk';
+  const phrase = 'test test test test test test test test test test test junk';
   const from = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
   const to = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
 
@@ -198,10 +197,7 @@ void main() {
 
     setUp(() {
       original = request(id: 'protocol-sign-1');
-      signature = WalletCore.signTransaction(
-        phrase: phrase,
-        request: original,
-      );
+      signature = WalletCore.signTransaction(phrase: phrase, request: original);
     });
 
     test('round-trips and validates against the exact raw bytes', () {
@@ -230,7 +226,8 @@ void main() {
     });
 
     test('rejects yParity that does not match v', () {
-      final payload = signature.toJson()..['yParity'] = (signature.yParity! ^ 1);
+      final payload = signature.toJson()
+        ..['yParity'] = (signature.yParity! ^ 1);
       // Keep v untouched; the protocol must notice the contradiction.
       final text = ColdWalletProtocol.encodeEnvelope(
         kind: ColdWalletProtocol.kindSignature,
@@ -263,10 +260,7 @@ void main() {
 
     setUp(() {
       original = request(id: 'substitution-1');
-      signature = WalletCore.signTransaction(
-        phrase: phrase,
-        request: original,
-      );
+      signature = WalletCore.signTransaction(phrase: phrase, request: original);
     });
 
     void expectRejected(ColdTxRequest changed) {
@@ -278,20 +272,24 @@ void main() {
       expect(result.ok, isFalse, reason: result.reason);
     }
 
-    test('recipient, value, chain, nonce, gas, fees and calldata are bound', () {
-      expectRejected(request(id: 'substitution-1', recipient: to.replaceFirst('70', '71')));
-      expectRejected(request(id: 'substitution-1', value: '0x1'));
-      expectRejected(request(id: 'substitution-1', chainId: 97));
-      expectRejected(request(id: 'substitution-1', nonce: 1));
-      expectRejected(request(id: 'substitution-1', gas: '0x5209'));
-      expectRejected(
-        request(
-          id: 'substitution-1',
-          data:
-              '0xa9059cbb00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c80000000000000000000000000000000000000000000000000000000000000001',
-        ),
-      );
-    });
+    test(
+      'recipient, value, chain, nonce, gas, fees and calldata are bound',
+      () {
+        expectRejected(
+          request(id: 'substitution-1', recipient: to.replaceFirst('70', '71')),
+        );
+        expectRejected(request(id: 'substitution-1', value: '0x1'));
+        expectRejected(request(id: 'substitution-1', chainId: 97));
+        expectRejected(request(id: 'substitution-1', nonce: 1));
+        expectRejected(request(id: 'substitution-1', gas: '0x5209'));
+        expectRejected(
+          request(
+            id: 'substitution-1',
+            data: '0xa9059cbb00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c80000000000000000000000000000000000000000000000000000000000000001',
+          ),
+        );
+      },
+    );
 
     test('r, s, yParity and hash substitutions are rejected', () {
       ColdVerifyResult check(ColdTxSignature changed) =>
@@ -355,8 +353,7 @@ void main() {
         s: signature.s,
         v: signature.v,
         yParity: signature.yParity,
-        signedTxHash:
-            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        signedTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         signedAt: signature.signedAt,
         rawSignedTx: signature.rawSignedTx,
       );

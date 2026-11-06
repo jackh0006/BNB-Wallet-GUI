@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
+  "status": "PASS",
+  "runner": "GitHub Actions ubuntu-24.04",
+  "runId": 42302764476,
+  "durationSeconds": 165,
+  "steps": {
+    "buildDeb": "PASS",
+    "install": "PASS",
+    "launchXvfb20s": "PASS",
+    "upgradeFromPublic109": "PASS",
+    "dataMarkerPreserved": "PASS",
+    "uninstall": "PASS",
+    "reinstall": "PASS"
+  },
+  "limitations": [
+    "Xvfb smoke only; no full interactive UI walkthrough",
+    "No Debian/Fedora install test",
+    "No code-signature verification of the package"
+  ],
+  "workflow": ".github/workflows/package-smoke.yml",
+  "script": "scripts/package-smoke.sh"
+}

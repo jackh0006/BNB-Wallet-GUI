@@ -20,17 +20,36 @@
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `vault_test.dart` | 7 | `kdf` | ✅ PASS* | Vault v2 round-trip, wrong pw/dev, fresh nonce, downgraded params, no oracle, v1 migration |
+| `vault_test.dart` | 9 | `kdf` | ✅ PASS* | Vault v2 round-trip, wrong pw/dev, fresh nonce, downgraded params, no oracle, v1 migration |
+| `kdf_production_test.dart` | 3 | `kdf` | ✅ PASS | Fixed production parameters, native vs pure-Dart agreement, one real 64 MiB round-trip |
 | `workers_test.dart` | 3 | `kdf` | ✅ PASS* | Worker isolate encrypt/decrypt, wrong device key, pinHashJob format |
 | `wallet_core_test.dart` | 12 | (light) | ✅ PASS | Mnemonic, derivation, address, signing, import |
 
-*Individual tests pass with generous timeouts (8-15 min); full KDF suite OOM on 2-core 4GB
+*The suites now use the reference native Argon2 library when available; the
+real production path is measured in `kdf_production_test.dart`. Envelope tests
+use an assert-guarded test KDF so they prove format/tamper behaviour without
+paying for repeated 64 MiB derivations.
+
+### Property-Based and Fuzz-Style
+
+| Test File | Tests | Tag | Status | Coverage |
+|-----------|-------|-----|--------|----------|
+| `fuzz_and_property_test.dart` | 10 | (light) | ✅ PASS | Amount round-trips, checksum invariants, canonical RLP fuzz, vault/envelope fuzz, ERC-20 calldata totality |
+
+### Real EVM Integration (tag: `integration`)
+
+| Test File | Tests | Tag | Status | Coverage |
+|-----------|-------|-----|--------|----------|
+| `anvil_test.dart` | 3 | `integration` | ✅ PASS | Native transfer, wrong-chain rejection, ERC-20 deploy/mint/transfer/approve/revoke/revert against Anvil chain 97 |
+
+These tests are excluded from the default 47-file suite and run in the
+`integration` workflow with a pinned Anvil 1.9.0 node.
 
 ### Cold Wallet
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `cold_tx_codec_test.dart` | 4 | (light) | ✅ PASS | Canonical payload, digest, signed tx parsing, field validation |
+| `cold_tx_codec_test.dart` | 6 | (light) | ✅ PASS | Canonical payload, digest, signed tx parsing, field validation |
 | `cold_wallet_protocol_test.dart` | 15 | (light) | ✅ PASS | Pairing/request/signature envelopes, checksums, expiry, substitutions |
 | `cold_wallet_service_test.dart` | 15 | (light) | ✅ PASS | Persistence, replay, signing, verification, broadcast, burn list |
 | `cold_wallet_test.dart` | 8 | (light) | ✅ PASS | Existing cold wallet tests |
@@ -39,59 +58,70 @@
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `tls_pinning_test.dart` | 6 | (light) | ✅ PASS | Standard validation + pin, pin cannot bypass CA/hostname, CONNECT refused |
+| `tls_pinning_test.dart` | 7 | (light) | ✅ PASS | Standard validation + pin, pin cannot bypass CA/hostname, CONNECT refused |
 | `privacy_dialogs_test.dart` | 2 | (light) | ✅ PASS | Proxy/Tor dialog options, URL parsing |
-| `nodes_test.dart` | 14 | (light) | ✅ PASS | Node book CRUD, enable/disable, reset, test checklist |
-| `node_manager_test.dart` | 10 | (light) | ✅ PASS | Pool selection, strict mode, import/export |
-| `ua_scrub_test.dart` | 3 | (light) | ✅ PASS | User-Agent scrubbing on all transports |
+| `nodes_test.dart` | 6 | (light) | ✅ PASS | Node book CRUD, enable/disable, reset, test checklist |
+| `node_manager_test.dart` | 17 | (light) | ✅ PASS | Pool selection, strict mode, import/export |
+| `ua_scrub_test.dart` | 1 | (light) | ✅ PASS | User-Agent scrubbing on all transports |
+| `rpc_adversarial_test.dart` | 6 | (light) | ✅ PASS | Wrong chain, non-JSON/HTML RPC, oversized/malformed balance, network-switch mismatch, URL policy |
 
 ### Transaction & Fees
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `fee_engine_test.dart` | 18 | (light) | ✅ PASS | Fee math, EIP-1559/legacy, multi-node merge, sanity clamp |
-| `fee_parity_test.dart` | 6 | (light) | ✅ PASS | Terminal v1 parity, terminal arithmetic |
-| `send_intent_test.dart` | 11 | (light) | ✅ PASS | Send flow validation, rehearsal, signing, broadcast |
-| `tx_lifecycle_test.dart` | 8 | (light) | ✅ PASS | Journey stages, pending, receipt, narration |
+| `fee_engine_test.dart` | 12 | (light) | ✅ PASS | Fee math, EIP-1559/legacy, multi-node merge, sanity clamp |
+| `fee_parity_test.dart` | 4 | (light) | ✅ PASS | Terminal v1 parity, terminal arithmetic |
+| `send_intent_test.dart` | 19 | (light) | ✅ PASS | Send flow validation, rehearsal, signing, broadcast |
+| `tx_lifecycle_test.dart` | 20 | (light) | ✅ PASS | Journey stages, pending, receipt, narration |
 
 ### Storage & Security
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `encrypted_log_store_test.dart` | 5 | (light) | ✅ PASS | BNBLOG01 envelope, encryption, cap |
-| `receipt_store_test.dart` | 10 | (light) | ✅ PASS | BNBRCPT1 envelope, encryption, cap, tamper detection |
-| `erase_flow_test.dart` | 4 | (light) | ✅ PASS | Crypto-erasure, overwrite, preference wipe |
-| `clipboard_guard_test.dart` | 5 | (light) | ✅ PASS | Secret detection (mnemonic, hex key), auto-clear |
-| `drawer_secret_test.dart` | 6 | (light) | ✅ PASS | Device key memoization, fallback, migration |
+| `encrypted_log_store_test.dart` | 4 | (light) | ✅ PASS | BNBLOG01 envelope, encryption, cap |
+| `receipt_store_test.dart` | 8 | (light) | ✅ PASS | BNBRCPT1 envelope, encryption, cap, tamper detection |
+| `erase_flow_test.dart` | 1 | (light) | ✅ PASS | Crypto-erasure, overwrite, preference wipe |
+| `clipboard_guard_test.dart` | 4 | (light) | ✅ PASS | Secret detection (mnemonic, hex key), auto-clear |
+| `drawer_secret_test.dart` | 5 | (light) | ✅ PASS | Device key memoization, fallback, migration |
 | `memory_protection_test.dart` | 2 | (light) | ✅ PASS | Kernel state: dumpable=0, core limit=0 |
+| `backup_restore_e2e_test.dart` | 4 | `kdf` | ✅ PASS | Synthetic create → encrypted backup → wipe → restore; wrong password, tamper, truncation |
+| `filesystem_security_test.dart` | See test file | (light) | Historical focused PASS | Linux atomic-write, permissions, no-follow, and race protections |
+| `rollback_injection_test.dart` | See test file | `kdf` | Historical focused PASS | Rollback after controlled post-commit verification failure |
+| `vault_header_validation_test.dart` | See test file | (light) | Historical focused PASS | Rejects unsafe or malformed vault headers |
+| `vault_import_rollback_kdf_test.dart` | See test file | `kdf` | Historical focused PASS | Import and rollback with production KDF parameters |
+| `vault_management_test.dart` | See test file | (light) | Historical focused PASS | Vault-management regression cases |
+| `vault_rename_test.dart` | See test file | (light) | Historical focused PASS | Rename and replacement safety |
 
 ### UI & Navigation
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
 | `widget_test.dart` | 3 | (light) | ✅ PASS | App launch, home tab, app lock |
-| `navigation_flow_test.dart` | 8 | (light) | ✅ PASS | Unlock→send, unlock→wallet, no save dialogs |
-| `create_wallet_dialog_test.dart` | 4 | (light) | ✅ PASS | Creation flow, seed entry, backup quiz |
+| `navigation_flow_test.dart` | 3 | (light) | ✅ PASS | Unlock→send, unlock→wallet, no save dialogs |
+| `create_wallet_dialog_test.dart` | 3 | (light) | ✅ PASS | Creation flow, seed entry, backup quiz |
 | `backup_quiz_test.dart` | 5 | (light) | ✅ PASS | 3-word verification, creation + settings |
-| `journey_map_test.dart` | 4 | (light) | ✅ PASS | 5-stop map, states, detail |
-| `hold_to_confirm_test.dart` | 3 | (light) | ✅ PASS | Hold gesture, cancellation |
+| `journey_map_test.dart` | 3 | (light) | ✅ PASS | 5-stop map, states, detail |
+| `hold_to_confirm_test.dart` | 1 | (light) | ✅ PASS | Hold gesture, cancellation |
+| `accessibility_test.dart` | 3 | (light) | ✅ PASS | Semantics label, keyboard hold/early release, 200% text scale |
+| `donations_test.dart` | 2 | (light) | ✅ PASS | Addresses match DONATE.md exactly, copy/QR dialog, 14 rows |
+| `localization_catalog_test.dart` | See test file | (light) | Historical focused PASS | All maintained localization catalogs provide required text |
 
 ### Token & Assets
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `token_sources_test.dart` | 7 | (light) | ✅ PASS | Official sources, user links, CI checker |
-| `watch_only_test.dart` | 4 | (light) | ✅ PASS | Watch-only import, send refusal, persistence |
+| `token_sources_test.dart` | 4 | (light) | ✅ PASS | Official sources, user links, CI checker |
+| `watch_only_test.dart` | 2 | (light) | ✅ PASS | Watch-only import, send refusal, persistence |
 
 ### Logging & Misc
 
 | Test File | Tests | Tag | Status | Coverage |
 |-----------|-------|-----|--------|----------|
-| `log_presenter_test.dart` | 6 | (light) | ✅ PASS | Simple/Expert modes, category/level mapping |
+| `log_presenter_test.dart` | 3 | (light) | ✅ PASS | Simple/Expert modes, category/level mapping |
 | `log_canary_test.dart` | 3 | (light) | ✅ PASS | Log canary integrity |
-| `story_test.dart` | 5 | (light) | ✅ PASS | Narration, debounce, budget, cascade cut |
-| `privacy_config_test.dart` | 4 | (light) | ✅ PASS | Proxy/Tor config persistence |
-| `receipt_image_test.dart` | 3 | (light) | ✅ PASS | PNG rendering |
+| `story_test.dart` | 7 | (light) | ✅ PASS | Narration, debounce, budget, cascade cut |
+| `privacy_config_test.dart` | 9 | (light) | ✅ PASS | Proxy/Tor config persistence |
+| `receipt_image_test.dart` | 1 | (light) | ✅ PASS | PNG rendering |
 
 ---
 
@@ -107,6 +137,10 @@
 ---
 
 ## Test Execution Commands
+
+The CI inventory check requires every `test/*_test.dart` file to appear in
+this matrix. Adding a test without adding it here fails the required
+`sources-and-sbom` GitHub check.
 
 ```bash
 # Full sequential-aware suite (as in CI)

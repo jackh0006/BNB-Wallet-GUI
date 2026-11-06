@@ -2,7 +2,7 @@
   "name": "bnb-wallet-cold-verification",
   "private": true,
   "version": "1.0.0",
-  "description": "Independent ethers.js verification for the BNB Wallet cold-signing codec",
+  "description": "Independent ethers.js verification for the X Wallet cold-signing codec",
   "scripts": {
     "verify": "node verify.cjs"
   },

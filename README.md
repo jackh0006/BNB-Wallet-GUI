@@ -1,4 +1,4 @@
-# BNB Wallet
+# X Wallet
 
 A Linux amd64 desktop wallet for BNB Smart Chain. It is local, self-custodial,
 AGPL-3.0-or-later software: the wallet owner controls the recovery phrase and
@@ -8,6 +8,20 @@ Created and maintained by **jackh0006** ([jackh109867@gmail.com](mailto:jackh109
 The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
+
+**Current stable release: X Wallet 1.1.0 (`v1.1.0`).** Download and verify it from
+<https://github.com/jackh0006/BNB-Wallet-GUI/releases/tag/v1.1.0>. The exact
+per-version evidence is in [docs/releases/1.1.0.md](docs/releases/1.1.0.md).
+
+<!-- BEGIN GENERATED:status -->
+> **Generated release status** — do not edit this block by hand.
+>
+> Version `1.1.0+5` · status **PARTIALLY VERIFIED**
+> Tests: 49 files / 308 declarations · SBOM `3d3d4ea2e8b43b83`
+>
+> The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
+> See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
+<!-- END GENERATED:status -->
 
 > Important: this project is self-assessed, not independently reviewed. No
 > test suite, security score, or software wallet can guarantee the safety of
@@ -38,24 +52,49 @@ and limitations needed to judge it:
 
 | Evidence | Where to inspect |
 |---|---|
+| Current implementation status and blockers | [Implementation status](IMPLEMENTATION_STATUS.md) |
+| Chronological implementation log | [Implementation log](docs/IMPLEMENTATION_LOG.md) |
+| Security scorecard and evidence | [Security scorecard](docs/SECURITY_SCORECARD.md) |
+| Risk register | [Security risk register](docs/SECURITY_RISK_REGISTER.md) |
 | Threats, protections, and residual risks | [Threat model](docs/THREAT_MODEL.md) |
 | Security findings and exact scope | [Security self-assessment](SECURITY_AUDIT.md) |
-| Reproducible automated checks | [Testing guide](docs/TESTING.md) |
+| Three-pass self-audit | [Self-audit 2026-11-06](docs/SELF_AUDIT_2026-11-06.md) |
+| Independent review guide | [Review guide](docs/INDEPENDENT_REVIEW_GUIDE.md) |
+| Generated status, checks, and limitations | [Generated status](docs/GENERATED_STATUS.md) |
+| Machine-readable release manifest | [Manifest](release/manifest.json) |
+| Test inventory (47 files) | [Test inventory](docs/testing/test-inventory.json) |
+| Test results and environment | [Test results](docs/TEST_RESULTS.md) |
+| Reproducible automated checks | [Testing strategy](docs/TESTING_STRATEGY.md) |
 | Dependency inventory | [SBOM](docs/SBOM.json) |
+| Supply-chain controls | [Supply-chain security](docs/SUPPLY_CHAIN_SECURITY.md) |
 | Build/install gate | [Release checklist](docs/RELEASE_CHECKLIST.md) |
-| Per-version status and confirmation rule | [Release evidence](docs/RELEASE_EVIDENCE.md) |
+| Release process | [Release process](docs/RELEASE_PROCESS.md) |
+| Release verification | [Release verification](docs/RELEASE_VERIFICATION.md) |
+| Platform support | [Compatibility](docs/COMPATIBILITY.md) |
+| Backup and recovery | [Backup and recovery](docs/BACKUP_AND_RECOVERY.md) |
+| Release signing checklist | [Signing checklist](docs/SIGNING_CHECKLIST.md) |
+| Rename compatibility | [Rename compatibility](docs/RENAME_COMPATIBILITY.md) |
+| High-value custody guidance | [High-value custody](docs/HIGH_VALUE_CUSTODY.md) |
+| Hardware-wallet plan | [Hardware-wallet plan](docs/HARDWARE_WALLET_PLAN.md) |
+| Multisignature architecture | [Multisig architecture](docs/MULTISIG_ARCHITECTURE.md) |
+| Incident response | [Incident response](docs/INCIDENT_RESPONSE.md) |
+| Android signing incident | [Incident record](docs/security/INCIDENT_2026-11-KEYSTORE.md) |
+| Dated competitor comparison | [Competitor analysis](docs/COMPETITORS.md) |
+| Final completion guide | [Project completion](docs/PROJECT_COMPLETION.md) |
+| Final internal self-audit | [Self-audit](docs/FINAL_SELF_AUDIT.md) |
 | Private vulnerability reporting | [Security policy](SECURITY.md) |
 
 ## Download and verify the Linux package
 
-Only download a `.deb`, its detached `.asc` signature, and `SHA256SUMS` from
-the same GitHub Release. Obtain the maintainer's GPG fingerprint independently
-before trusting a signature.
+Only download `x-wallet-1.1.0-amd64.deb`, `SHA256SUMS`, and any `.asc` signature
+from the same GitHub Release. Obtain the maintainer's GPG fingerprint
+independently before trusting a signature. If the release is marked UNSIGNED,
+verify the published SHA-256 and do not describe the package as signed.
 
 ```bash
 sha256sum --check SHA256SUMS
-gpg --verify bnb-wallet-<version>-amd64.deb.asc bnb-wallet-<version>-amd64.deb
-sudo apt install ./bnb-wallet-<version>-amd64.deb
+gpg --verify x-wallet-<version>-amd64.deb.asc x-wallet-<version>-amd64.deb
+sudo apt install ./x-wallet-<version>-amd64.deb
 ```
 
 Never install a package from a chat attachment, a URL shortener, or an
@@ -81,8 +120,10 @@ The fuller non-expert instructions are in [docs/FAMILY_GUIDE.md](docs/FAMILY_GUI
 
 This is a feature comparison, not a safety ranking. Features vary by version
 and configuration; verify claims against each project's current documentation.
+The dated, source-linked comparison is in
+[docs/COMPETITORS.md](docs/COMPETITORS.md).
 
-| Property | BNB Wallet | Typical browser-extension wallet | Typical hardware wallet |
+| Property | X Wallet | Typical browser-extension wallet | Typical hardware wallet |
 |---|---:|---:|---:|
 | Local signing | Yes | Yes | Yes |
 | Seed exposed to browser extensions | No browser component | Often browser-hosted | No |
@@ -92,16 +133,16 @@ and configuration; verify claims against each project's current documentation.
 | Protection from a compromised desktop OS | No | No | Better: key remains on device |
 | Independent external security review | No | Varies | Varies |
 
-The point of BNB Wallet is an inspectable Linux-native BSC workflow with
+The point of X Wallet is an inspectable Linux-native BSC workflow with
 encrypted local storage, strict transaction review, privacy routing, and a
 cold-wallet protocol in one codebase. It is not a replacement for a hardware
 wallet when the consequence of loss is high.
 
 ## Build and verify from source
 
-Requirements: current stable Flutter/Dart, Node.js, npm, Python 3, Ubuntu or
-Debian amd64 build dependencies, and a configured GPG signing key for a final
-release package.
+Requirements: current stable Flutter/Dart, Node.js, npm, Python 3, and Ubuntu
+or Debian amd64 build dependencies. A maintainer-controlled GPG signing key is
+also required for a publishable release package.
 
 ```bash
 flutter pub get
@@ -112,13 +153,15 @@ bash scripts/secret-scan.sh
 python3 scripts/dependency-audit.py
 python3 scripts/sbom.py --out docs/SBOM.json
 bash scripts/build-deb.sh
-BNB_RELEASE_DEB='/home/mhh06/Downloads/BNB Wallet/bnb-wallet-<version>-amd64.deb' \
+BNB_RELEASE_DEB='/home/mhh06/Downloads/X Wallet/x-wallet-<version>-amd64.deb' \
   bash scripts/release-check.sh
 ```
 
-`build-deb.sh` creates a `.deb`, `SHA256SUMS`, and detached GPG signature in
-`/home/mhh06/Downloads/BNB Wallet/`. The release gate refuses a package with
-no signature or matching checksum.
+`build-deb.sh` creates a `.deb` and `SHA256SUMS` in
+`/home/mhh06/Downloads/X Wallet/`. Set `BNB_GPG_KEY` to an available,
+authorized secret key to also create the detached signature; an unsigned local
+build is diagnostic-only. The release gate refuses a package with no signature
+or matching checksum.
 
 ## Responsible disclosure and license
 
@@ -127,17 +170,17 @@ private reporting and rotation guidance. The [AGPL-3.0-or-later license](LICENSE
 applies: people who receive and use modified network-interacting versions are
 entitled to the corresponding source under its terms.
 
+## Free to use
+
+X Wallet is free: no subscription, paid license, paywall, advertisement, or
+payment is required for core wallet functions. Blockchain network fees are
+paid to the network, not to X Wallet. Optional donations are separate.
+
 ## Donate
 
-Donations are optional and support continued open-source development. The
-author's public EVM receiving address, also published in the related
-`bnb-terminal-wallet` repository, is:
-
-| Network / asset | Address |
-|---|---|
-| BNB Smart Chain (BNB or BEP-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-| Ethereum (ETH or ERC-20 tokens) | `0xdad428900a4359be8f76b3062df34211582e09eb` |
-
-Verify the full address from more than one official project location before
-sending. Donations are irreversible and are not a purchase, investment, or
-support entitlement.
+Donations are optional and support continued open-source development. See
+[DONATE.md](DONATE.md) for the complete public multi-network address table,
+copied from the author's related `BNB-Terminal-Wallet` repository. Verify the
+whole address from more than one official project location before sending.
+Donations are irreversible and are not a purchase, investment, or support
+entitlement.

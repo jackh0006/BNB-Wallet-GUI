@@ -2174,7 +2174,7 @@ Future<void> _notifyConfirmed() async {
   if (!Platform.isLinux) return;
   try {
     await Process.run('notify-send', [
-      'BNB Wallet',
+      'X Wallet',
       'Transaction confirmed',
       'Open the app to see the receipt.',
     ]);

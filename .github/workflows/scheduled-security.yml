@@ -1,0 +1,44 @@
+name: scheduled-security
+
+on:
+  schedule:
+    - cron: '41 3 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-security
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.47.6'
+          cache: true
+      - run: flutter pub get
+      - name: Current-tree secret scan
+        run: bash scripts/secret-scan.sh
+      - name: Historical exposure inventory (reports only)
+        run: bash scripts/secret-scan.sh --history
+      - name: Dart dependency advisories
+        run: python3 scripts/dependency-audit.py
+      - name: SBOM is still reproducible
+        run: |
+          python3 scripts/sbom.py --out /tmp/SBOM.json
+          cmp docs/SBOM.json /tmp/SBOM.json
+      - name: Release evidence and test inventory are current
+        run: |
+          python3 scripts/check_release_evidence.py
+          python3 scripts/test_inventory.py --check
+          python3 scripts/release_manifest.py --check

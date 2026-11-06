@@ -11,10 +11,7 @@ import 'package:flutter/services.dart';
 /// from tap order. No gesture-typing traces, no IME dictionary entries.
 ///
 /// Usable with 12 or 24 words; every word must come from the official list.
-Future<String?> showSeedPicker(
-  BuildContext context, {
-  required int wordCount,
-}) {
+Future<String?> showSeedPicker(BuildContext context, {required int wordCount}) {
   assert(wordCount == 12 || wordCount == 24, 'BIP-39 supports 12 or 24 words.');
   return showDialog<String>(
     context: context,
@@ -62,7 +59,7 @@ class _SeedPickerDialogState extends State<_SeedPickerDialog> {
     super.dispose();
   }
 
-void _add(String word) {
+  void _add(String word) {
     if (_picked.length >= widget.wordCount) return;
     setState(() {
       _picked = [..._picked, word];
@@ -80,11 +77,11 @@ void _add(String word) {
   }
 
   void _clearAll() => setState(() {
-        _picked = [];
-        _search.clear();
-        _filtered = const [];
-        _pasteError = null;
-      });
+    _picked = [];
+    _search.clear();
+    _filtered = const [];
+    _pasteError = null;
+  });
 
   /// Paste-in is explicit and user-triggered: the clipboard is read only when
   /// this button is tapped, validated against the BIP-39 wordlist/checksum,
@@ -123,7 +120,9 @@ void _add(String word) {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Enter seed — word ${_picked.length + 1} of ${widget.wordCount}'),
+      title: Text(
+        'Enter seed — word ${_picked.length + 1} of ${widget.wordCount}',
+      ),
       content: SizedBox(
         width: 360,
         height: 380,
@@ -178,7 +177,10 @@ void _add(String word) {
                     for (var i = 0; i < _picked.length; i++)
                       InputChip(
                         label: Text('${i + 1} ${_picked[i]}'),
-                        deleteIcon: const Icon(Icons.backspace_outlined, size: 16),
+                        deleteIcon: const Icon(
+                          Icons.backspace_outlined,
+                          size: 16,
+                        ),
                         onDeleted: () => _removeAt(i),
                       ),
                     if (_picked.isEmpty)
@@ -194,15 +196,19 @@ void _add(String word) {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _pastePhrase,
-          child: const Text('Paste phrase'),
-        ),
+        TextButton(onPressed: _pastePhrase, child: const Text('Paste phrase')),
         TextButton(onPressed: _clearAll, child: const Text('Clear')),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          onPressed: _complete ? () => Navigator.pop(context, _picked.join(' ')) : null,
-          child: Text(_complete ? 'Use phrase' : 'Pick all ${widget.wordCount}'),
+          onPressed: _complete
+              ? () => Navigator.pop(context, _picked.join(' '))
+              : null,
+          child: Text(
+            _complete ? 'Use phrase' : 'Pick all ${widget.wordCount}',
+          ),
         ),
       ],
     );

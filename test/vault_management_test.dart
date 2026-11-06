@@ -43,7 +43,9 @@ void main() {
     });
 
     test('refuses to overwrite a symlink destination', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-symlink-test-');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'bnb-symlink-test-',
+      );
       try {
         final dest = File('${tempDir.path}/dest.bnb');
         final link = Link('${tempDir.path}/link.bnb');
@@ -64,7 +66,9 @@ void main() {
     });
 
     test('refuses to write to a symlink parent directory', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-symlink-parent-test-');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'bnb-symlink-parent-test-',
+      );
       try {
         final realDir = Directory('${tempDir.path}/real_parent');
         await realDir.create();
@@ -118,7 +122,9 @@ void main() {
 
   group('atomicWrite with symlink checks', () {
     test('rejects symlink destination', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-symlink-dest-test-');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'bnb-symlink-dest-test-',
+      );
       try {
         final originalFile = File('${tempDir.path}/original.txt');
         final r1 = await atomicWrite(originalFile, 'original');
@@ -136,7 +142,9 @@ void main() {
     });
 
     test('rejects symlink parent directory', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-symlink-parent-test-');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'bnb-symlink-parent-test-',
+      );
       try {
         final realDir = Directory('${tempDir.path}/real_parent');
         await realDir.create();
@@ -159,7 +167,10 @@ void main() {
     test('import with wrong password fails and preserves original', () async {
       final tempDir = await Directory.systemTemp.createTemp('bnb-import-test-');
       try {
-        final r1 = await atomicWrite(File('${tempDir.path}/vault.bnb'), 'test_blob');
+        final r1 = await atomicWrite(
+          File('${tempDir.path}/vault.bnb'),
+          'test_blob',
+        );
         r1.getOrThrow();
 
         final testVaultFile = File('${tempDir.path}/test_vault.bnb');

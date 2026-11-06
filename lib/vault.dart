@@ -4,7 +4,9 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-/// Encrypted local vault for BNB Wallet GUI.
+import 'kdf.dart';
+
+/// Encrypted local vault for X Wallet GUI.
 ///
 /// Version 2 envelope ("BNBVL004", version byte 2) — two independent wrappers
 /// around a random data-encryption key (DEK):
@@ -315,18 +317,66 @@ class VaultCipher {
     required int iterations,
     required int parallelism,
   }) async {
-    final argon = Argon2id(
-      parallelism: parallelism,
-      memory: memoryKiB,
+    final override = _debugKdfOverride;
+    if (override != null) {
+      // Test-only seam. It is set through an assert-guarded setter, so it is
+      // compiled out of release builds and can never weaken production.
+      return override(password, salt, memoryKiB, iterations, parallelism);
+    }
+    return Argon2Kdf.derive(
+      password: utf8.encode(password),
+      salt: salt,
+      memoryKiB: memoryKiB,
       iterations: iterations,
-      hashLength: _keyLength,
+      parallelism: parallelism,
     );
-    final derived = await argon.deriveKey(
-      secretKey: SecretKey(utf8.encode(password)),
-      nonce: salt,
-    );
-    return derived.extractBytes();
   }
+
+  static Future<List<int>> Function(
+    String password,
+    List<int> salt,
+    int memoryKiB,
+    int iterations,
+    int parallelism,
+  )?
+  _debugKdfOverride;
+
+  /// Test-only: inject a fast KDF for envelope/format tests.
+  ///
+  /// The body is inside `assert`, so release builds ignore the assignment and
+  /// `_argon2Kek` always uses [Argon2Kdf]. A dedicated `kdf`-tagged test still
+  /// exercises the real production parameters.
+  static set debugKdfOverride(
+    Future<List<int>> Function(
+      String password,
+      List<int> salt,
+      int memoryKiB,
+      int iterations,
+      int parallelism,
+    )?
+    value,
+  ) {
+    assert(() {
+      _debugKdfOverride = value;
+      return true;
+    }());
+  }
+
+  /// Test-only: remove a previously injected KDF.
+  static void clearDebugKdfOverride() {
+    assert(() {
+      _debugKdfOverride = null;
+      return true;
+    }());
+  }
+
+  /// Production Argon2id parameters, exposed for the parameter-integrity test.
+  static const Map<String, int> productionKdf = {
+    'memoryKiB': _memoryKiB,
+    'iterations': _iterations,
+    'parallelism': _parallelism,
+    'keyLength': _keyLength,
+  };
 
   static Future<List<int>> _deviceKek(String deviceSecret) {
     return _hkdf

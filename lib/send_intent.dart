@@ -24,11 +24,14 @@ class SendIntent {
       (gasEstimate * BigInt.from(120) + BigInt.from(99)) ~/ BigInt.from(100);
 
   /// Decodes (recipient, amount) from ERC-20 `transfer` calldata.
-  /// Throws [StateError] when the bytes are not exactly that call.
+  /// Throws [StateError] when the bytes are not exactly that call: the
+  /// selector, one address word and one amount word, and nothing else.
+  /// Trailing bytes are rejected because a non-standard token could act on
+  /// them while the review screen still showed a plain transfer.
   static (String, BigInt) decodeErc20Transfer(Uint8List data) {
     final hex = _hex(data);
-    if (!hex.startsWith(_transferSelector) || hex.length < 8 + 64 + 64) {
-      throw StateError('Calldata is not an ERC-20 transfer.');
+    if (!hex.startsWith(_transferSelector) || hex.length != 8 + 64 + 64) {
+      throw StateError('Calldata is not an exact ERC-20 transfer.');
     }
     final recipientWord = hex.substring(8, 8 + 64);
     final amountWord = hex.substring(8 + 64, 8 + 128);
@@ -72,38 +75,45 @@ class SendIntent {
   }) {
     if (chainId != intendedChainId) {
       throw StateError(
-          'Transaction chain id changed after review. Refusing to sign.');
+        'Transaction chain id changed after review. Refusing to sign.',
+      );
     }
     if (txGasLimit == null || txGasLimit <= BigInt.zero) {
-      throw StateError(
-          'Transaction has no safe gas limit. Refusing to sign.');
+      throw StateError('Transaction has no safe gas limit. Refusing to sign.');
     }
     if (!_sameAddress(txTo, native ? intendedRecipient : tokenAddress)) {
-      throw StateError(native
-          ? 'Native-transfer details changed after review. Refusing to sign.'
-          : 'Token contract changed after review. Refusing to sign.');
+      throw StateError(
+        native
+            ? 'Native-transfer details changed after review. Refusing to sign.'
+            : 'Token contract changed after review. Refusing to sign.',
+      );
     }
     if (native) {
       if (txValue != intendedAmount || txData.isNotEmpty) {
         throw StateError(
-            'Native-transfer details changed after review. Refusing to sign.');
+          'Native-transfer details changed after review. Refusing to sign.',
+        );
       }
     } else {
       if (txValue != null && txValue != BigInt.zero) {
         throw StateError(
-            'Token transfer value changed after review. Refusing to sign.');
+          'Token transfer value changed after review. Refusing to sign.',
+        );
       }
       final (recipient, amount) = decodeErc20Transfer(txData);
       if (!_sameAddress(recipient, intendedRecipient) ||
           amount != intendedAmount) {
         throw StateError(
-            'Token recipient or amount changed after review. Refusing to sign.');
+          'Token recipient or amount changed after review. Refusing to sign.',
+        );
       }
     }
     if (feeMode == 'eip1559') {
       if (txMaxFeePerGas != expectedMaxFee ||
           txMaxPriorityFeePerGas != expectedPriority) {
-        throw StateError('EIP-1559 fee changed after review. Refusing to sign.');
+        throw StateError(
+          'EIP-1559 fee changed after review. Refusing to sign.',
+        );
       }
     } else if (txGasPrice != expectedGasPrice) {
       throw StateError('Gas price changed after review. Refusing to sign.');

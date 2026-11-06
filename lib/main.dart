@@ -100,7 +100,7 @@ class _BnbWalletAppState extends State<BnbWalletApp>
           onPointerMove: (_) => _activity(),
           onPointerUp: (_) => _activity(),
           child: MaterialApp(
-            title: 'BNB Wallet',
+            title: 'X Wallet',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
               AppLocalizations.delegate,
@@ -384,7 +384,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
       setState(() => _error = 'Locked. Please wait for the cooldown.');
       return;
     }
-    if (await AppSecurity.authenticate('Unlock BNB Wallet')) {
+    if (await AppSecurity.authenticate('Unlock X Wallet')) {
       appState.unlockApp();
       return;
     }
@@ -419,13 +419,13 @@ class _AppLockScreenState extends State<AppLockScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'assets/icon/bnb-wallet-1024.png',
+                  'assets/icon/x-wallet-1024.png',
                   width: 84,
                   height: 84,
                 ),
                 const SizedBox(height: 18),
                 const Text(
-                  'BNB Wallet',
+                  'X Wallet',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),

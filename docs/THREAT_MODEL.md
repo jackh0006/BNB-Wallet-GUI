@@ -1,4 +1,4 @@
-# Threat Model — BNB Wallet GUI v1.0.5
+# Threat Model — X Wallet GUI
 
 Created by jackh0006 (jackh109867@gmail.com)
 
@@ -13,7 +13,7 @@ grade". Software carries risk; this document describes ours.
 | 24-word seed phrase | In memory only after unlock; in the vault file only Argon2id+device-bound double-wrapped | Two independent wrappers must both open; see docs/CRYPTO.md |
 | Private keys | In memory after unlock; persisted only inside the vault | Same envelope as the seed |
 | Vault password | Never stored | Only an Argon2id verifier-side KEK exists; there is no recovery path |
-| Device-bound secret | Android secure storage; Linux owner-only local drawer | Never in preferences or the vault file; Linux is not hardware-bound |
+| Device-bound secret | Linux owner-only local drawer | Never in preferences or the vault file; Linux is not hardware-bound |
 | App-lock PIN | Only as a salted Argon2id hash in secure storage | Exponential backoff on failures: 1 s, 2 s, 4 s … capped at 15 min |
 | BscScan API key | Secure storage | Public-but-private value; erased with "Erase all data" |
 | Transaction history | Not persisted at all | Fetched live from the explorer API; nothing on disk |
@@ -39,9 +39,9 @@ grade". Software carries risk; this document describes ours.
    the classic "drip address" scam.
 5. **Contract-recipient mistakes.** Before confirmation, the app reads the
    recipient's on-chain code and warns when it is a contract.
-6. **Shoulder surfing & screen capture (Android).** FLAG_SECURE prevents
-   screenshots and app-switch thumbnails. No equivalent toggle exists on
-   Linux desktop — that is a documented gap, see below.
+6. **Shoulder surfing & screen capture.** Linux desktops have no reliable
+   application-level equivalent to protected screenshots; this is a
+   documented gap, see below.
 7. **Idle exposure.** Auto-lock (configurable; 60 s default) and an
    immediate lock on backgrounding clear keys from memory.
 8. **PIN guessing across restarts.** The backoff window is persisted in
@@ -130,9 +130,9 @@ Honesty section. These are real limits, not corner cases.
 - **Cold-mode field testing.** The flow is covered by automated tests and a
   fake broadcast, not by a documented two-physical-device exercise.
 - **Camera QR on Linux.** Not implemented; file and paste are the transports.
-- **Release-signing key.** The old release keystore was committed and must be
-  treated as compromised. Future APKs must use a rotated key held outside the
-  repository. This is an operational action, not a source-code fix.
+- **Historical credential exposure.** The old Android release keystore was
+  committed publicly and remains compromised. It is not a Linux package
+  credential and Android work is outside this assessment.
 - **Memory locking is best-effort.** `prctl(PR_SET_DUMPABLE, 0)` and the core
   limit are asserted on Linux; `mlockall` can fail under a low memlock limit.
   Windows/macOS are not covered by the kernel-state test.
@@ -148,6 +148,32 @@ Honesty section. These are real limits, not corner cases.
   **jackh109867@gmail.com**. The internal self-assessment is
   [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md); it does not claim to be an
   external audit.
+
+## Risk register (continuous self-assessment)
+
+Reviewed on 2026-11-06 against the `release/1.0.10` line. The exact commit is
+in `release/manifest.json`. This is an internal assessment, not an independent
+audit.
+
+| Risk | Attack scenario | Impact | Likelihood | Mitigations | Residual risk | Test evidence |
+|---|---|---|---|---|---|---|
+| Malware / compromised OS | Keylogger, memory reader, screen capture | Total loss | Medium | Auto-lock, dumpable=0, core limit, encrypted vault, no plaintext logs | A same-user attacker can read an unlocked process; no secure element | `memory_protection_test`, `encrypted_log_store_test`, `log_canary_test` |
+| Malicious RPC provider | Fake balance, wrong chain, bogus fee/history | Wrong decision, loss | Medium | Chain-ID validation on connect and probe, HTTPS-only, optional Tor, local signing, review screen | No light-client proof; a lying node can still mislead | `nodes_test`, `node_manager_test`, `tls_pinning_test`, `privacy_config_test` |
+| Malicious token contract | Non-standard `transfer`, hidden fee, fake metadata | Loss or misleading review | Medium | Exact 4+32+32 calldata, contract address shown, decimals bounded, simulation, fee-on-transfer log check | A contract can still behave unexpectedly on-chain | `send_intent_test`, `fuzz_and_property_test`, `tx_lifecycle_test` |
+| Address poisoning | Lookalike prefix/suffix address in history/clipboard | Loss | Medium | Full checksummed address, grouped display, affix warning, clipboard guard | User can still confirm the wrong valid address | `wallet_core_test`, `clipboard_guard_test`, `send_intent_test` |
+| Supply-chain compromise | Malicious dependency or GitHub Action | Total loss | Medium | Lockfiles, pinned action SHAs, SBOM, dependency advisory audit, licence inventory, CodeQL, secret scan | No formal reproducibility proof yet; upstream compromise remains possible | `verify` workflow, `dependency-audit.py`, `sbom.py`, `license-check.py` |
+| Historical Android signing key | Forged APK carrying the old identity | Distribution authenticity loss | **Confirmed exposure** | Removed from tree, history scan, signer allowlist/denylist, release blocked | Rotation **NOT VERIFIED**; old fingerprint not yet recorded | `docs/security/INCIDENT_2026-11-KEYSTORE.md`, `secret-scan.sh --history` |
+| Vault/backup theft | Copy vault file or backup | Loss if password weak | Low–Medium | Argon2id 64 MiB/t=3/p=4, double wrapper, device secret, fixed header policy | Weak password remains weak; device secret is a local drawer, not hardware | `vault_test`, `kdf_production_test`, `vault_import_rollback_kdf_test` |
+| Clipboard substitution | Malware replaces copied address | Loss | Medium | Secret detection, auto-clear, full address review, affix warning | Clipboard is inherently untrusted | `clipboard_guard_test` |
+| Phishing / social engineering | Fake support, fake site, seed request | Total loss | Medium | No dapp browser, no remote seed entry, plain-language warnings | User can still be tricked into revealing the seed | UI tests, documentation |
+| Physical theft | Stolen unlocked machine | Total loss | Low | Auto-lock, password KDF, device secret | An unlocked session is exposed | `navigation_flow_test`, `vault_test` |
+| Malicious update | Trojanised package | Total loss | Low | GPG-signed `.deb`, `SHA256SUMS`, release gate, provenance attestations | User must verify the signature/fingerprint independently | `release-check.sh`, `release-gate.py` |
+| Memory inspection | Dump/core or debugger | Key disclosure | Medium | `PR_SET_DUMPABLE=0`, `RLIMIT_CORE=0`, best-effort `mlockall` | Dart GC memory cannot be securely erased; no claim is made | `memory_protection_test` |
+| Offline-signing substitution | Modified request or response | Wrong signature | Low | Canonical RLP, field-by-field verify, checksum, expiry, replay list, independent ethers.js check | Shared codec bug could affect both sides; physical two-device test not done | `cold_tx_codec_test`, `cold_wallet_protocol_test`, `cold_wallet_service_test`, `verification/verify.cjs` |
+
+A risk is never marked "closed" here without a test that names the exact
+commit. The generated status report and the release gate are the current
+evidence index.
 
 ## When Tor mode is useful, and when it is not
 

@@ -16,6 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/temp_dir.dart';
+
 class _MockPathProvider extends PathProviderPlatform {
   _MockPathProvider(this.dir);
   final String dir;
@@ -52,7 +54,6 @@ void main() {
   late Directory tmp;
   late AppState state;
   late int previousUmask;
-  var stateInitialized = false;
 
   setUp(() async {
     PosixFs.selfCheck();
@@ -72,15 +73,17 @@ void main() {
     await File('${vault.parent.path}/device_secret_v2.drawer')
         .writeAsString(_deviceSecret, flush: true);
     state = AppState();
-    stateInitialized = true;
     state.lock();
   });
 
   tearDown(() async {
-    if (stateInitialized) state.lock();
+    // `lock()` emits an asynchronous encrypted audit entry.  Calling it here
+    // races the immediate removal of this fixture's application-data
+    // directory, leaving a newly-created log file behind.  Each setUp creates
+    // a fresh state and locks it before use, so no teardown lock is needed.
     StorageDebugHooks.reset();
     AppStorage.resetDeviceSecretMemo();
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTestDirectory(tmp);
     PosixFs.restoreUmask(previousUmask);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(

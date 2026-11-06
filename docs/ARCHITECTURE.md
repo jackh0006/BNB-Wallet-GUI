@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — how this wallet is built
 
-Version 1.0.5 · AGPL-3.0-or-later
+Version 1.0.10 · AGPL-3.0-or-later
 
 ```
 ┌───────────────────────────── lib/ ─────────────────────────────┐
@@ -16,8 +16,9 @@ Version 1.0.5 · AGPL-3.0-or-later
 │ cold_wallet_protocol.dart  versioned pairing/request/response  │
 │ cold_wallet_service.dart   public cold state, replay, broadcast│
 │ memory_protection.dart FFI prctl/setrlimit/mlockall (Linux)   │
-│ vault_engine.dart    Argon2id(64MiB,t=3,p=4) + XChaCha20-     │
-│                      Poly1305 vault envelope                   │
+│ vault.dart           encrypted v2 double-wrapped vault envelope│
+│ kdf.dart             reference native Argon2id + pure-Dart    │
+│                      fallback, fixed 64 MiB/t=3/p=4            │
 │ receipt_store.dart   encrypted receipt archive (BNBRCPT1,     │
 │                      cap 200, encoded receipts)                │
 │ fee_engine.dart      pure fee math: EIP-1559/legacy presets,  │

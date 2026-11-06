@@ -1,0 +1,43 @@
+{
+  "androidSigning": {
+    "denylistPath": "release/android-signer-denylist.txt",
+    "denylistedFingerprints": 0,
+    "incidentStatus": "OPEN \u2014 ROTATION NOT VERIFIED",
+    "rotationVerified": false
+  },
+  "evidenceBundle": {
+    "path": "release/evidence.json",
+    "sha256": "04cdba4e4837bad6e69bd1cf7e88bc84aa65c7d859b8bd484c95fac3673a106d",
+    "sourceCommit": "921c0cc7e3ccaaa56cab8e26c54461c73976d9dd"
+  },
+  "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
+  "knownLimitations": "docs/KNOWN_LIMITATIONS.md",
+  "lockfiles": {
+    "pubspec.lock": "c1c31c95438e44de4172d2b27a759bda13fd305981a0bf0dbac32d2868d49e24",
+    "verification/package-lock.json": "ad659384d423e91d21aab1d3f7b32d73eb78f6019effa9f6c6b638031363e5e7"
+  },
+  "project": {
+    "author": "Jack Hudson <jackh109867@gmail.com>",
+    "license": "AGPL-3.0-or-later",
+    "name": "X Wallet GUI",
+    "repository": "https://github.com/jackh0006/BNB-Wallet-GUI"
+  },
+  "releaseEvidence": "docs/releases/1.1.0.md",
+  "sbom": {
+    "path": "docs/SBOM.json",
+    "sha256": "3d3d4ea2e8b43b83ba0fbbdf60d971c1b7956804e36a782d73e4a995fb7738a4"
+  },
+  "schemaVersion": 1,
+  "tests": {
+    "files": 49,
+    "matches": true,
+    "path": "docs/testing/test-inventory.json",
+    "recordedFiles": 49,
+    "sha256": "a75f632eea263a8d2ff68dafde7d1a6458e10e1f85cd76f9db61a437496bc4b6"
+  },
+  "toolchain": {
+    "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
+    "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
+  },
+  "version": "1.1.0+5"
+}

@@ -1,0 +1,44 @@
+name: docs-sync
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.47.6'
+          cache: true
+      - run: flutter pub get
+      - name: Regenerate every generated document
+        run: |
+          python3 scripts/test_inventory.py
+          python3 scripts/release_manifest.py
+          python3 scripts/generate_docs.py
+      - name: Generated files must be committed
+        run: |
+          git diff --exit-code -- \
+            release/manifest.json \
+            docs/testing/test-inventory.json \
+            docs/GENERATED_STATUS.md \
+            README.md || {
+            echo "::error ::generated documentation is stale; run the generators"
+            exit 1
+          }

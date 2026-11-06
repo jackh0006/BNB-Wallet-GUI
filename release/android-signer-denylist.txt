@@ -1,0 +1,16 @@
+# Android release signer denylist
+#
+# One SHA-256 certificate fingerprint per line, 64 hex characters, with or
+# without colon separators. Comments and blank lines are ignored.
+#
+# This file must contain every certificate that was ever produced from the
+# historically exposed `scripts/release.keystore`.  The owner must populate it
+# from a controlled `keytool`/`apksigner` inventory on an isolated machine.
+#
+# Until it contains at least one fingerprint, scripts/build-apk.sh and
+# scripts/verify-android-signer.sh fail closed: an empty denylist cannot prove
+# that an artifact is not signed by the compromised identity.
+#
+# Do not add private material, keystore bytes, aliases, or passwords here.
+#
+# OWNER-ACTION: add the historical certificate SHA-256 fingerprint(s).

@@ -30,8 +30,28 @@ class ReceiptStore {
   static const int _macLength = 16;
   static const int maxReceipts = 200;
   static const List<int> _info = [
-    0x62, 0x6e, 0x62, 0x2d, 0x77, 0x61, 0x6c, 0x6c, 0x65, 0x74, 0x2f, // "bnb-wallet/"
-    0x72, 0x65, 0x63, 0x65, 0x69, 0x70, 0x74, 0x73, 0x2d, 0x76, 0x31, // "receipts-v1"
+    0x62,
+    0x6e,
+    0x62,
+    0x2d,
+    0x77,
+    0x61,
+    0x6c,
+    0x6c,
+    0x65,
+    0x74,
+    0x2f, // "bnb-wallet/"
+    0x72,
+    0x65,
+    0x63,
+    0x65,
+    0x69,
+    0x70,
+    0x74,
+    0x73,
+    0x2d,
+    0x76,
+    0x31, // "receipts-v1"
   ];
 
   static final Xchacha20 _cipher = Xchacha20.poly1305Aead();
@@ -56,12 +76,14 @@ class ReceiptStore {
     Uint8List key,
     List<LocalReceipt> receipts,
   ) async {
-    final payload = utf8.encode(jsonEncode({
-      'v': 1,
-      'receipts': [
-        for (final receipt in receipts.take(maxReceipts)) receipt.toJson(),
-      ],
-    }));
+    final payload = utf8.encode(
+      jsonEncode({
+        'v': 1,
+        'receipts': [
+          for (final receipt in receipts.take(maxReceipts)) receipt.toJson(),
+        ],
+      }),
+    );
     final nonce = _random(_nonceLength);
     final box = await _cipher.encrypt(
       payload,
@@ -92,8 +114,11 @@ class ReceiptStore {
       var offset = _magic.length;
       final nonce = Uint8List.sublistView(bytes, offset, offset + _nonceLength);
       offset += _nonceLength;
-      final cipherText =
-          Uint8List.sublistView(bytes, offset, bytes.length - _macLength);
+      final cipherText = Uint8List.sublistView(
+        bytes,
+        offset,
+        bytes.length - _macLength,
+      );
       final mac = Uint8List.sublistView(bytes, bytes.length - _macLength);
       final clear = await _cipher.decrypt(
         SecretBox(cipherText, nonce: nonce, mac: Mac(mac)),

@@ -20,36 +20,60 @@ void main() {
     test('has enough starting points, every row shaped correctly', () {
       expect(entries.length, greaterThanOrEqualTo(4));
       for (final e in entries) {
-        expect((e['name'] as String?)?.isNotEmpty ?? false, isTrue,
-            reason: 'row without a name: $e');
-        expect((e['description'] as String?)?.isNotEmpty ?? false, isTrue,
-            reason: 'row without a description: $e');
+        expect(
+          (e['name'] as String?)?.isNotEmpty ?? false,
+          isTrue,
+          reason: 'row without a name: $e',
+        );
+        expect(
+          (e['description'] as String?)?.isNotEmpty ?? false,
+          isTrue,
+          reason: 'row without a description: $e',
+        );
         final url = e['url'] as String?;
-        expect(url, startsWith('https://'),
-            reason: 'every source must be https');
+        expect(
+          url,
+          startsWith('https://'),
+          reason: 'every source must be https',
+        );
       }
     });
 
     test('an issuer-official and an explorer/aggregator source exist', () {
       final names = entries.map((e) => e['name'].toString().toLowerCase());
-      expect(names.any((n) => n.contains('tether')), isTrue,
-          reason: 'USDT issuer-official link missing');
-      expect(names.any((n) => n.contains('circle')), isTrue,
-          reason: 'USDC issuer-official link missing');
-      expect(names.any((n) => n.contains('bscscan')), isTrue,
-          reason: 'explorer cross-check missing');
       expect(
-          names.any((n) => n.contains('coingecko') || n.contains('coinmarketcap')),
-          isTrue,
-          reason: 'aggregator cross-check missing');
+        names.any((n) => n.contains('tether')),
+        isTrue,
+        reason: 'USDT issuer-official link missing',
+      );
+      expect(
+        names.any((n) => n.contains('circle')),
+        isTrue,
+        reason: 'USDC issuer-official link missing',
+      );
+      expect(
+        names.any((n) => n.contains('bscscan')),
+        isTrue,
+        reason: 'explorer cross-check missing',
+      );
+      expect(
+        names.any(
+          (n) => n.contains('coingecko') || n.contains('coinmarketcap'),
+        ),
+        isTrue,
+        reason: 'aggregator cross-check missing',
+      );
     });
 
     test('bot-protected rows declare themselves (honest CI skip)', () {
       for (final e in entries) {
         final url = e['url'] as String;
         if (url.contains('bscscan.com')) {
-          expect(e['bot_protected'], isTrue,
-              reason: 'BscScan refuses scripted probes; the list must say so');
+          expect(
+            e['bot_protected'],
+            isTrue,
+            reason: 'BscScan refuses scripted probes; the list must say so',
+          );
         }
       }
     });
@@ -59,9 +83,11 @@ void main() {
       // Spec §10e names these two exactly:
       expect(urls, contains('https://tether.to/en/supported-protocols/'));
       expect(
-          urls,
-          contains(
-             'https://developers.circle.com/stablecoins/usdc-contract-addresses'));
+        urls,
+        contains(
+          'https://developers.circle.com/stablecoins/usdc-contract-addresses',
+        ),
+      );
     });
   });
 }

@@ -1,5 +1,5 @@
 name: bnb_wallet_gui
-description: "BNB Wallet GUI based on v1 terminal wallet"
+description: "X Wallet GUI based on v1 terminal wallet"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -9,7 +9,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # followed by an optional build number separated by a +.
 # Both the version and the builder number may be overridden in flutter build
 # by specifying --build-name and --build-number, respectively.
-version: 1.0.9+3
+version: 1.1.0+5
 
 environment:
   sdk: ^3.13.5
@@ -24,6 +24,11 @@ dependencies:
   bip39_mnemonic: ^4.1.0
   bip32_plus: ^1.0.0
   dargon2_flutter: ^3.3.0
+  # Thin binding to the same reference Argon2 implementation that
+  # dargon2_flutter ships on desktop/mobile. Used through lib/kdf.dart so the
+  # production path is native C, with an explicit pure-Dart fallback only when
+  # the shared library is genuinely unavailable.
+  dargon2_core: ^2.1.1
   cryptography: ^2.9.0
   # SOCKS5 CONNECT for the optional Tor mode (MIT, minimal deps, audited
   # pattern of HttpClient.connectionFactory assignments for HTTPS).
@@ -62,5 +67,5 @@ flutter:
   generate: true
 
   assets:
-    - assets/icon/bnb-wallet-1024.png
+    - assets/icon/x-wallet-1024.png
     - assets/token_sources.json

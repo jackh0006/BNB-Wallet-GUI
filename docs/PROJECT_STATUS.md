@@ -1,5 +1,32 @@
 # PROJECT_STATUS.md — Current Project State
 
+**Last Updated**: 2026-11-06
+**Current release line**: `1.1.0+5` on `release/1.0.10`
+**Current milestone**: release-candidate verification
+**Status**: **PARTIALLY VERIFIED / NOT RELEASABLE** — hosted CI and the
+Ubuntu package smoke pass, and reproducibility passes at a documented fixed
+path, but the package is unsigned and no independent audit exists.
+
+## 2026-11-06 candidate update
+
+| Item | Status | Evidence |
+|---|---|---|
+| Native Argon2id backend | DONE | `lib/kdf.dart`; one 64 MiB/t=3/p=4 derivation measured at 344 ms, down from ~110 s pure-Dart debug fallback |
+| KDF test stability | FIXED LOCALLY | `vault_test` 9/9 in 10 s; KDF-tagged suites 4/4 in 48 s; no segfault when tests run serially |
+| Exact ERC-20 calldata | FIXED | `SendIntent.decodeErc20Transfer` rejects trailing bytes; regression test |
+| Test suite | LOCAL + HOSTED PASS | 47/47 files, 0 failed, 0 timed out; hosted CI on `773f0db` PASS |
+| Linux build | PASS | `flutter build linux --release` 2m03s |
+| `.deb` package | PARTIAL | `bnb-wallet-1.0.10-amd64.deb` built unsigned; SHA-256 `e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1`; not publishable |
+| Machine-readable evidence | IMPLEMENTED | `release/manifest.json`, `docs/testing/test-inventory.json`, `docs/GENERATED_STATUS.md`, `release-gate.py` |
+| Release gate | INCOMPLETE / BLOCKED | Source checks pass; `.deb` is unsigned and install is untested |
+| Android | BLOCKED | Historical signing key rotation `NOT VERIFIED`; denylist empty |
+| Independent audit | NOT AVAILABLE | None has been performed |
+
+The historical sections below are retained for audit trail. Do not treat their
+older "DONE" rows as evidence for the 1.0.10 candidate.
+
+---
+
 **Last Updated**: 2026-11-05
 **Baseline Commit**: `dc8732f` (working-tree audit in progress)
 **Current Milestone**: M3 — Local Encrypted Storage (re-opened for independent audit)

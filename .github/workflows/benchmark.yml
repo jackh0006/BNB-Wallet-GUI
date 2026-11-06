@@ -1,0 +1,51 @@
+name: benchmark
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  startup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.47.6'
+          cache: true
+      - name: Install build and display dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install --yes
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          libsecret-1-dev xvfb xdotool
+      - run: flutter pub get
+      - name: Build the package
+        run: |
+          set -euo pipefail
+          export BNB_OUTDIR="$PWD/dist"
+          bash scripts/build-deb.sh
+      - name: Install the package
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' pubspec.yaml | head -1)"
+          sudo apt-get install -y "dist/bnb-wallet-${VERSION}-amd64.deb"
+      - name: Measure startup and RSS
+        run: |
+          set -euo pipefail
+          SAMPLES=5 bash scripts/benchmark-startup.sh | tee benchmark-startup.txt
+      - name: Upload benchmark result
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: startup-benchmark
+          path: benchmark-startup.txt
+          if-no-files-found: error

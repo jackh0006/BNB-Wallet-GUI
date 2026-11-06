@@ -1,0 +1,1 @@
+see the SHA-256 published on the v1.1.0 GitHub release  /tmp/opencode/x-deb-final/x-wallet-1.1.0-amd64.deb

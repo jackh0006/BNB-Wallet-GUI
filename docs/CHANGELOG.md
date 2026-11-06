@@ -3,6 +3,51 @@
 All notable changes to this wallet. Dates in 2026; releases identify their
 supported artifacts explicitly.
 
+## 1.1.0+5 — X Wallet product rename
+
+- **Official product name:** X Wallet across the application, six locales,
+  window title, Android label, desktop entry, documentation, and tests.
+- **Compatibility preserved:** Dart package `bnb_wallet_gui`, Linux binary
+  `bnb_wallet_gui`, Android application ID, vault magic/filenames, backups,
+  device-secret identifiers, data paths, and environment variables.
+- **Debian package migration:** `x-wallet` with
+  `Provides/Replaces/Conflicts: bnb-wallet`; `/usr/bin/bnb-wallet` remains a
+  compatibility symlink.
+- **New original X Wallet icon** in all hicolor sizes.
+- **Branding validator:** `scripts/check_branding.py` fails on inconsistent
+  user-facing names and protects compatibility identifiers.
+- **Custody honesty:** hardware-wallet and multisig status remain
+  `NOT IMPLEMENTED`; large-value custody is explicitly `NOT READY`.
+- **Offline signer hardening:** existing cold/offline signing tests and
+  field-binding verification retained.
+
+## 1.0.10+4 candidate — native KDF, exact calldata, evidence system
+
+- **Native Argon2id backend:** `lib/kdf.dart` now uses the reference C Argon2
+  library that the Linux bundle already ships. One 64 MiB / t=3 / p=4
+  derivation measured **344 ms** instead of ~110 s in the debug pure-Dart
+  fallback. Production parameters are unchanged; the pure-Dart implementation
+  remains only as an explicit fallback and is guarded by a performance test.
+- **Exact ERC-20 calldata:** `SendIntent.decodeErc20Transfer` rejects trailing
+  bytes, so a non-standard token cannot act on data the review screen did not
+  show.
+- **Deterministic tests:** navigation no longer starts real RPC timeouts;
+  unlock I/O runs through `runAsync`; storage teardown waits for encrypted-log
+  appends and retries `ENOTEMPTY`. The suite no longer segfaults on a 2-core
+  machine.
+- **Evidence system:** machine-readable test inventory and release manifest,
+  generated status page/README block, `release-gate.py` with explicit
+  `VERIFIED`/`PARTIALLY VERIFIED`/`INCOMPLETE`/`FAILED` states, dependency
+  review, pinned artifact attestations, and a two-build reproducibility check.
+- **Donations:** all 14 published address rows, with in-app copy/QR dialog;
+  never shown in a transaction confirmation.
+- **Honesty:** hardware-wallet matrix corrected to `NOT IMPLEMENTED`; Android
+  releases remain blocked by the historical signing-key incident.
+- **Package smoke:** Ubuntu 24.04 CI installs the `.deb`, launches it under
+  Xvfb, upgrades from 1.0.9 with a data marker, uninstalls, and reinstalls.
+- **Reproducibility:** fixed-path two-build comparison passes; Flutter embeds
+  absolute paths, so different paths are not guaranteed to match.
+
 ## 1.0.9-ui.1 prerelease — accessibility, locale and status accuracy
 
 - **Accessible primary actions:** primary-button labels now use black text on

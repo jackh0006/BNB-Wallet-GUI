@@ -430,6 +430,17 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Test-fixture reset only.  It clears in-memory secrets without launching
+  /// an asynchronous audit write into a temporary directory being removed.
+  @visibleForTesting
+  void lockForTest() {
+    _key = null;
+    _mnemonic = null;
+    _watchAddress = null;
+    _unlocked = false;
+    notifyListeners();
+  }
+
   Future<void> setNetwork(String network) async {
     rpc.setNetwork(network); // notifies right away: UI flips immediately
     await AppStorage.setNetwork(network);

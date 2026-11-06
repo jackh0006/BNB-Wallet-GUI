@@ -108,13 +108,9 @@ class _HomePageState extends State<HomePage>
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/icon/bnb-wallet-1024.png',
-              width: 30,
-              height: 30,
-            ),
+            Image.asset('assets/icon/x-wallet-1024.png', width: 30, height: 30),
             const SizedBox(width: 10),
-            const Text('BNB Wallet'),
+            const Text('X Wallet'),
           ],
         ),
         actions: [

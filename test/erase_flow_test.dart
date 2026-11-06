@@ -39,8 +39,7 @@ void main() {
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });
 
-  test('eraseAllData removes vault, tmp, drawer and the prefs file — and reports clean',
-      () async {
+  test('eraseAllData removes vault, tmp, drawer and the prefs file — and reports clean', () async {
     final vault = File('${tmp.path}/bnb-wallet-vault.bnb')
       ..writeAsStringSync('BNBVL004fake-blob');
     final tmpVault = File('${vault.path}.tmp')..writeAsStringSync('partial');
@@ -52,8 +51,11 @@ void main() {
 
     final leftovers = await AppStorage.eraseAllData();
 
-    expect(leftovers, isEmpty,
-        reason: 'a clean wipe must report nothing left behind');
+    expect(
+      leftovers,
+      isEmpty,
+      reason: 'a clean wipe must report nothing left behind',
+    );
     expect(await vault.exists(), isFalse);
     expect(await tmpVault.exists(), isFalse);
     expect(await drawer.exists(), isFalse);
@@ -61,8 +63,15 @@ void main() {
     expect(await AppStorage.vaultExists(), isFalse);
     final prefs = await SharedPreferences.getInstance();
     for (final key in [
-      'network', 'rpc', 'nodes', 'tokens', 'profiles',
-      'auto_lock_seconds', 'tor_enabled', 'tor_host', 'tor_port',
+      'network',
+      'rpc',
+      'nodes',
+      'tokens',
+      'profiles',
+      'auto_lock_seconds',
+      'tor_enabled',
+      'tor_host',
+      'tor_port',
     ]) {
       expect(prefs.containsKey(key), isFalse, reason: '"$key" must be gone');
     }

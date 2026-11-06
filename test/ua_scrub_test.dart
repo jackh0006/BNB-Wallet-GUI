@@ -51,7 +51,9 @@ void main() {
 
     final client = createRpcClient();
     try {
-      final response = await client.get(Uri.parse('http://127.0.0.1:${server.port}/'));
+      final response = await client.get(
+        Uri.parse('http://127.0.0.1:${server.port}/'),
+      );
       expect(response.statusCode, 200);
       expect(gotRequest, isTrue);
       expect(
