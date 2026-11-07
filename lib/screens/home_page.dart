@@ -558,7 +558,7 @@ class _HomePageState extends State<HomePage>
           const SizedBox(height: 8),
           const Text(
             'Create a new wallet or import an existing one to see balances, '
-            'send BNB and BEP-20 tokens, and manage your addresses.',
+            'send the native coin and EVM tokens, and manage your addresses.',
           ),
           const SizedBox(height: 14),
           const Text(

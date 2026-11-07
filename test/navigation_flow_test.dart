@@ -191,7 +191,7 @@ void main() {
         reason: 'the account is already in the vault; no vault offer on unlock',
       );
       expect(
-        find.text('Send BNB or BEP-20'),
+        find.text('Send native coin or EVM tokens'),
         findsOneWidget,
         reason: 'the send form itself must be on screen, ready to send',
       );

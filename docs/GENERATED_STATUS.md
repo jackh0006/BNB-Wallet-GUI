@@ -19,7 +19,7 @@ Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY 
 | Dart | Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64" |
 | pubspec.lock SHA-256 | c1c31c95438e44de4172d2b27a759bda13fd305981a0bf0dbac32d2868d49e24 |
 | verification/package-lock.json SHA-256 | ad659384d423e91d21aab1d3f7b32d73eb78f6019effa9f6c6b638031363e5e7 |
-| SBOM SHA-256 | e0e972b3fd712761a5dd2f086754cb3ed3fb2610d9f616b2e9805d710fc841dc |
+| SBOM SHA-256 | 6d5d19ef59bb4228dc83f20bee59dd4096e2fa9bd3fbe7db3b7f01f88f633871 |
 
 ## Test inventory
 

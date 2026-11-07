@@ -554,7 +554,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get journeyNode => 'نود';
 
   @override
-  String get journeyChain => 'بلاکچین BNB';
+  String get journeyChain => 'شبکه';
 
   @override
   String get journeyDone => 'انجام شد';

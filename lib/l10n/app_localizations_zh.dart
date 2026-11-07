@@ -551,7 +551,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get journeyNode => '节点';
 
   @override
-  String get journeyChain => 'BNB 链';
+  String get journeyChain => '网络';
 
   @override
   String get journeyDone => '完成';

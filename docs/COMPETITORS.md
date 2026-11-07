@@ -1,7 +1,7 @@
 # Competitor comparison — capabilities, not a safety ranking
 
 **Compiled:** 2026-11-06
-**Scope:** desktop Linux BNB Smart Chain use, as relevant to this project.
+**Scope:** desktop Linux EVM use, as relevant to this project; version 1.1.0 enables BNB Smart Chain.
 **Method:** public vendor documentation and public source repositories,
 accessed on the date above. No competitor product was installed or tested for
 this comparison. Every cell that could not be checked from a primary source is

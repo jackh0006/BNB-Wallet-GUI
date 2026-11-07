@@ -2,7 +2,7 @@
 
 **Last reviewed:** 2026-11-06
 **Source commit:** `3aef4b908fded5e92823c76f02d4016265c8bf12`
-**Scope:** Linux amd64 BNB Smart Chain wallet. Internal self-assessment only.
+**Scope:** Linux amd64 EVM wallet (BNB Smart Chain enabled in 1.1.0). Internal self-assessment only.
 
 | ID | Risk | Severity | Impact | Likelihood | Mitigations | Residual risk | Test evidence | Last reviewed |
 |---|---|---|---|---|---|---|---|---|

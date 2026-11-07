@@ -7,7 +7,7 @@
 - Local encrypted storage (vaults)
 - Tor and proxy support (HTTP, HTTPS, SOCKS5)
 - Cold-wallet offline signing (hardware-wallet integration is **not implemented**)
-- Comprehensive BNB Smart Chain / EVM blockchain functionality
+- Comprehensive EVM blockchain functionality (BNB Smart Chain enabled in 1.1.0; more networks planned)
 - Transparent, encrypted local activity logs
 - Beautiful, exceptionally easy user experience (black/dark theme, orange/yellow accent)
 - First release: Ubuntu Linux amd64 `.deb`

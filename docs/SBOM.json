@@ -2913,7 +2913,7 @@
   ],
   "metadata": {
     "component": {
-      "description": "Local, non-custodial BNB Smart Chain wallet (deb).",
+      "description": "Local, non-custodial EVM wallet (deb).",
       "name": "bnb_wallet_gui",
       "type": "application",
       "version": "1.1.0"

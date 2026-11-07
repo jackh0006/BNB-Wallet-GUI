@@ -23,7 +23,7 @@ class JourneyStop {
 enum JourneyState { waiting, working, ok, problem }
 
 /// Horizontal path with big friendly icons and tappable detail cards:
-/// `My phone → Privacy layer → Node → BNB chain → Done`.
+/// `My phone → Privacy layer → Node → Network → Done`.
 class JourneyMap extends StatelessWidget {
   const JourneyMap({
     super.key,

@@ -23,7 +23,7 @@ List<JourneyStop> _stops() => const [
   ),
   JourneyStop(
     icon: Icons.link,
-    label: 'BNB chain',
+    label: 'Network',
     plainStatus: 'in a block',
     technical: 'CHAIN-DETAIL',
   ),
@@ -58,7 +58,7 @@ void main() {
     expect(find.text('My phone'), findsOneWidget);
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('Node'), findsOneWidget);
-    expect(find.text('BNB chain'), findsOneWidget);
+    expect(find.text('Network'), findsOneWidget);
     expect(find.text('Done'), findsOneWidget);
     expect(find.text('working'), findsOneWidget);
     expect(find.text('waiting'), findsNWidgets(2));

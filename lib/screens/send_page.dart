@@ -42,7 +42,7 @@ class SendPage extends StatefulWidget {
 
 class _SendPageState extends State<SendPage>
     with AutomaticKeepAliveClientMixin {
-  /// One canonical instance for BNB: the dropdown compares values by identity,
+  /// One canonical instance for the native token: the dropdown compares values by identity,
   /// so the initial selection must be the very same object the item list
   /// carries (round-7 bug: two equal-looking consts still failed the check).
   static const _nativeAsset = TokenInfo(
@@ -389,7 +389,7 @@ class _SendPageState extends State<SendPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Send BNB or BEP-20',
+            'Send native coin or EVM tokens',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -645,7 +645,7 @@ class _SendPageState extends State<SendPage>
       ),
       JourneyStop(
         icon: Icons.link,
-        label: 'BNB chain',
+        label: 'Network',
         plainStatus: confirmed ? 'in a block' : 'waiting',
         technical:
             'Network: BSC ${rpc.network} · chain id ${rpc.chainId}\n'

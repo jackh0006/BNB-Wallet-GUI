@@ -1024,7 +1024,7 @@ class _WalletPageState extends State<WalletPage>
                     child: Text('Incoming (received)'),
                   ),
                   PopupMenuDivider(),
-                  PopupMenuItem(value: 'bnb', child: Text('BNB only')),
+                  PopupMenuItem(value: 'bnb', child: Text('Native coin only')),
                   PopupMenuItem(
                     value: 'token',
                     child: Text('Tokens (USDT, USDC, etc.)'),
