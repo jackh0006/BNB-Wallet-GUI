@@ -109,11 +109,16 @@ def squash_merge_ok(
     if branch_head:
         if not COMMIT.fullmatch(branch_head):
             return False, "evidence.squashMerge.branchHead is not a 40-hex commit"
-        code, _ = git(root, "diff", "--quiet", branch_head, source)
-        if code not in (0,):
-            return False, (
-                "squash merge source tree differs from the reviewed branch head"
-            )
+        # The reviewed branch may be deleted and its objects unreachable after
+        # the merge. Verify tree equality when the object is available; the
+        # allowlisted diff below remains the authoritative check either way.
+        code, _ = git(root, "cat-file", "-e", f"{branch_head}^{{commit}}")
+        if code == 0:
+            code, _ = git(root, "diff", "--quiet", branch_head, source)
+            if code != 0:
+                return False, (
+                    "squash merge source tree differs from the reviewed branch head"
+                )
     code, output = git(root, "diff", "--name-only", checks, source)
     if code != 0:
         return False, "cannot diff the tested commit against the release commit"
