@@ -1,6 +1,6 @@
 # Implementation Status
 
-**Last updated:** 2026-11-06
+**Last updated:** 2026-11-07
 **Source of truth:** `release/manifest.json`, `docs/testing/test-inventory.json`,
 `docs/GENERATED_STATUS.md`, and the GitHub Actions runs. This file is a
 human-readable index, not a second source of truth.
@@ -10,14 +10,15 @@ human-readable index, not a second source of truth.
 | Item | Value |
 |---|---|
 | Version | `1.1.0+5` |
-| Branch | `release/1.0.10` |
+| Branch | `main` (use `git rev-parse HEAD` for the exact checkout) |
 | Tested source commit | `0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54` |
-| Evidence bundle | `release/evidence.json` (source `b50ad2c`, checks/artifact `0cd7cd6`) |
-| Code commit | `e474b8956a68febf44ef780c7decf898e9050018` |
-| Pull request | <https://github.com/jackh0006/X-Wallet/pull/10> |
-| Hosted CI | All required checks pass on `dd57ea9` (push `42306383769`, PR `42306389744`) |
-| Release status | **PARTIALLY VERIFIED / NOT RELEASABLE** |
-| Final unsigned package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `see the SHA-256 published on the v1.1.0 GitHub release` |
+| Release source commit | `1b4800757ce953b3af400680b2a12da348314a1c` |
+| Evidence bundle | `release/evidence.json` (release-approved, signed) |
+| Pull requests | <https://github.com/jackh0006/X-Wallet/pull/10>, `#11`, `#12`, `#13`, `#14`, `#15`, `#16`, `#17` |
+| Hosted CI | All required `main` workflows pass |
+| Release status | **RELEASE APPROVED / signed** |
+| Final package | `x-wallet-1.1.0-amd64.deb`, SHA-256 `66779cb03d843bf9fbb1bd9cf14d267a75c8d5b25e54909adac0b06bb4f4150b` |
+| Signing fingerprint | `CC819EF5E109A1518E840379D8C0CEC84BCCE06B` |
 
 ## Verified
 

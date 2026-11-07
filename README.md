@@ -9,6 +9,7 @@
   [![CodeQL](https://github.com/jackh0006/X-Wallet/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/jackh0006/X-Wallet/actions/workflows/codeql.yml)
   [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
   [![Platform](https://img.shields.io/badge/platform-Linux%20amd64-lightgrey)](https://github.com/jackh0006/X-Wallet/releases/latest)
+  [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/jackh0006/X-Wallet?label=OpenSSF%20Scorecard)](https://securityscorecards.dev/viewer/?uri=github.com/jackh0006/X-Wallet)
   [![Tests](https://img.shields.io/badge/tests-49%20files%20%7C%20308%20declarations-brightgreen)](docs/TEST_EVIDENCE.md)
 </div>
 
@@ -25,6 +26,7 @@
 - [Download, verify, install](#download-verify-install)
 - [Quick start](#quick-start)
 - [Feature tour](#feature-tour)
+- [Security and encryption](#security-and-encryption)
 - [Proof: test evidence](#proof-test-evidence)
 - [X Wallet advantages](#x-wallet-advantages)
 - [Risk and responsible use](#risk-and-responsible-use)
@@ -131,6 +133,23 @@ it does not silently fall back to a direct connection.
 
 Activity records and receipt images are stored in encrypted local envelopes.
 Lock, PIN backoff, idle lock, and erase-all-data controls are built in.
+
+## Security and encryption
+
+| Control | Implementation |
+|---|---|
+| Vault key derivation | Argon2id, 64 MiB, t=3, p=4 |
+| Vault encryption | XChaCha20-Poly1305, double-wrapped envelope, authenticated header |
+| Device binding | Device secret in the platform secure store, separate from the vault file |
+| Storage | Atomic writes, restrictive permissions, no-follow checks, process lock |
+| Transaction integrity | Local signing with chain, nonce, recipient, value, fee, and calldata checks |
+| Cold signing | Offline signer has no network; companion prepares and broadcasts signed bytes |
+| Transport | TLS validation first, SPKI pins second, Tor/SOCKS/proxy, fail-closed routing |
+| Release integrity | Signed `SHA256SUMS`, SHA-256, CycloneDX SBOM, reproducible fixed-path build |
+
+Read [Cryptography](docs/CRYPTO.md), [Threat model](docs/THREAT_MODEL.md), and
+the [AI and human review guide](docs/AI_REVIEW.md) for the full design and
+evidence map.
 
 ## Proof: test evidence
 
@@ -253,6 +272,7 @@ control the security boundary.
 | Guide | What it covers |
 |---|---|
 | [Project completion](docs/PROJECT_COMPLETION.md) | What X Wallet is, install, recovery, and support status |
+| [AI and human review guide](docs/AI_REVIEW.md) | Repository map, verification commands, and 0–100 rubric |
 | [Test evidence](docs/TEST_EVIDENCE.md) | Every command and result in one place |
 | [Test results](docs/TEST_RESULTS.md) | Recorded test runs and environment |
 | [Security](SECURITY.md) | Security policy and reporting |
