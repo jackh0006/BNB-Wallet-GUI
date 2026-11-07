@@ -3,14 +3,22 @@
 This checklist is for the release owner. Do not run it with an agent-generated
 or test key. Do not commit private keys, passwords, or `.gnupg` contents.
 
+The published X Wallet 1.1.0 release is currently **UNSIGNED**. Follow this
+checklist only with an owner-controlled key, then replace the release assets
+and remove the UNSIGNED label. Never claim a package is signed until the
+verification below passes against the exact published bytes.
+
 ## 1. Confirm the artifact and source
 
 ```bash
 cd /approved/release/workspace
 git status --porcelain            # must be empty
-git rev-parse HEAD                # must equal the candidate source commit
-sha256sum bnb-wallet-1.0.10-amd64.deb
-python3 scripts/check_release_identity.py --artifact bnb-wallet-1.0.10-amd64.deb
+# The published artifact was built from commit
+# 1b4800757ce953b3af400680b2a12da348314a1c (tag v1.1.0).
+sha256sum x-wallet-1.1.0-amd64.deb
+# Expected: 66779cb03d843bf9fbb1bd9cf14d267a75c8d5b25e54909adac0b06bb4f4150b
+git rev-parse 1b4800757ce953b3af400680b2a12da348314a1c
+python3 scripts/check_release_identity.py --artifact x-wallet-1.1.0-amd64.deb
 ```
 
 The identity validator must pass before signing. The artifact must have been
@@ -34,7 +42,7 @@ repository or chat.
 
 ```bash
 scripts/sign-release.sh \
-  --deb bnb-wallet-1.0.10-amd64.deb \
+  --deb x-wallet-1.1.0-amd64.deb \
   --key <owner-key-fingerprint> \
   --outdir /approved/release/out
 ```
@@ -47,7 +55,7 @@ On a separate clean keyring containing only the owner's public key:
 
 ```bash
 scripts/verify-release-signature.sh \
-  --deb bnb-wallet-1.0.10-amd64.deb \
+  --deb x-wallet-1.1.0-amd64.deb \
   --sums /approved/release/out/SHA256SUMS \
   --sig /approved/release/out/SHA256SUMS.asc \
   --fingerprint <owner-key-fingerprint>
@@ -79,6 +87,17 @@ Publish:
 - `SHA256SUMS.asc`
 - public key fingerprint and independent distribution instructions
 - SBOM, manifest, test summary, known limitations, and release evidence
+
+Upload the signed files with:
+
+```bash
+gh release upload v1.1.0 \
+  x-wallet-1.1.0-amd64.deb \
+  SHA256SUMS SHA256SUMS.asc --clobber
+```
+
+Then update the release notes: replace the UNSIGNED warning with the signing
+fingerprint and the verification command. Do not change the `.deb` bytes.
 
 Never publish an unsigned or unverified package. Never describe provenance as
 reproducibility, and never describe a self-audit as an independent audit.
