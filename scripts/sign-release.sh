@@ -38,17 +38,21 @@ if ! gpg --batch --list-secret-keys --with-colons "$KEY" 2>/dev/null | grep -q '
 fi
 
 # Refuse an ambiguous selector: exactly one primary secret key must match.
-mapfile -t FINGERPRINTS < <(
-  gpg --batch --list-secret-keys --with-colons --fingerprint "$KEY" 2>/dev/null |
-    awk -F: '$1=="fpr"{print $10}'
-)
-if [ "${#FINGERPRINTS[@]}" -ne 1 ]; then
-  echo "ERROR: selector matched ${#FINGERPRINTS[@]} keys; specify one fingerprint." >&2
+# A key may have subkeys, so count `sec` records, not every `fpr` record.
+SEC_COUNT="$(
+  gpg --batch --list-secret-keys --with-colons "$KEY" 2>/dev/null |
+    awk -F: '$1=="sec"{count++} END{print count+0}'
+)"
+if [ "$SEC_COUNT" -ne 1 ]; then
+  echo "ERROR: selector matched $SEC_COUNT primary secret keys; specify one fingerprint." >&2
   exit 1
 fi
-FPR="${FINGERPRINTS[0]}"
+FPR="$(
+  gpg --batch --list-secret-keys --with-colons --fingerprint "$KEY" 2>/dev/null |
+    awk -F: '$1=="sec"{in_sec=1; next} $1=="fpr" && in_sec{print $10; exit}'
+)"
 if [[ ! "$FPR" =~ ^[0-9A-Fa-f]{40}$ ]]; then
-  echo "ERROR: could not resolve a 40-hex fingerprint." >&2
+  echo "ERROR: could not resolve a 40-hex primary fingerprint." >&2
   exit 1
 fi
 

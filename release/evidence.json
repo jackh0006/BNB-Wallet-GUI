@@ -1,7 +1,7 @@
 {
   "artifactPathRecord": "x-wallet-1.1.0-amd64.deb (not committed; hash is evidence)",
   "artifactSha256": "66779cb03d843bf9fbb1bd9cf14d267a75c8d5b25e54909adac0b06bb4f4150b",
-  "artifactSigned": false,
+  "artifactSigned": true,
   "artifactSourceCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
   "artifacts": [],
   "checks": [
@@ -393,12 +393,35 @@
         "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
         "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
       }
+    },
+    {
+      "command": "GNUPGHOME=<clean-keyring> bash scripts/verify-release-signature.sh --deb x-wallet-1.1.0-amd64.deb --sums SHA256SUMS --sig SHA256SUMS.asc --fingerprint CC819EF5E109A1518E840379D8C0CEC84BCCE06B",
+      "commit": "1b4800757ce953b3af400680b2a12da348314a1c",
+      "durationSeconds": 0.4,
+      "exitCode": 0,
+      "finishedAt": "2026-11-07T05:22:16Z",
+      "id": "deb-signature",
+      "log": "/tmp/opencode/signed-release/verify-clean-keyring.log",
+      "logSha256": "1ac51d12e2c9287fdc96e66ccd8fa1265e17ce18af47067a5e954685f807b70c",
+      "machine": {
+        "architecture": "x86_64",
+        "cpuCount": 2,
+        "kernel": "7.0.0-42-generic",
+        "memoryBytes": 4042977280,
+        "os": "Linux-7.0.0-42-generic-x86_64-with-glibc2.39"
+      },
+      "required": true,
+      "startedAt": "2026-11-07T05:22:15Z",
+      "toolchain": {
+        "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
+        "flutter": "Flutter 3.47.6 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git"
+      }
     }
   ],
   "checksCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
   "identityNote": "checksCommit/artifactSourceCommit 0cd7cd6 is the tested wallet/test tree. sourceCommit 1b48007 is the squash merge of branch head 27a35a2 (identical tree); changes since the tested commit are documentation, release evidence, branding/free-use checks, and release-tooling only. The published artifact x-wallet-1.1.0 (66779cb0...) was built from 1b48007.",
   "notes": [
-    "Package is built but unsigned in this environment.",
+    "Package is signed with owner key CC819EF5E109A1518E840379D8C0CEC84BCCE06B and verified in a clean keyring.",
     "No independent security audit is available.",
     "Cross-runner reproducibility passed at the fixed path (run 42315071276).",
     "Startup/RSS benchmark is NOT VERIFIED: the headless runner has no Secret Service and the app raises an unhandled libsecret exception.",
@@ -406,10 +429,19 @@
     "Android remains blocked by the historical signing-key incident.",
     "Hardware-wallet and multisig support are not implemented."
   ],
-  "problems": [
-    "missing release check: deb-signature"
-  ],
+  "problems": [],
   "schemaVersion": 1,
+  "signature": {
+    "algorithm": "EdDSA",
+    "file": "SHA256SUMS.asc",
+    "fingerprint": "CC819EF5E109A1518E840379D8C0CEC84BCCE06B",
+    "keyId": "D8C0CEC84BCCE06B",
+    "sha256Signature": "9fd8a7959b50d337bf95304f0c2b60d81177cb072ddfb83aba0e529bf7ff6a1a",
+    "sha256Sums": "e7da4905687ea807cfbbc45d0d2eecb6693e312d0aa45f5b5606787151254f3b",
+    "verificationMethod": "scripts/verify-release-signature.sh against a clean GNUPGHOME containing only the public key",
+    "verified": true,
+    "verifiedAt": "2026-11-07T05:22:16Z"
+  },
   "sourceCommit": "1b4800757ce953b3af400680b2a12da348314a1c",
   "squashMerge": {
     "branchHead": "27a35a27cf91e866d2f152d554b5610f4a5f5ae0",
@@ -417,6 +449,6 @@
     "note": "PR #10 was squash-merged. The reviewed branch head and the squash commit have identical trees; the diff from the tested commit to the release commit touches only documentation, release evidence, and release-tooling paths. Wallet source, assets, tests, and lockfiles are byte-identical.",
     "testedCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54"
   },
-  "status": "PARTIALLY VERIFIED",
+  "status": "RELEASE APPROVED",
   "version": "1.1.0+5"
 }
