@@ -2,7 +2,7 @@
 
 ## Product Mission
 
-**X Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source BNB/EVM wallet with:
+**X Wallet** — A complete, professional, highly secure, privacy-focused, self-custodial, open-source EVM wallet with:
 
 - Local encrypted storage (vaults)
 - Tor and proxy support (HTTP, HTTPS, SOCKS5)
