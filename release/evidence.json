@@ -400,6 +400,8 @@
   "notes": [
     "Package is built but unsigned in this environment.",
     "No independent security audit is available.",
+    "Cross-runner reproducibility passed at the fixed path (run 42315071276).",
+    "Startup/RSS benchmark is NOT VERIFIED: the headless runner has no Secret Service and the app raises an unhandled libsecret exception.",
     "SBOM serialNumber added for actions/attest-sbom compatibility; dependency components are unchanged.",
     "Android remains blocked by the historical signing-key incident.",
     "Hardware-wallet and multisig support are not implemented."
