@@ -12,6 +12,9 @@ independent security audit.
 **Current stable release: X Wallet 1.1.0 (`v1.1.0`).** Download and verify it from
 <https://github.com/jackh0006/X-Wallet/releases/tag/v1.1.0>. The exact
 per-version evidence is in [docs/releases/1.1.0.md](docs/releases/1.1.0.md).
+Post-release branding commits on `main` are not part of the published artifact;
+the generated status block below describes the current branch HEAD, while the
+`v1.1.0` tag retains its own release evidence.
 
 <!-- BEGIN GENERATED:status -->
 > **Generated release status** — do not edit this block by hand.
