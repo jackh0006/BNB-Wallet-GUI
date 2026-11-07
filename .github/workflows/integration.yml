@@ -27,18 +27,12 @@ jobs:
           flutter-version: '3.47.6'
           cache: true
       - name: Install Foundry 1.9.0
-        run: |
-          set -euo pipefail
-          curl -L https://foundry.paradigm.xyz | bash
-          for dir in "$HOME/.foundry/bin" "$HOME/.config/.foundry/bin"; do
-            if [ -d "$dir" ]; then
-              export PATH="$dir:$PATH"
-              echo "$dir" >> "$GITHUB_PATH"
-            fi
-          done
-          command -v foundryup
-          foundryup -i 1.9.0
-          anvil --version
+        uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1
+        with:
+          version: 1.9.0
+          cache: true
+      - name: Verify Anvil
+        run: anvil --version
       - name: Install Dart dependencies
         run: flutter pub get
       - name: Run real-EVM integration tests
