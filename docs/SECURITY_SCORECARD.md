@@ -34,6 +34,27 @@ audit.** A score never overrides a release blocker.
 | Documentation, transparency and governance | 5 | 5 | Threat model; known limitations; incident record; generated status; manifest; PR evidence; signed release; AI review guide; test evidence | — |
 | **Total** | **100** | **83** | | |
 
+## OpenSSF Scorecard (automated)
+
+Run: `2026-11-07` on commit `b45702492f59c7b6a41cd0a4afa7ec5ad11baf2b`.
+
+**Score: 7.0 / 10**
+
+Strong checks at the maximum score:
+
+- CI-Tests
+- SAST (CodeQL)
+- Vulnerabilities
+- License
+- Security-Policy
+- Binary-Artifacts
+- Dangerous-Workflow
+- Dependency-Update-Tool
+
+The workflow, SARIF report, and per-check details are in
+`.github/workflows/scorecard.yml` and the repository's code-scanning results.
+The badge in the README links to the live OpenSSF viewer.
+
 ## Evidence pointers
 
 - [Test evidence](TEST_EVIDENCE.md)
