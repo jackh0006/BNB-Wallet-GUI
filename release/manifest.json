@@ -7,8 +7,8 @@
   },
   "evidenceBundle": {
     "path": "release/evidence.json",
-    "sha256": "04cdba4e4837bad6e69bd1cf7e88bc84aa65c7d859b8bd484c95fac3673a106d",
-    "sourceCommit": "921c0cc7e3ccaaa56cab8e26c54461c73976d9dd"
+    "sha256": "a575698a16402756ba860fb277f8b8bda69974420c22d35da0e0f8f65fd9ba86",
+    "sourceCommit": "1b4800757ce953b3af400680b2a12da348314a1c"
   },
   "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
   "knownLimitations": "docs/KNOWN_LIMITATIONS.md",
@@ -25,7 +25,7 @@
   "releaseEvidence": "docs/releases/1.1.0.md",
   "sbom": {
     "path": "docs/SBOM.json",
-    "sha256": "3d3d4ea2e8b43b83ba0fbbdf60d971c1b7956804e36a782d73e4a995fb7738a4"
+    "sha256": "b5d217307d85b02767adef1ceed6aecdead5ccac76a138b1276077a93c8c3280"
   },
   "schemaVersion": 1,
   "tests": {

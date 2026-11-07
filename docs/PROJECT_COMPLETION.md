@@ -54,6 +54,11 @@ Verified for the release process:
 Not verified: Debian, Fedora, Linux ARM64, Windows, macOS, Android.
 Do not claim support for these until they are built and tested.
 
+A running Secret Service provider (normally `gnome-keyring` on Ubuntu/GNOME or
+KWallet on KDE) is required. Minimal or headless sessions without one currently
+fail at startup with an unhandled libsecret error; this is a documented
+limitation, not a claim of headless support.
+
 ## Installation
 
 ```bash

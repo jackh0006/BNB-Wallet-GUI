@@ -11,10 +11,12 @@ Usage: python3 scripts/sbom.py [--lock pubspec.lock]
 Deterministic: no timestamps, no random serial numbers — the same lock file
 always yields the same SBOM bytes, so two builds can be compared directly.
 """
+import hashlib
 import json
 import os
 import re
 import sys
+import uuid
 
 DEFAULT_LOCK = "pubspec.lock"
 DEFAULT_NPM_LOCK = "verification/package-lock.json"
@@ -167,8 +169,22 @@ def main() -> int:
         return 1
 
     direct = [p for p in packages if "direct" in p.get("dependency", "")]
+    components = sorted(
+        [component(p) for p in packages] + npm, key=lambda item: item["purl"]
+    )
+    # CycloneDX requires a serialNumber URN. Derive a UUIDv5 from the component
+    # list so the SBOM stays deterministic (same lockfiles -> same bytes) while
+    # remaining a valid URN for consumers such as actions/attest-sbom.
+    digest = hashlib.sha256(
+        json.dumps(components, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    serial_number = uuid.uuid5(
+        uuid.NAMESPACE_URL, f"https://github.com/jackh0006/BNB-Wallet-GUI/sbom/{digest}"
+    )
     sbom = {
+        "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
         "bomFormat": "CycloneDX",
+        "serialNumber": f"urn:uuid:{serial_number}",
         "specVersion": "1.5",
         "version": 1,
         "metadata": {
@@ -183,7 +199,7 @@ def main() -> int:
                 {"name": "deterministic", "value": "no-timestamp -- same lock, same bytes"},
             ],
         },
-        "components": sorted([component(p) for p in packages] + npm, key=lambda item: item["purl"]),
+        "components": components,
     }
 
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)

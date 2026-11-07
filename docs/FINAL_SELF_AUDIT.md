@@ -46,9 +46,11 @@ limitations. **Large-value custody: NOT APPROVED.**
 | Mutation testing | 5/5 killed |
 | Backup/restore E2E | 4/4 PASS |
 | Release signing tools | 6/6 PASS (disposable test key) |
-| Release identity negative tests | 12/12 PASS |
+| Release identity negative tests | 15/15 PASS |
 | Android signer inventory | PASS (synthetic keystore) |
 | Package smoke | PASS: install, upgrade from `bnb-wallet` 1.0.9, launch, uninstall, reinstall |
+| Cross-runner reproducibility | PASS at fixed path `/build/bnb-wallet` (run 42315071276) |
+| Startup/RSS benchmark | NOT VERIFIED — headless runner has no Secret Service; app raises an unhandled libsecret exception and no window appears |
 | Secret scan / dependency / licence / SBOM | PASS |
 | Release identity validator | PASS |
 | Release gate | PARTIALLY VERIFIED — only `deb-signature` missing |
@@ -62,11 +64,12 @@ limitations. **Large-value custody: NOT APPROVED.**
 | FA-03 | High | No independent external audit | Accepted limitation; explicitly not claimed |
 | FA-04 | High | Hardware-wallet support absent | Documented `NOT IMPLEMENTED`; large-value custody not approved |
 | FA-05 | High | Reviewed multisignature custody absent | Documented `NOT IMPLEMENTED`; no custom contract deployed |
-| FA-06 | Medium | Cross-runner reproducibility / startup-RSS workflows not executed | NOT VERIFIED; fixed-path reproducibility passes |
+| FA-06 | Medium | Cross-runner reproducibility / startup-RSS workflows not executed | Reproducibility now PASS (run 42315071276); benchmark NOT VERIFIED (see FA-11) |
 | FA-07 | Medium | Real-chain test uses a local Anvil node, not an independent BSC provider | Local EVM PASS; provider trust remains a residual |
 | FA-08 | Medium | Branding rename could miss technical/user-facing strings | `scripts/check_branding.py` passes; compatibility identifiers preserved |
 | FA-09 | Medium | Debian package identity migration could break upgrades | CI package smoke upgrades from `bnb-wallet` 1.0.9 and preserves data |
-| FA-10 | Low | Test inventory fixture initially missed `1.1.0` release notes | Fixed; identity negative tests 12/12 |
+| FA-10 | Low | Test inventory fixture initially missed `1.1.0` release notes | Fixed; identity negative tests 15/15 |
+| FA-11 | Medium | App raises an unhandled libsecret exception and shows no window when no Secret Service provider is running (headless/minimal desktops); package smoke only asserts process liveness | Documented limitation; stock Ubuntu/GNOME and KDE provide a keyring. Fixing requires a wallet rebuild, so it is deferred rather than invalidating the published artifact |
 
 ### Code findings resolved in this release
 
@@ -91,6 +94,10 @@ limitations. **Large-value custody: NOT APPROVED.**
 - No hardware wallet, no multisig, no independent audit.
 - The release package is unsigned.
 - Android remains blocked by the signing-key incident.
+- A running Secret Service provider (gnome-keyring or KWallet) is required;
+  minimal/headless sessions without one currently fail at startup.
+- Startup latency and RSS are **NOT VERIFIED** under the CI benchmark because
+  that runner has no keyring.
 
 ## Final internal assessment
 

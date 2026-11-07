@@ -1,6 +1,6 @@
 {
   "artifactPathRecord": "x-wallet-1.1.0-amd64.deb (not committed; hash is evidence)",
-  "artifactSha256": "0f953320c410e9d8ca394a040344e517110f8526f312dba20fc449db7ad9acab",
+  "artifactSha256": "66779cb03d843bf9fbb1bd9cf14d267a75c8d5b25e54909adac0b06bb4f4150b",
   "artifactSigned": false,
   "artifactSourceCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
   "artifacts": [],
@@ -396,11 +396,13 @@
     }
   ],
   "checksCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
-  "identityNote": "checksCommit/artifactSourceCommit 0cd7cd6 is the tested wallet/test tree; sourceCommit adds only final self-audit, completion, README, branding/free-use checks and documentation. The verified artifact x-wallet-1.1.0 (0f953320...) is unchanged.",
+  "identityNote": "checksCommit/artifactSourceCommit 0cd7cd6 is the tested wallet/test tree. sourceCommit 1b48007 is the squash merge of branch head 27a35a2 (identical tree); changes since the tested commit are documentation, release evidence, branding/free-use checks, and release-tooling only. The published artifact x-wallet-1.1.0 (66779cb0...) was built from 1b48007.",
   "notes": [
     "Package is built but unsigned in this environment.",
     "No independent security audit is available.",
-    "Cross-runner reproducibility and startup/RSS workflows are added but not yet executed.",
+    "Cross-runner reproducibility passed at the fixed path (run 42315071276).",
+    "Startup/RSS benchmark is NOT VERIFIED: the headless runner has no Secret Service and the app raises an unhandled libsecret exception.",
+    "SBOM serialNumber added for actions/attest-sbom compatibility; dependency components are unchanged.",
     "Android remains blocked by the historical signing-key incident.",
     "Hardware-wallet and multisig support are not implemented."
   ],
@@ -408,7 +410,13 @@
     "missing release check: deb-signature"
   ],
   "schemaVersion": 1,
-  "sourceCommit": "921c0cc7e3ccaaa56cab8e26c54461c73976d9dd",
+  "sourceCommit": "1b4800757ce953b3af400680b2a12da348314a1c",
+  "squashMerge": {
+    "branchHead": "27a35a27cf91e866d2f152d554b5610f4a5f5ae0",
+    "mergeCommit": "1b4800757ce953b3af400680b2a12da348314a1c",
+    "note": "PR #10 was squash-merged. The reviewed branch head and the squash commit have identical trees; the diff from the tested commit to the release commit touches only documentation, release evidence, and release-tooling paths. Wallet source, assets, tests, and lockfiles are byte-identical.",
+    "testedCommit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54"
+  },
   "status": "PARTIALLY VERIFIED",
   "version": "1.1.0+5"
 }

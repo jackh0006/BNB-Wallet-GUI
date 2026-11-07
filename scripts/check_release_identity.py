@@ -72,6 +72,76 @@ def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
     return code == 0
 
 
+# Paths that may legitimately change between the commit where checks ran and
+# the release commit without invalidating the checks. Wallet source, assets,
+# tests, manifests, and lockfiles are deliberately absent.
+SQUASH_ALLOWED_PATHS = {
+    "README.md",
+    "IMPLEMENTATION_STATUS.md",
+    ".github/workflows/verify.yml",
+    ".github/workflows/benchmark.yml",
+    "scripts/check_branding.py",
+    "scripts/check_free_product.py",
+    "scripts/check_release_evidence.py",
+    "scripts/check_release_identity.py",
+    "scripts/generate_docs.py",
+    "scripts/release-gate.py",
+    "scripts/release_manifest.py",
+    "scripts/sbom.py",
+    "scripts/test_release_identity.py",
+}
+
+
+def squash_merge_ok(
+    root: Path, checks: str, source: str, record: object
+) -> tuple[bool, str | None]:
+    """Accept a squash merge without ancestry when the squash is provably
+    content-preserving and every differing path is documentation, release
+    evidence, or release tooling."""
+    if not isinstance(record, dict):
+        return False, (
+            f"checksCommit {checks[:8]} is not an ancestor of sourceCommit "
+            f"{source[:8]} and evidence.squashMerge is missing"
+        )
+    if str(record.get("testedCommit") or "") != checks:
+        return False, "evidence.squashMerge.testedCommit does not match checksCommit"
+    if str(record.get("mergeCommit") or "") != source:
+        return False, "evidence.squashMerge.mergeCommit does not match sourceCommit"
+    branch_head = str(record.get("branchHead") or "")
+    if branch_head:
+        if not COMMIT.fullmatch(branch_head):
+            return False, "evidence.squashMerge.branchHead is not a 40-hex commit"
+        # The reviewed branch may be deleted and its objects unreachable after
+        # the merge. Verify tree equality when the object is available; the
+        # allowlisted diff below remains the authoritative check either way.
+        code, _ = git(root, "cat-file", "-e", f"{branch_head}^{{commit}}")
+        if code == 0:
+            code, _ = git(root, "diff", "--quiet", branch_head, source)
+            if code != 0:
+                return False, (
+                    "squash merge source tree differs from the reviewed branch head"
+                )
+    code, output = git(root, "diff", "--name-only", checks, source)
+    if code != 0:
+        return False, "cannot diff the tested commit against the release commit"
+    changed = [line for line in output.splitlines() if line.strip()]
+    disallowed = [
+        path
+        for path in changed
+        if not (
+            path.startswith("docs/")
+            or path.startswith("release/")
+            or path in SQUASH_ALLOWED_PATHS
+        )
+    ]
+    if disallowed:
+        return False, (
+            "tested commit differs from the release commit in non-release paths: "
+            + ", ".join(disallowed[:5])
+        )
+    return True, None
+
+
 def version_from_pubspec(root: Path) -> str | None:
     try:
         text = (root / "pubspec.yaml").read_text(encoding="utf-8")
@@ -133,9 +203,11 @@ def validate(root: Path, artifact: Path | None, skip_git: bool = False) -> list[
 
     if source and checks and not skip_git:
         if not is_ancestor(root, checks, source):
-            errors.append(
-                f"checksCommit {checks[:8]} is not an ancestor of sourceCommit {source[:8]}"
+            ok, reason = squash_merge_ok(
+                root, checks, source, evidence.get("squashMerge")
             )
+            if not ok and reason:
+                errors.append(reason)
         code, head = git(root, "rev-parse", "HEAD")
         if code != 0:
             errors.append("cannot read Git HEAD")
