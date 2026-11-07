@@ -115,6 +115,7 @@ RELEASE_TOOLING_PATHS = {
     "scripts/check_branding.py",
     "scripts/check_free_product.py",
     "scripts/check_release_evidence.py",
+    "scripts/build-deb.sh",
     "scripts/check_release_identity.py",
     "scripts/generate_docs.py",
     "scripts/release-gate.py",
