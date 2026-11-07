@@ -2,6 +2,7 @@
 """Require a version-specific release evidence record for the source version."""
 
 from pathlib import Path
+import json
 import re
 import sys
 
@@ -26,5 +27,20 @@ if f"Source version: `{version}`" not in text:
 
 if "| Check | Result | Evidence |" not in text:
     sys.exit(f"error: {record.relative_to(ROOT)} lacks the required test-result table")
+
+sbom_path = ROOT / "docs" / "SBOM.json"
+try:
+    sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as error:
+    sys.exit(f"error: cannot read {sbom_path.relative_to(ROOT)}: {error}")
+if sbom.get("bomFormat") != "CycloneDX":
+    sys.exit("error: docs/SBOM.json is not CycloneDX")
+if not re.fullmatch(
+    r"urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+    str(sbom.get("serialNumber") or ""),
+):
+    sys.exit("error: docs/SBOM.json lacks a valid CycloneDX serialNumber URN")
+if not sbom.get("specVersion"):
+    sys.exit("error: docs/SBOM.json lacks specVersion")
 
 print(f"release evidence OK: source {version} -> {record.relative_to(ROOT)}")
