@@ -1,4 +1,4 @@
-# Contributing to X Wallet GUI
+# Contributing to X Wallet
 
 Thanks for helping. This is a non-custodial wallet: a mistake can cost real
 money. Read this file, [`AGENTS.md`](AGENTS.md),

@@ -1850,7 +1850,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'GUI based on the BNB terminal wallet. Local, non-custodial BSC wallet.',
+            'Local, non-custodial BNB Smart Chain wallet, based on the v1 terminal wallet.',
           ),
           const SizedBox(height: 8),
           const Text(
@@ -1858,9 +1858,9 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextStyle(color: Colors.white70, fontSize: 12.5),
           ),
           const Text(
-            'Check the build yourself: verify the .sha256 file '
-            '(sha256sum -c *.sha256) and the signature '
-            '(gpg --verify *.deb.asc *.deb) before installing.',
+            'Check the build yourself: verify SHA256SUMS '
+            '(sha256sum -c SHA256SUMS). If a signature is published, verify it '
+            'against an independently obtained fingerprint before installing.',
             style: TextStyle(color: Colors.white54, fontSize: 12.5),
           ),
           const Text(

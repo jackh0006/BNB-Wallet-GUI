@@ -19,7 +19,7 @@ This round implements the user-specified "M3 Final Symlink and Filesystem Securi
 
 ### 1. Analyzer (post log-lock fix)
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && flutter analyze --no-pub
+cd /home/mhh06/X-Wallet && flutter analyze --no-pub
 ```
 - **Exit code**: 1 (warnings only; zero errors)
 - **Issues**: 124 total (127 at HEAD → 124 in WT; 3 pre-existing fixed)
@@ -27,7 +27,7 @@ cd /home/mhh06/BNB-Wallet-GUI && flutter analyze --no-pub
 
 ### 2. Non-KDF Full Battery
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test --exclude-tags kdf --concurrency=2
+cd /home/mhh06/X-Wallet && umask 0077 && flutter test --exclude-tags kdf --concurrency=2
 ```
 - **Exit code**: 0
 - **Result**: **+238: All tests passed!**
@@ -35,19 +35,19 @@ cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test --exclude-tags kdf -
 
 ### 3. KDF Suites (Individual, Sequential)
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test test/vault_test.dart --timeout 600s
+cd /home/mhh06/X-Wallet && umask 0077 && flutter test test/vault_test.dart --timeout 600s
 ```
 - **Exit code**: 0
 - **Result**: **+7 passed** (VaultCipher v2 envelope + v1 migration)
 
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test test/workers_test.dart --timeout 900s
+cd /home/mhh06/X-Wallet && umask 0077 && flutter test test/workers_test.dart --timeout 900s
 ```
 - **Exit code**: 0
 - **Result**: **+3 passed** (Argon2id 64 MiB isolate jobs)
 
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test test/vault_import_rollback_kdf_test.dart --timeout 900s
+cd /home/mhh06/X-Wallet && umask 0077 && flutter test test/vault_import_rollback_kdf_test.dart --timeout 900s
 ```
 - **Exit code**: 1
 - **Result**: **+9 passed, −1 failed** (pre-existing test-construction artifact identical to HEAD baseline)
@@ -56,7 +56,7 @@ cd /home/mhh06/BNB-Wallet-GUI && umask 0077 && flutter test test/vault_import_ro
 
 ### 4. New Linux Filesystem Security Integration Tests
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && flutter test test/filesystem_security_test.dart
+cd /home/mhh06/X-Wallet && flutter test test/filesystem_security_test.dart
 ```
 - **Exit code**: 0
 - **Result**: **+20: All tests passed!**
@@ -96,39 +96,39 @@ cd /home/mhh06/BNB-Wallet-GUI && flutter test test/filesystem_security_test.dart
 
 ### 5. Linux Release Build
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && flutter build linux --release
+cd /home/mhh06/X-Wallet && flutter build linux --release
 ```
 - **Exit code**: 0
 - **Output**: `build/linux/x64/release/bundle/bnb_wallet_gui`
 
 ### 6. Linux `.deb` Build + Verification
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && bash scripts/build-deb.sh
+cd /home/mhh06/X-Wallet && bash scripts/build-deb.sh
 ```
 - **Exit code**: 0
-- **Artifact**: `/home/mhh06/Downloads/BNB Wallet/bnb-wallet-1.0.7-amd64.deb`
+- **Artifact**: `/home/mhh06/Downloads/X Wallet/x-wallet-1.0.7-amd64.deb`
 
 ```bash
-sha256sum -c bnb-wallet-1.0.7-amd64.deb.sha256
+sha256sum -c x-wallet-1.0.7-amd64.deb.sha256
 ```
 - **Exit code**: 0
 - **SHA256**: `b5c6aaa4eee70f53ce7596c9da43b6129fb1391a65b510c4d9c2bc68489317dc`
 
 ```bash
-gpg --verify bnb-wallet-1.0.7-amd64.deb.asc bnb-wallet-1.0.7-amd64.deb
+gpg --verify x-wallet-1.0.7-amd64.deb.asc x-wallet-1.0.7-amd64.deb
 ```
 - **Exit code**: 0
 - **Signature**: Good (EDDSA key `CC819EF5E109A1518E840379D8C0CEC84BCCE06B`, keyid `D8C0CEC84BCCE06B`)
 
 ```bash
-dpkg -c bnb-wallet-1.0.7-amd64.deb | grep -iE 'jks|keystore|p12|pfx|key.properties|mnemonic|seed|private_key|drawer|vault'
+dpkg -c x-wallet-1.0.7-amd64.deb | grep -iE 'jks|keystore|p12|pfx|key.properties|mnemonic|seed|private_key|drawer|vault'
 ```
 - **Exit code**: 0
 - **Secret matches**: 0 (clean)
 
 ### 7. Independent Ethers.js Cold-Signature Verification
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI/verification && npm ci && node verify.cjs
+cd /home/mhh06/X-Wallet/verification && npm ci && node verify.cjs
 ```
 - **Exit code**: 0
 - **Result**: `independent ethers verification: PASS`
@@ -138,8 +138,8 @@ cd /home/mhh06/BNB-Wallet-GUI/verification && npm ci && node verify.cjs
 ### 8. Staged `.deb` Install Test (Unprivileged, User-Approved)
 ```bash
 stage=/tmp/opencode/debtest
-dpkg-deb -x bnb-wallet-1.0.7-amd64.deb "$stage/root"
-HOME="$stage/home" XDG_DATA_HOME="$stage/home/.local/share" ... DISPLAY=:0 XAUTHORITY=... "$stage/root/usr/lib/bnb-wallet/bnb_wallet_gui"
+dpkg-deb -x x-wallet-1.0.7-amd64.deb "$stage/root"
+HOME="$stage/home" XDG_DATA_HOME="$stage/home/.local/share" ... DISPLAY=:0 XAUTHORITY=... "$stage/root/usr/lib/x-wallet/bnb_wallet_gui"
 ```
 - **Shell umask**: 0002 (desktop default, intentionally NOT touched)
 - **Result**: App launched, created data directories
@@ -150,7 +150,7 @@ HOME="$stage/home" XDG_DATA_HOME="$stage/home/.local/share" ... DISPLAY=:0 XAUTH
 
 ### 9. Secret Scan
 ```bash
-cd /home/mhh06/BNB-Wallet-GUI && bash scripts/secret-scan.sh
+cd /home/mhh06/X-Wallet && bash scripts/secret-scan.sh
 ```
 - **Exit code**: 1 (by design)
 - **Finding**: "old hardcoded release keystore password" — **BLK-06** (known compromised keystore in git history; rotation tracked, no history rewrite)

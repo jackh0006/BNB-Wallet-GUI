@@ -53,27 +53,27 @@ jobs:
         run: |
           set -euo pipefail
           tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 \
-            --numeric-owner -czf bnb-wallet-linux-x64.tar.gz \
+            --numeric-owner -czf x-wallet-linux-x64.tar.gz \
             -C build/linux/x64/release/bundle .
-          sha256sum bnb-wallet-linux-x64.tar.gz | tee bnb-wallet-linux-x64.tar.gz.sha256
+          sha256sum x-wallet-linux-x64.tar.gz | tee x-wallet-linux-x64.tar.gz.sha256
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: bnb-wallet-linux-x64.tar.gz
+          subject-path: x-wallet-linux-x64.tar.gz
 
       - name: Attest the SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
-          subject-path: bnb-wallet-linux-x64.tar.gz
+          subject-path: x-wallet-linux-x64.tar.gz
           sbom-path: docs/SBOM.json
 
       - name: Upload the artifact and its checksum
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bnb-wallet-linux-x64-${{ github.sha }}
+          name: x-wallet-linux-x64-${{ github.sha }}
           path: |
-            bnb-wallet-linux-x64.tar.gz
-            bnb-wallet-linux-x64.tar.gz.sha256
+            x-wallet-linux-x64.tar.gz
+            x-wallet-linux-x64.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30

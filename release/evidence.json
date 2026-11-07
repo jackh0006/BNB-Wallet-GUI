@@ -124,7 +124,7 @@
       "command": "bash scripts/package-smoke.sh (GitHub Actions ubuntu-24.04)",
       "commit": "0cd7cd6ccc390abeb66d973f79dd5ec9c16d0f54",
       "durationSeconds": 165,
-      "evidence": "https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42302764476",
+      "evidence": "https://github.com/jackh0006/X-Wallet/actions/runs/42302764476",
       "exitCode": 0,
       "finishedAt": "2026-11-06T22:14:14Z",
       "id": "install-smoke",

@@ -14,7 +14,7 @@ Tor/SOCKS routing, transaction review, and a hardened Linux storage path.
 
 The stable release is published at:
 
-<https://github.com/jackh0006/BNB-Wallet-GUI/releases/tag/v1.1.0>
+<https://github.com/jackh0006/X-Wallet/releases/tag/v1.1.0>
 
 ## Download
 

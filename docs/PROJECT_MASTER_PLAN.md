@@ -76,7 +76,7 @@
 |---------|-------------|--------|--------------|-------|
 | M2-01 | Verify `flutter build linux --release` succeeds | ✅ DONE | M0 | Clean build |
 | M2-02 | Test Linux desktop integration (launcher, icon, mime) | ✅ DONE | M2-01 | `.desktop`, icons in .deb |
-| M2-03 | Run `scripts/build-deb.sh` end-to-end | ✅ DONE | M2-01 | Produced `bnb-wallet-1.0.7-amd64.deb` |
+| M2-03 | Run `scripts/build-deb.sh` end-to-end | ✅ DONE | M2-01 | Produced the 1.0.7 package |
 | M2-04 | Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | M2-03 | Clean VM not available |
 | M2-05 | Verify .deb contents (dpkg -c) | ✅ DONE | M2-03 | No secrets, correct perms |
 | M2-06 | SHA-256 + GPG signature on .deb | ✅ DONE | M2-03 | `.sha256` + `.asc` verified |

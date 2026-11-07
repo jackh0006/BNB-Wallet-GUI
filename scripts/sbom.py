@@ -179,7 +179,7 @@ def main() -> int:
         json.dumps(components, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
     serial_number = uuid.uuid5(
-        uuid.NAMESPACE_URL, f"https://github.com/jackh0006/BNB-Wallet-GUI/sbom/{digest}"
+        uuid.NAMESPACE_URL, f"https://github.com/jackh0006/X-Wallet/sbom/{digest}"
     )
     sbom = {
         "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",

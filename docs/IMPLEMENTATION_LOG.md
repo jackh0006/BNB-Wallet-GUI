@@ -7,7 +7,7 @@ entries and mark superseded claims.
 
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
 **Final candidate HEAD:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
-**PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
+**PR:** <https://github.com/jackh0006/X-Wallet/pull/10>
 
 ### Cryptography and transaction fixes
 
@@ -65,7 +65,7 @@ entries and mark superseded claims.
 
 ### Artifact
 
-- Built unsigned `bnb-wallet-1.0.10-amd64.deb` from the final docs state.
+- Built the unsigned 1.0.10 package from the final docs state.
 - SHA-256: `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244`.
 - `dpkg-deb -x` + `ldd` resolve all libraries; no secret-bearing filenames.
 - Not signed, not installed, not published.

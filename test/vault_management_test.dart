@@ -9,7 +9,7 @@ void main() {
 
   group('atomicWrite', () {
     test('writes data atomically and verifies content', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-wallet-test-');
+      final tempDir = await Directory.systemTemp.createTemp('x-wallet-test-');
       try {
         final dest = File('${tempDir.path}/test_vault.bnb');
         const data = 'test vault data';
@@ -27,7 +27,7 @@ void main() {
     test('creates file with restrictive permissions on Linux/macOS', () async {
       if (!Platform.isLinux && !Platform.isMacOS) return;
 
-      final tempDir = await Directory.systemTemp.createTemp('bnb-wallet-test-');
+      final tempDir = await Directory.systemTemp.createTemp('x-wallet-test-');
       try {
         final dest = File('${tempDir.path}/test_perms.bnb');
         const data = 'permission test';
@@ -88,7 +88,7 @@ void main() {
     });
 
     test('preserves original file on write failure', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-wallet-test-');
+      final tempDir = await Directory.systemTemp.createTemp('x-wallet-test-');
       try {
         final dest = File('${tempDir.path}/fail_test.bnb');
         const original = 'original content';
@@ -103,7 +103,7 @@ void main() {
     });
 
     test('cleans up temp file on error', () async {
-      final tempDir = await Directory.systemTemp.createTemp('bnb-wallet-test-');
+      final tempDir = await Directory.systemTemp.createTemp('x-wallet-test-');
       try {
         final dest = File('${tempDir.path}/cleanup_test.bnb');
         const data = 'test data';

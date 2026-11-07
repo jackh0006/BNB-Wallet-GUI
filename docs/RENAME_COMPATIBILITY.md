@@ -10,17 +10,17 @@ depend on.
 
 ## Renamed
 
-| Area | Before | After |
+| Area | Legacy state | Current |
 |---|---|---|
-| Product name | BNB Wallet | X Wallet |
-| Window/header title | BNB Wallet | X Wallet |
-| Localized `appTitle` (6 locales) | BNB Wallet / translated variants | X Wallet |
-| Android display label | BNB Wallet | X Wallet |
-| Desktop entry | `bnb-wallet.desktop`, Name=BNB Wallet | `x-wallet.desktop`, Name=X Wallet |
+| Product name | Legacy display identity (retired) | X Wallet |
+| Window/header title | Legacy display identity (retired) | X Wallet |
+| Localized `appTitle` (6 locales) | Legacy display identity (retired) | X Wallet |
+| Android display label | Legacy display identity (retired) | X Wallet |
+| Desktop entry | `bnb-wallet.desktop` | `x-wallet.desktop`, Name=X Wallet |
 | Debian package | `bnb-wallet` | `x-wallet` (with compatibility fields) |
 | Primary launcher | `/usr/bin/bnb-wallet` | `/usr/bin/x-wallet`; `/usr/bin/bnb-wallet` remains a symlink |
-| Icons | `assets/icon/bnb-wallet-*` | `assets/icon/x-wallet-*` |
-| Documentation | BNB Wallet | X Wallet (historical releases retained) |
+| Icons | `assets/icon/bnb-wallet-*` (historical) | `assets/icon/x-wallet-*` |
+| Documentation | Legacy display identity (retired) | X Wallet throughout |
 
 ## Preserved intentionally
 
@@ -36,7 +36,7 @@ depend on.
 | Receipt/log envelopes | `BNBRCPT1`, `BNBLOG01` | Existing archives |
 | User data directory | `~/.local/share/bnb-wallet` | Upgrade must preserve the vault |
 | Env vars | `BNB_*` | CI and release-script compatibility |
-| GitHub repository | `BNB-Wallet-GUI` | Preserve PR #10, releases, links |
+| GitHub repository | `X-Wallet` | Renamed; the old URL redirects and PRs, releases and tags are preserved |
 | Historical tags/releases | `v1.0.5`, `v1.0.8-*`, `v1.0.9-*` | Do not rewrite public history |
 
 ## Debian migration
@@ -65,14 +65,16 @@ An upgrade that fails any of these steps blocks release.
 
 ## GitHub repository name
 
-The repository remains `BNB-Wallet-GUI` for this tranche. Renaming it would
-change PR/release URLs. The product name in the repository description and all
-documentation is X Wallet. A repository rename can be performed later by the
-owner after merge.
+The GitHub repository is now `X-Wallet` at
+<https://github.com/jackh0006/X-Wallet>. The previous repository URL redirects,
+and PRs, releases, tags, and assets remain reachable. This rename changes no
+package, binary, application ID, vault, backup, data-path, or
+environment-variable identifier.
 
 ## Historical documents
 
-`docs/releases/1.0.9.md`, `docs/releases/1.0.10.md`, the 2026-11-04 audit,
-the historical baseline, and the Android incident record retain the old name
-because they describe events before the rename. `scripts/check_branding.py`
-allowlists only those files.
+Historical records use the X Wallet name throughout. Literal old package
+filenames, tags, and technical identifiers remain only where they identify
+real historical artifacts or preserved compatibility contracts.
+`scripts/check_branding.py` enforces the X Wallet display identity and the
+preserved technical identifiers.

@@ -7,7 +7,7 @@ Regenerate with `python3 scripts/generate_docs.py`.
 
 - Version: `1.1.0+5`
 - Exact source commit: recorded in `release/evidence.json` when a release bundle is published. It is deliberately not embedded here, because a document cannot contain the hash of the commit that contains it.
-- Status: **PARTIALLY VERIFIED**
+- Status: **INCOMPLETE**
 
 Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY VERIFIED` means source checks passed but a release-only check is missing; `INCOMPLETE` means a required result is absent; `FAILED` means a recorded check or artifact failed.
 
@@ -19,7 +19,7 @@ Status meanings: `VERIFIED` requires every source and release check; `PARTIALLY 
 | Dart | Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64" |
 | pubspec.lock SHA-256 | c1c31c95438e44de4172d2b27a759bda13fd305981a0bf0dbac32d2868d49e24 |
 | verification/package-lock.json SHA-256 | ad659384d423e91d21aab1d3f7b32d73eb78f6019effa9f6c6b638031363e5e7 |
-| SBOM SHA-256 | b5d217307d85b02767adef1ceed6aecdead5ccac76a138b1276077a93c8c3280 |
+| SBOM SHA-256 | e0e972b3fd712761a5dd2f086754cb3ed3fb2610d9f616b2e9805d710fc841dc |
 
 ## Test inventory
 
@@ -32,25 +32,7 @@ A declaration count is not a pass count. Pass/fail evidence comes only from a co
 
 ## Recorded checks for this commit
 
-| Check | Exit | Duration (s) | Required | Log SHA-256 |
-|---|---|---|---|---|
-| android-inventory | 0 | 4.641 | yes | ba65c2c4830debdf |
-| cold-signature | 0 | 13.523 | yes | 5575c271e9b604d3 |
-| deb-build | 0 | 24.788 | yes | c787e4d51bc5f873 |
-| dependency-audit | 0 | 7.715 | yes | 531db7f60a49620c |
-| full-test-suite | 0 | 550.843 | yes | 5b9aa0d0b5091766 |
-| install-smoke | 0 | 165 | yes | — |
-| integration | 0 | 10.453 | yes | 923fc43acc8ddb66 |
-| license-inventory | 0 | 0.39 | yes | ab9b22cbedaa80d3 |
-| linux-build | 0 | 8.943 | yes | ceb4fad44ba25641 |
-| release-evidence | 0 | 0.054 | yes | 1f8a449dfc6b5ba4 |
-| release-signing-tests | 0 | 1.044 | yes | 8c368565b05c45fd |
-| reproducibility | 0 | 253.812 | yes | 525766ecdd39a6bd |
-| sbom | 0 | 0.121 | yes | 2eae3b70d7706078 |
-| secret-scan | 0 | 2.013 | yes | 7ff728a5877b4846 |
-| security-mutation | 0 | 77.29 | yes | d04b5408453d3d8d |
-| static-analysis | 0 | 13.509 | yes | f46a8c7eeda7fbbd |
-| test-inventory | 0 | 0.103 | yes | a2a0b08287279225 |
+No committed evidence bundle names this commit. **NOT TESTED / INCOMPLETE.**
 
 ## Artifacts
 
@@ -106,4 +88,4 @@ Measured on: architecture=x86_64, cpuCount=2, dart=3.13.5, flutter=3.47.6 stable
 
 ## Open gate problems
 
-- missing release check: deb-signature
+- no committed evidence bundle for this source commit

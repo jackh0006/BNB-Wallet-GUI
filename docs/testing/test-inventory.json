@@ -62,7 +62,7 @@
     {
       "lines": 113,
       "path": "test/create_wallet_dialog_test.dart",
-      "sha256": "cb641f354ad6307a1748b5b16c248fd401a6c82bdcae077ff54399903b90a151",
+      "sha256": "c23984165aed5768b70b077aacc1dbd301cab25bfac51b3ff72070bfaea5d86b",
       "tags": [],
       "tests": 3
     },
@@ -310,7 +310,7 @@
     {
       "lines": 191,
       "path": "test/vault_management_test.dart",
-      "sha256": "8d8d14d4f703d32a1479ab8badb7440db862c79af88a612b5589b6c413f6a1ba",
+      "sha256": "c1d88bc75f130d2a30f5d8cd64cda44571c5ab57d4c4dec4ce8c282252c144d0",
       "tags": [],
       "tests": 9
     },
@@ -349,7 +349,7 @@
     {
       "lines": 58,
       "path": "test/widget_test.dart",
-      "sha256": "705e641e65d09556a4c723fad552493aea12c2ab80095d67658642b7b3997d4d",
+      "sha256": "9829467540f47f3a26036c757dff329e0abbc2be2e88f19d43a4262bbdad1798",
       "tags": [],
       "tests": 3
     },

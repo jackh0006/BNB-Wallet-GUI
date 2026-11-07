@@ -8,7 +8,9 @@ SAMPLES="${SAMPLES:-5}"
 DISPLAY_NUM="${DISPLAY_NUM:-:99}"
 APP="${BNB_WALLET_BIN:-}"
 if [ -z "$APP" ]; then
-  if command -v bnb-wallet >/dev/null 2>&1; then
+  if command -v x-wallet >/dev/null 2>&1; then
+    APP="$(command -v x-wallet)"
+  elif command -v bnb-wallet >/dev/null 2>&1; then
     APP="$(command -v bnb-wallet)"
   else
     APP="$ROOT/build/linux/x64/release/bundle/bnb_wallet_gui"

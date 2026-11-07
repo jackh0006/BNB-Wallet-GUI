@@ -1,4 +1,4 @@
-# Security Self-Assessment — X Wallet GUI
+# Security Self-Assessment — X Wallet
 
 Date: 2026-11-03
 Scope: Linux cold-wallet transaction path, transaction verification, TLS

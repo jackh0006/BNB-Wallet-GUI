@@ -14,7 +14,7 @@ void main() {
     tester.view.physicalSize = const Size(900, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const BnbWalletApp());
+    await tester.pumpWidget(const XWalletApp());
     await tester.pumpAndSettle();
     // The Shell may remember the Wallet tab from a previous test; tapping the
     // label works whether it is selected (filled icon) or not.

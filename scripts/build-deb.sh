@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build a signed Debian/Ubuntu amd64 .deb of X Wallet GUI (Linux release bundle).
+# Build a signed Debian/Ubuntu amd64 .deb of X Wallet (Linux release bundle).
 #
 # Output:
 #   /home/mhh06/Downloads/X Wallet/x-wallet-<pubspec version>-amd64.deb
@@ -100,7 +100,7 @@ Description: X Wallet — graphical BNB Smart Chain wallet
  / legacy fee tiers, receive with QR, inspect public addresses, manage RPC
  nodes and an encrypted local vault (Argon2id + XChaCha20-Poly1305).
  Secrets stay on-device; RPC never sees keys or phrases.
-Homepage: https://github.com/jackh0006/BNB-Wallet-GUI
+Homepage: https://github.com/jackh0006/X-Wallet
 CONTROL
 chmod 0644 "$STAGE/DEBIAN/control"
 

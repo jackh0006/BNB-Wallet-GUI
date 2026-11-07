@@ -10,7 +10,7 @@ if [[ -z "$dart_bin" || ! -x "$dart_bin" ]]; then
   exit 69
 fi
 helper=("$dart_bin" run tool/lock_process_helper.dart)
-lock_dir="$(mktemp -d /tmp/bnb-wallet-lock.XXXXXX)"
+lock_dir="$(mktemp -d /tmp/x-wallet-lock.XXXXXX)"
 trap 'rm -rf "$lock_dir"' EXIT
 chmod 700 "$lock_dir"
 

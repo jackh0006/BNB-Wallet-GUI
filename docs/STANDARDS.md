@@ -49,19 +49,19 @@ the release.
 
 1. **Verify the file you downloaded is the file I signed**
    ```bash
-   sha256sum -c bnb-wallet-1.0.5-amd64.deb.sha256
-   gpg --verify bnb-wallet-1.0.5-amd64.deb.asc bnb-wallet-1.0.5-amd64.deb
+   sha256sum -c SHA256SUMS
+   gpg --verify SHA256SUMS.asc SHA256SUMS   # only when a signature is published
    ```
 2. **Watch the wallet talk to the chain** (Linux, while it is open):
    ```bash
-   strace -f -e trace=connect,getaddrinfo /usr/lib/bnb-wallet/bnb_wallet_gui
+   strace -f -e trace=connect,getaddrinfo /usr/lib/x-wallet/bnb_wallet_gui
    ```
    You will see connections only to HTTPS RPC hosts (and to tor's SOCKS port
    if Privacy mode is on). No other egress.
 3. **Look inside the vault**: `~/.local/share` (app support dir) keeps one
    base64 `BNBVL004` blob with the exact layout documented in docs/CRYPTO.md —
    grep the file: no plaintext seed, no plaintext key.
-4. **Check what the package installs**: `dpkg -c bnb-wallet-1.0.5-amd64.deb` — the app binary, its icon and the desktop entry; nothing else.
+4. **Check what the package installs**: `dpkg -c x-wallet-1.1.0-amd64.deb` — the app binary, its icon and the desktop entry; nothing else.
 5. **Rebuild from source** on any machine with Flutter 3.x and compare behavior.
 6. **Prove the vault is inert off-device**: copy the vault plus nothing else
    to a second machine and run the same wallet — it cannot open without the
