@@ -153,7 +153,7 @@ dpkg-deb -c "$DEB" >/dev/null
 dpkg-deb -I "$DEB"
 
 echo "[5/5] Checksums and optional GPG signature ..."
-sha256sum "$DEB" > "$OUTDIR/SHA256SUMS"
+( cd "$OUTDIR" && sha256sum "$(basename "$DEB")" > SHA256SUMS )
 if [ -n "${BNB_GPG_KEY:-}" ]; then
   if ! gpg --batch --list-secret-keys --with-colons "$BNB_GPG_KEY" \
       | grep -q '^sec:'; then
