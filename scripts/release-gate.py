@@ -106,6 +106,21 @@ EVIDENCE_ONLY_PATHS = {
     "README.md",
 }
 
+# Release tooling may change between the tested commit and a later evidence
+# commit without invalidating the wallet checks.
+RELEASE_TOOLING_PATHS = {
+    "IMPLEMENTATION_STATUS.md",
+    ".github/workflows/verify.yml",
+    "scripts/check_branding.py",
+    "scripts/check_free_product.py",
+    "scripts/check_release_identity.py",
+    "scripts/generate_docs.py",
+    "scripts/release-gate.py",
+    "scripts/release_manifest.py",
+    "scripts/sbom.py",
+    "scripts/test_release_identity.py",
+}
+
 
 def evidence_commit_ok(source_commit: str) -> bool:
     """Accept evidence recorded on an ancestor commit only when every change
@@ -127,6 +142,7 @@ def evidence_commit_ok(source_commit: str) -> bool:
     ).splitlines()
     return all(
         path in {"README.md", "IMPLEMENTATION_STATUS.md"}
+        or path in RELEASE_TOOLING_PATHS
         or path.startswith("docs/")
         or path.startswith("release/")
         for path in changed

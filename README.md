@@ -17,7 +17,7 @@ per-version evidence is in [docs/releases/1.1.0.md](docs/releases/1.1.0.md).
 > **Generated release status** — do not edit this block by hand.
 >
 > Version `1.1.0+5` · status **PARTIALLY VERIFIED**
-> Tests: 49 files / 308 declarations · SBOM `3d3d4ea2e8b43b83`
+> Tests: 49 files / 308 declarations · SBOM `b5d217307d85b027`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
 > See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).

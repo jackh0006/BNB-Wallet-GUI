@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -126,6 +127,65 @@ class IdentityNegativeTests(unittest.TestCase):
     def assert_rejected_with_artifact(self, artifact: Path) -> None:
         errors = identity.validate(self.temp, artifact, skip_git=True)
         self.assertTrue(errors, "validator accepted a mismatched artifact hash")
+
+
+class SquashMergeProvenanceTests(unittest.TestCase):
+    """A squash merge may drop ancestry, but never wallet source changes."""
+
+    def setUp(self) -> None:
+        self.repo = Path(tempfile.mkdtemp(prefix="bnb-squash-test-"))
+        self.git("init", "-q")
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Test")
+        (self.repo / "lib").mkdir()
+        (self.repo / "lib" / "wallet.dart").write_text("// wallet\n")
+        (self.repo / "docs").mkdir()
+        (self.repo / "docs" / "note.md").write_text("one\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "tested")
+        self.checks = self.rev("HEAD")
+        (self.repo / "docs" / "note.md").write_text("two\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "docs")
+        self.source = self.rev("HEAD")
+        self.record = {
+            "testedCommit": self.checks,
+            "mergeCommit": self.source,
+            "branchHead": self.source,
+        }
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.repo, ignore_errors=True)
+
+    def git(self, *args: str) -> None:
+        subprocess.run(["git", *args], cwd=self.repo, check=True, capture_output=True)
+
+    def rev(self, ref: str) -> str:
+        return subprocess.check_output(
+            ["git", "rev-parse", ref], cwd=self.repo, text=True
+        ).strip()
+
+    def test_docs_only_squash_is_accepted(self) -> None:
+        ok, reason = identity.squash_merge_ok(
+            self.repo, self.checks, self.source, self.record
+        )
+        self.assertTrue(ok, reason)
+
+    def test_wallet_source_change_is_rejected(self) -> None:
+        (self.repo / "lib" / "wallet.dart").write_text("// changed\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "runtime")
+        source = self.rev("HEAD")
+        record = dict(self.record, mergeCommit=source)
+        ok, _ = identity.squash_merge_ok(self.repo, self.checks, source, record)
+        self.assertFalse(ok)
+
+    def test_missing_squash_record_is_rejected(self) -> None:
+        ok, _ = identity.squash_merge_ok(
+            self.repo, self.checks, self.source, None
+        )
+        self.assertFalse(ok)
+
 
 
 if __name__ == "__main__":
