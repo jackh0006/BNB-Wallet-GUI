@@ -273,6 +273,7 @@ control the security boundary.
 |---|---|
 | [Project completion](docs/PROJECT_COMPLETION.md) | What X Wallet is, install, recovery, and support status |
 | [AI and human review guide](docs/AI_REVIEW.md) | Repository map, verification commands, and 0–100 rubric |
+| [Security scorecard](docs/SECURITY_SCORECARD.md) | Internal 83/100 self-assessment with evidence and blockers |
 | [Test evidence](docs/TEST_EVIDENCE.md) | Every command and result in one place |
 | [Test results](docs/TEST_RESULTS.md) | Recorded test runs and environment |
 | [Security](SECURITY.md) | Security policy and reporting |
