@@ -18,8 +18,9 @@ fix, and coordinate disclosure with the reporter. There is no bounty program.
 
 ## Security status
 
-Automated checks, source review, and package signatures reduce risk; they do
-not prove safety for real-money use. Read [SECURITY_AUDIT.md](SECURITY_AUDIT.md),
+Automated checks, source review, and package signatures reduce risk; no
+software wallet can prove safety for every environment. Read
+[SECURITY_AUDIT.md](SECURITY_AUDIT.md),
 [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), and
 [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) before use. The
 version-specific pass/fail record and confirmation rule are in
@@ -33,8 +34,8 @@ engineering work, not an audit opinion.
 
 | Version | Status |
 |---|---|
-| `1.0.10` release line | Supported when its release gate reports `VERIFIED` for the exact commit and artifact |
-| `1.0.9` and earlier | Unmaintained; do not treat their test results as evidence for a new build |
+| `1.1.0` | Current stable release; signed with owner key `CC819EF5E109A1518E840379D8C0CEC84BCCE06B` |
+| `1.0.10` and earlier | Historical; use their release notes and do not treat old results as evidence for a new build |
 | Any Android APK | **Blocked** until the historical signing key is rotated and denylisted |
 
 ## Key rotation

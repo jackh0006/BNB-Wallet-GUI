@@ -2,6 +2,9 @@
 *.class
 *.log
 *.pyc
+*.pyo
+*.orig
+*.rej
 *.swp
 .DS_Store
 .atom/
@@ -28,6 +31,10 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
+__pycache__/
+linux/flutter/ephemeral/
+android/.gradle/
+.gradle/
 .pub-cache/
 .pub/
 /build/
@@ -65,6 +72,9 @@ release-signing/
 *.apk
 *.aab
 *.deb
+*.tar.gz
+*.zip
+*.hprof
 
 # Per-build evidence (recorded locally or uploaded by CI); the committed
 # source manifest is release/manifest.json, and a published bundle is
@@ -72,6 +82,14 @@ release-signing/
 /release/checks.json
 /release/artifacts.json
 /release/evidence/
+
+# Local secrets and environment files
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.csr
 
 # Debug/investigation leftovers
 *.bak
