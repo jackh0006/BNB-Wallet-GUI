@@ -79,6 +79,7 @@ SQUASH_ALLOWED_PATHS = {
     "README.md",
     "IMPLEMENTATION_STATUS.md",
     ".github/workflows/verify.yml",
+    ".github/workflows/benchmark.yml",
     "scripts/check_branding.py",
     "scripts/check_free_product.py",
     "scripts/check_release_identity.py",

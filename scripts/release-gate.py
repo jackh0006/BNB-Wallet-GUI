@@ -111,6 +111,7 @@ EVIDENCE_ONLY_PATHS = {
 RELEASE_TOOLING_PATHS = {
     "IMPLEMENTATION_STATUS.md",
     ".github/workflows/verify.yml",
+    ".github/workflows/benchmark.yml",
     "scripts/check_branding.py",
     "scripts/check_free_product.py",
     "scripts/check_release_identity.py",
