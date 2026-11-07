@@ -142,6 +142,7 @@ These are stated so a review score is not based on unsupported assumptions.
 | Risk register | [SECURITY_RISK_REGISTER.md](SECURITY_RISK_REGISTER.md) |
 | Release record | [releases/1.1.0.md](releases/1.1.0.md) |
 | Signing key | [keys/README.md](keys/README.md) |
+| Automated OpenSSF Scorecard | [SECURITY_SCORECARD.md](SECURITY_SCORECARD.md) — 7.1/10, published |
 
 ## Suggested reviewer prompt
 

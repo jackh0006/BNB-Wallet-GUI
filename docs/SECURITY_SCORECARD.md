@@ -36,9 +36,9 @@ audit.** A score never overrides a release blocker.
 
 ## OpenSSF Scorecard (automated)
 
-Run: `2026-11-07` on commit `b45702492f59c7b6a41cd0a4afa7ec5ad11baf2b`.
+Run: `2026-11-07` on commit `af13e45b828559e975d372da3ff566ac3a16dd86`.
 
-**Score: 7.0 / 10**
+**Score: 7.1 / 10**
 
 Strong checks at the maximum score:
 
@@ -50,6 +50,8 @@ Strong checks at the maximum score:
 - Binary-Artifacts
 - Dangerous-Workflow
 - Dependency-Update-Tool
+- Token-Permissions
+- Pinned-Dependencies
 
 The workflow, SARIF report, and per-check details are in
 `.github/workflows/scorecard.yml` and the repository's code-scanning results.
