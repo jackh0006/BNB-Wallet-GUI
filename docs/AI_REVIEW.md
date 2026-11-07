@@ -75,7 +75,7 @@ bash scripts/test-suite.sh
 python3 scripts/test_inventory.py --check
 python3 scripts/sbom.py --out docs/SBOM.json
 python3 scripts/generate_docs.py --check
-python3 scripts/package-smoke.sh    # requires a built .deb and Ubuntu
+bash scripts/package-smoke.sh    # requires a built .deb and Ubuntu
 ```
 
 For a released artifact:
