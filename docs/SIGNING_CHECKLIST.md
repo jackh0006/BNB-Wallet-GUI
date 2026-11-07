@@ -3,10 +3,11 @@
 This checklist is for the release owner. Do not run it with an agent-generated
 or test key. Do not commit private keys, passwords, or `.gnupg` contents.
 
-The published X Wallet 1.1.0 release is currently **UNSIGNED**. Follow this
-checklist only with an owner-controlled key, then replace the release assets
-and remove the UNSIGNED label. Never claim a package is signed until the
-verification below passes against the exact published bytes.
+The published X Wallet 1.1.0 release is **signed** with owner key
+`CC819EF5E109A1518E840379D8C0CEC84BCCE06B`, and `SHA256SUMS.asc` was verified
+in a clean keyring. Use this checklist for a future release or to re-verify the
+published bytes. Never claim a package is signed until the verification below
+passes against the exact published bytes.
 
 ## 1. Confirm the artifact and source
 
@@ -96,8 +97,8 @@ gh release upload v1.1.0 \
   SHA256SUMS SHA256SUMS.asc --clobber
 ```
 
-Then update the release notes: replace the UNSIGNED warning with the signing
-fingerprint and the verification command. Do not change the `.deb` bytes.
+Then update the release notes with the signing fingerprint and the
+verification command. Do not change the `.deb` bytes.
 
 Never publish an unsigned or unverified package. Never describe provenance as
 reproducibility, and never describe a self-audit as an independent audit.

@@ -72,6 +72,9 @@ Get the latest release from:
 # 2. Verify the download.
 sha256sum x-wallet-1.1.0-amd64.deb
 sha256sum -c SHA256SUMS
+gpg --import x-wallet-signing-key.asc
+gpg --fingerprint CC819EF5E109A1518E840379D8C0CEC84BCCE06B
+gpg --verify SHA256SUMS.asc SHA256SUMS
 
 # 3. Install.
 sudo apt install ./x-wallet-1.1.0-amd64.deb
@@ -81,8 +84,9 @@ The Debian package is `x-wallet`. It replaces `bnb-wallet`, preserves the
 existing user-data directory, and keeps `/usr/bin/bnb-wallet` as a
 compatibility alias.
 
-The release page states the current signature status. If a signature is
-published, verify it against a fingerprint obtained independently.
+The release is signed with owner key
+`CC819EF5E109A1518E840379D8C0CEC84BCCE06B`. Verify the fingerprint through an
+independent channel before trusting it.
 
 ## Quick start
 
@@ -241,9 +245,8 @@ control the security boundary.
   device or use hardware-backed custody in addition to this wallet.
 - **Network fees.** Blockchain fees are paid to the network, not to X Wallet.
 - **Download integrity.** Download only from the official release page, verify
-  the published SHA-256, and check the release page’s signature status. If a
-  signature is published, verify it against a fingerprint obtained
-  independently.
+  the published SHA-256, and verify `SHA256SUMS.asc` against the signing
+  fingerprint obtained independently.
 
 ## Documentation
 

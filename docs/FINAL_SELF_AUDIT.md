@@ -60,7 +60,7 @@ limitations. **Large-value custody: NOT APPROVED.**
 | ID | Severity | Finding | Status |
 |---|---|---|---|
 | FA-01 | High | Historical Android release keystore exposed; rotation not verified | Open owner action; Android blocked; Linux `.deb` unaffected |
-| FA-02 | High | Release `.deb` not GPG-signed in this environment | Open owner action; published as **UNSIGNED** with SHA-256 |
+| FA-02 | High | Release `.deb` initially unsigned | **Resolved**: signed with owner key `CC819EF5E109A1518E840379D8C0CEC84BCCE06B`; `SHA256SUMS.asc` verified in a clean keyring (2026-11-07) |
 | FA-03 | High | No independent external audit | Accepted limitation; explicitly not claimed |
 | FA-04 | High | Hardware-wallet support absent | Documented `NOT IMPLEMENTED`; large-value custody not approved |
 | FA-05 | High | Reviewed multisignature custody absent | Documented `NOT IMPLEMENTED`; no custom contract deployed |
@@ -92,7 +92,6 @@ limitations. **Large-value custody: NOT APPROVED.**
 - Dart garbage-collected memory cannot be securely erased; `mlockall` is
   best-effort.
 - No hardware wallet, no multisig, no independent audit.
-- The release package is unsigned.
 - Android remains blocked by the signing-key incident.
 - A running Secret Service provider (gnome-keyring or KWallet) is required;
   minimal/headless sessions without one currently fail at startup.
@@ -103,10 +102,10 @@ limitations. **Large-value custody: NOT APPROVED.**
 
 - **Critical findings unresolved in the Linux code:** none found.
 - **High code findings unresolved:** none found.
-- **Release integrity:** unsigned artifact; signature gate open.
+- **Release integrity:** signed artifact; detached signature verified against the published SHA-256.
 - **Ordinary Linux use:** internally approved with limitations.
-- **Small real-money use:** possible only after the user accepts the unsigned
-  artifact and residual risks; a signed artifact is recommended.
+- **Small real-money use:** possible after the user verifies the signed
+  artifact and accepts the residual risks.
 - **Significant holdings / large-value custody: NOT APPROVED.**
 
 This document is an internal self-audit. It is not an independent professional

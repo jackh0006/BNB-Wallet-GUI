@@ -29,11 +29,13 @@ The stable release is published at:
 Download only from the release page:
 
 - `x-wallet-1.1.0-amd64.deb`
-- `SHA256SUMS`
+- `SHA256SUMS` and `SHA256SUMS.asc`
+- `x-wallet-signing-key.asc`
 - SBOM and release documentation
 
-The release page states whether the artifact is signed. **If no valid GPG
-signature is present, the package is UNSIGNED.** Do not describe it as signed.
+The release is signed with owner key
+`CC819EF5E109A1518E840379D8C0CEC84BCCE06B`. Verify the fingerprint through an
+independent channel before trusting it.
 
 ## Verify the SHA-256
 
@@ -46,10 +48,11 @@ Compare the output with the SHA-256 published on the GitHub release page. A
 matching hash proves the download is the artifact the project published; it
 does not prove the project itself is free of defects.
 
-If a signature is published:
-
 ```bash
+gpg --import x-wallet-signing-key.asc
+gpg --fingerprint CC819EF5E109A1518E840379D8C0CEC84BCCE06B
 gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum --check SHA256SUMS
 ```
 
 ## Supported platform
@@ -94,7 +97,7 @@ service.
 - This is a local hot wallet; a compromised OS, malware, or same-UID attacker
   can read an unlocked session.
 - The project has **not** received an independent external audit.
-- The release artifact may be unsigned; its SHA-256 is published.
+- The release artifact is signed; verify the published fingerprint and SHA-256.
 - RPC data is not light-client verified; a malicious provider can mislead the
   review screen.
 - Dart memory cannot be securely erased; `mlockall` is best-effort.

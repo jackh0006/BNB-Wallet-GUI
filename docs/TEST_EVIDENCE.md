@@ -14,6 +14,8 @@ reading the source or testing the wallet yourself.
 | Package | `x-wallet-1.1.0-amd64.deb` |
 | SHA-256 | `66779cb03d843bf9fbb1bd9cf14d267a75c8d5b25e54909adac0b06bb4f4150b` |
 | SBOM | `docs/SBOM.json` — 116 packages |
+| Signature | `SHA256SUMS.asc` — EdDSA |
+| Signing fingerprint | `CC819EF5E109A1518E840379D8C0CEC84BCCE06B` |
 | Evidence bundle | `release/evidence.json` |
 | Test matrix | `docs/testing/TEST_MATRIX.md` |
 | Recorded results | `docs/TEST_RESULTS.md` |
@@ -76,6 +78,7 @@ reading the source or testing the wallet yourself.
 | ✅ PASS | SBOM | `python3 scripts/sbom.py --out docs/SBOM.json` | PASS: 116 packages | The complete dependency inventory is generated and hashed. |
 | ✅ PASS | Release evidence identity | `python3 scripts/check_release_identity.py` | PASS | Manifest, SBOM, evidence, and artifact hashes bind to one source commit. |
 | ✅ PASS | Release identity negative tests | `python3 scripts/test_release_identity.py` | PASS: 15/15 | Stale, tampered, malformed, and ambiguous identities are rejected. |
+| ✅ PASS | Published artifact signature | `scripts/verify-release-signature.sh` in a clean GNUPGHOME | PASS: `SHA256SUMS.asc` verified; fingerprint `CC819EF5E109A1518E840379D8C0CEC84BCCE06B` | The exact published `.deb` checksum is covered by a detached owner signature and verified independently. |
 | ✅ PASS | Hosted CI | GitHub Actions on `main`: `verify`, `docs-sync`, `integration`, `package-smoke`, `CodeQL` | PASS | Every required workflow is green. |
 | ✅ PASS | CodeQL | GitHub CodeQL: C/C++, JavaScript/TypeScript, Python, Actions | PASS | Static security analysis runs across four languages. |
 | ✅ PASS | Generated-docs sync | `python3 scripts/generate_docs.py --check` | PASS | Generated status and README blocks match the committed files. |

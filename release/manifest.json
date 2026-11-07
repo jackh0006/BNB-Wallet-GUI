@@ -7,7 +7,7 @@
   },
   "evidenceBundle": {
     "path": "release/evidence.json",
-    "sha256": "d6b5caad6c35260b10dca84c75a66c6bf27c16d5ad0ce8995ed9863f8992b7e0",
+    "sha256": "04abc802b6ad1ab9283ecc8cc08133450f1e11a1081d5d0efe8d094c4c119435",
     "sourceCommit": "1b4800757ce953b3af400680b2a12da348314a1c"
   },
   "generatedFrom": "working-tree source facts; the exact commit is bound by release/evidence.json",
