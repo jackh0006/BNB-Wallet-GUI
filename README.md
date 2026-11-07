@@ -1,6 +1,6 @@
 # X Wallet
 
-A Linux amd64 desktop wallet for BNB Smart Chain. It is local, self-custodial,
+A Linux amd64 desktop wallet built on EVM-compatible primitives. It is local, self-custodial,
 AGPL-3.0-or-later software: the wallet owner controls the recovery phrase and
 the source can be inspected, built, and redistributed.
 
@@ -8,6 +8,13 @@ Created and maintained by **jackh0006** ([jackh109867@gmail.com](mailto:jackh109
 The project is AI-assisted and self-assessed: automated tools and AI may help
 with implementation, review, and documentation, but neither replaces an
 independent security audit.
+
+## Supported networks
+
+Version 1.1.0 enables **BNB Smart Chain** mainnet (56) and testnet (97). The
+codebase uses EVM address, transaction, and signing primitives, but no other
+network is enabled or claimed in this release. Additional EVM networks are
+planned; support begins only when a release documents it.
 
 **Current stable release: X Wallet 1.1.0 (`v1.1.0`).** Download and verify it from
 <https://github.com/jackh0006/X-Wallet/releases/tag/v1.1.0>. The exact
@@ -20,7 +27,7 @@ the generated status block below describes the current branch HEAD, while the
 > **Generated release status** — do not edit this block by hand.
 >
 > Version `1.1.0+5` · status **INCOMPLETE**
-> Tests: 49 files / 308 declarations · SBOM `e0e972b3fd712761`
+> Tests: 49 files / 308 declarations · SBOM `6d5d19ef59bb4228`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
 > See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
@@ -36,7 +43,7 @@ the generated status block below describes the current branch HEAD, while the
 - Creates and restores BIP-39 wallets; derives EVM addresses and signs locally.
 - Encrypts the vault with Argon2id and XChaCha20-Poly1305; writes through a
   hardened atomic Linux storage path.
-- Supports BSC RPC nodes, optional Tor/SOCKS routing, HTTPS-only custom nodes,
+- Supports EVM RPC nodes (BNB Smart Chain configured in 1.1.0), optional Tor/SOCKS routing, HTTPS-only custom nodes,
   TLS SPKI pins, and fail-closed privacy routing.
 - Reviews a transaction before signing: full checksummed address, chain,
   nonce, fees, maximum cost, poisoning checks, simulation, and safe handling
@@ -136,7 +143,7 @@ The dated, source-linked comparison is in
 | Protection from a compromised desktop OS | No | No | Better: key remains on device |
 | Independent external security review | No | Varies | Varies |
 
-The point of X Wallet is an inspectable Linux-native BSC workflow with
+The point of X Wallet is an inspectable Linux-native EVM workflow with
 encrypted local storage, strict transaction review, privacy routing, and a
 cold-wallet protocol in one codebase. It is not a replacement for a hardware
 wallet when the consequence of loss is high.

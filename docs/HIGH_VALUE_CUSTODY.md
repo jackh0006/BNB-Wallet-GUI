@@ -35,7 +35,7 @@ in process memory while unlocked.
 ## Multisignature
 
 Prefer established, independently reviewed multisignature systems with a public
-security history on BNB Smart Chain. Do not deploy a custom multisignature
+security history on EVM networks. Do not deploy a custom multisignature
 contract for valuable funds without a professional audit. This project does not
 currently deploy or recommend a custom contract.
 

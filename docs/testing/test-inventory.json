@@ -141,7 +141,7 @@
     {
       "lines": 132,
       "path": "test/journey_map_test.dart",
-      "sha256": "906171a6e558a34a138120cf9f6a90bff1eb15b3c74c1c796beb803a9cbcb5d4",
+      "sha256": "ae403629e73c604254af9d2405e8b1dbac7611b46e407ddd495e822e591d3377",
       "tags": [],
       "tests": 3
     },
@@ -187,7 +187,7 @@
     {
       "lines": 297,
       "path": "test/navigation_flow_test.dart",
-      "sha256": "2e166bd0ffecc36b6a64992fd465f312c2ac7fdbf840fa1708096ad62c2ae895",
+      "sha256": "480cce5c0ec65df4de0e2000206a8571bccb5c6668e2380f1f785ae60f2a44f8",
       "tags": [],
       "tests": 3
     },

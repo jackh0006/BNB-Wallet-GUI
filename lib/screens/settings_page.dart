@@ -499,7 +499,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle('BSC network'),
+          SectionTitle('Network'),
           const SizedBox(height: 8),
           const Text(
             'Switching networks verifies the chain ID before any RPC call.',
@@ -1183,7 +1183,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle('Custom BEP-20 tokens'),
+          SectionTitle('Custom tokens'),
           const SizedBox(height: 8),
           const Text(
             'Adds a token contract address to your balance list. Verified on-chain before saving.',
@@ -1517,7 +1517,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle('Transaction history (BscScan)'),
+          SectionTitle('Transaction history'),
           const SizedBox(height: 8),
           const Text(
             'Optional API key for viewing public transaction history. Stored in secure on-device storage.',
@@ -1850,7 +1850,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Local, non-custodial BNB Smart Chain wallet, based on the v1 terminal wallet.',
+            'Local, non-custodial EVM wallet. Version 1.1.0 enables BNB Smart Chain; more EVM networks are planned.',
           ),
           const SizedBox(height: 8),
           const Text(

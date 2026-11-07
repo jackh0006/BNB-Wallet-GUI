@@ -1,5 +1,5 @@
 name: bnb_wallet_gui
-description: "X Wallet based on v1 terminal wallet"
+description: "X Wallet — local, non-custodial EVM wallet"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

@@ -1,8 +1,8 @@
 # Cold Wallet Mode — operator and developer guide
 
 Status: implemented and self-verified. **Not independently reviewed.** Use on
-BSC testnet (chain id 97) or with small amounts until an external review
-exists. The security assessment is in [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md).
+the current testnet (chain id 97) or with small amounts until an external
+review exists. The security assessment is in [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md).
 
 ## What the mode guarantees
 
@@ -176,7 +176,7 @@ truncating them.
 
 ## Limits
 
-- Only BSC mainnet (56) and testnet (97).
+- Version 1.1.0 enables BSC mainnet (56) and testnet (97); other EVM networks are not yet enabled.
 - Only EIP-1559; legacy fee requests are not created for the cold flow.
 - Access lists are rejected.
 - First 20 default BIP-44 accounts only (`m/44'/60'/0'/0/0..19`). Custom

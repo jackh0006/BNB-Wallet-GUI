@@ -554,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get journeyNode => 'Node';
 
   @override
-  String get journeyChain => 'BNB Chain';
+  String get journeyChain => 'Network';
 
   @override
   String get journeyDone => 'Done';

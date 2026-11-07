@@ -553,7 +553,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get journeyNode => 'العقدة';
 
   @override
-  String get journeyChain => 'سلسلة BNB';
+  String get journeyChain => 'الشبكة';
 
   @override
   String get journeyDone => 'تم';

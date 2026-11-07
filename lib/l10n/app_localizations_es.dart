@@ -554,7 +554,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get journeyNode => 'Nodo';
 
   @override
-  String get journeyChain => 'Cadena BNB';
+  String get journeyChain => 'Red';
 
   @override
   String get journeyDone => 'Hecho';

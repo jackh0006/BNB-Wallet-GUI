@@ -2,11 +2,19 @@
 
 ## What X Wallet is
 
-X Wallet is a free, open-source (AGPL-3.0-or-later), local, non-custodial BNB
-Smart Chain desktop wallet for Linux. It creates or imports BIP-39 wallets,
+X Wallet is a free, open-source (AGPL-3.0-or-later), local, non-custodial
+EVM-compatible desktop wallet for Linux. Version 1.1.0 enables BNB Smart Chain.
+It creates or imports BIP-39 wallets,
 derives EVM addresses, signs locally, and stores the vault with Argon2id and
 XChaCha20-Poly1305. It also provides a cold/offline signing workflow, optional
 Tor/SOCKS routing, transaction review, and a hardened Linux storage path.
+
+## Supported networks
+
+Version 1.1.0 enables BNB Smart Chain mainnet (56) and testnet (97). The
+codebase uses EVM primitives, but no other network is enabled or claimed in
+this release. Additional EVM networks are planned; do not assume support until
+a release documents it.
 
 ## Current stable version
 

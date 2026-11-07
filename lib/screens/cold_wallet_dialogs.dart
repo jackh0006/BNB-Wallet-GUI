@@ -225,7 +225,7 @@ Future<void> coldExportPairing(BuildContext context) async {
   try {
     final addresses = WalletCore.deriveAddressList(phrase: phrase, count: 20);
     final pairing = ColdWalletProtocol.exportPairing(
-      walletName: 'BNB cold signer',
+      walletName: 'X Wallet cold signer',
       chainId: appState.rpc.chainId,
       addresses: addresses,
     );

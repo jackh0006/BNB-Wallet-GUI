@@ -192,7 +192,7 @@ def main() -> int:
                 "type": "application",
                 "name": "bnb_wallet_gui",
                 "version": version,
-                "description": "Local, non-custodial BNB Smart Chain wallet (deb).",
+                "description": "Local, non-custodial EVM wallet (deb).",
             },
             "properties": [
                 {"name": "generated_from", "value": f"{lock_path}, {npm_lock_path}"},

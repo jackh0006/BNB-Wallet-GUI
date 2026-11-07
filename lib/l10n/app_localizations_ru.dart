@@ -555,7 +555,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get journeyNode => 'Узел';
 
   @override
-  String get journeyChain => 'BNB Chain';
+  String get journeyChain => 'Сеть';
 
   @override
   String get journeyDone => 'Готово';

@@ -1183,7 +1183,7 @@ abstract class AppLocalizations {
   /// No description provided for @journeyChain.
   ///
   /// In en, this message translates to:
-  /// **'BNB Chain'**
+  /// **'Network'**
   String get journeyChain;
 
   /// No description provided for @journeyDone.

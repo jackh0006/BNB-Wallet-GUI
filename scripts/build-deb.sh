@@ -59,7 +59,7 @@ cat > "$STAGE/usr/share/applications/x-wallet.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=X Wallet
-Comment=Local non-custodial BNB Smart Chain wallet
+Comment=Local non-custodial EVM wallet
 Exec=x-wallet
 Icon=x-wallet
 Terminal=false
@@ -94,9 +94,9 @@ Priority: optional
 Architecture: amd64
 Maintainer: jackh0006 <jackh109867@gmail.com>
 Depends: libgtk-3-0, libsecret-1-0, liblzma5, libstdc++6, libc6
-Description: X Wallet — graphical BNB Smart Chain wallet
- GUI port of the BNB terminal wallet (v1). Local, non-custodial: create or
- import BIP-39 wallets, manage BNB and BEP-20 tokens, send with live EIP-1559
+Description: X Wallet — local, non-custodial EVM wallet
+ GUI port of the v1 terminal wallet. Local, non-custodial: create or
+ import BIP-39 wallets, manage native and EVM tokens, send with live EIP-1559
  / legacy fee tiers, receive with QR, inspect public addresses, manage RPC
  nodes and an encrypted local vault (Argon2id + XChaCha20-Poly1305).
  Secrets stay on-device; RPC never sees keys or phrases.

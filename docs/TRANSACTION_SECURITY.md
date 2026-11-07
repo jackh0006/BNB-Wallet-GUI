@@ -1,6 +1,6 @@
 # Transaction Security
 
-**Scope:** native BNB and BEP-20 transfers. The wallet does not implement
+**Scope:** native-coin and EVM token transfers as enabled in 1.1.0. The wallet does not implement
 token approvals, arbitrary contract calls, or a dapp browser.
 
 ## Flow
