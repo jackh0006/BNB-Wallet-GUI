@@ -40,7 +40,7 @@ jobs:
       - name: Download the previous public package
         run: |
           curl -fL --retry 3 -o previous.deb \
-            https://github.com/jackh0006/BNB-Wallet-GUI/releases/download/v1.0.9-ui.1/bnb-wallet-1.0.9-amd64.deb
+            https://github.com/jackh0006/X-Wallet/releases/download/v1.0.9-ui.1/bnb-wallet-1.0.9-amd64.deb
           sha256sum previous.deb
       - name: Install, launch, upgrade, uninstall, reinstall
         run: |

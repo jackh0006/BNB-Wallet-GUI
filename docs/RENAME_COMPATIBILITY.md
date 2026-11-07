@@ -36,7 +36,7 @@ depend on.
 | Receipt/log envelopes | `BNBRCPT1`, `BNBLOG01` | Existing archives |
 | User data directory | `~/.local/share/bnb-wallet` | Upgrade must preserve the vault |
 | Env vars | `BNB_*` | CI and release-script compatibility |
-| GitHub repository | `BNB-Wallet-GUI` | Preserve PR #10, releases, links |
+| GitHub repository | `BNB-Wallet-GUI` → `X-Wallet` | Old URL redirects; PRs, releases and tags preserved |
 | Historical tags/releases | `v1.0.5`, `v1.0.8-*`, `v1.0.9-*` | Do not rewrite public history |
 
 ## Debian migration
@@ -65,10 +65,12 @@ An upgrade that fails any of these steps blocks release.
 
 ## GitHub repository name
 
-The repository remains `BNB-Wallet-GUI` for this tranche. Renaming it would
-change PR/release URLs. The product name in the repository description and all
-documentation is X Wallet. A repository rename can be performed later by the
-owner after merge.
+The GitHub repository was renamed from `BNB-Wallet-GUI` to `X-Wallet` after
+the 1.1.0 publication. GitHub redirects the old URL, and PRs, releases, tags,
+and assets remain reachable. The canonical URL is now
+<https://github.com/jackh0006/X-Wallet>. This rename changes no package,
+binary, application ID, vault, backup, data-path, or environment-variable
+identifier.
 
 ## Historical documents
 

@@ -7,7 +7,7 @@ entries and mark superseded claims.
 
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
 **Final candidate HEAD:** `142929315b7df572ffae93cbc5ab1a2ec2395724`
-**PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
+**PR:** <https://github.com/jackh0006/X-Wallet/pull/10>
 
 ### Cryptography and transaction fixes
 

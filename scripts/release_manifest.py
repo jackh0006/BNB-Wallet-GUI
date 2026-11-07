@@ -110,7 +110,7 @@ def build() -> dict:
         "schemaVersion": 1,
         "project": {
             "name": "X Wallet GUI",
-            "repository": "https://github.com/jackh0006/BNB-Wallet-GUI",
+            "repository": "https://github.com/jackh0006/X-Wallet",
             "license": "AGPL-3.0-or-later",
             "author": "Jack Hudson <jackh109867@gmail.com>",
         },

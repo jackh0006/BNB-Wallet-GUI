@@ -20,12 +20,12 @@
     "author": "Jack Hudson <jackh109867@gmail.com>",
     "license": "AGPL-3.0-or-later",
     "name": "X Wallet GUI",
-    "repository": "https://github.com/jackh0006/BNB-Wallet-GUI"
+    "repository": "https://github.com/jackh0006/X-Wallet"
   },
   "releaseEvidence": "docs/releases/1.1.0.md",
   "sbom": {
     "path": "docs/SBOM.json",
-    "sha256": "b5d217307d85b02767adef1ceed6aecdead5ccac76a138b1276077a93c8c3280"
+    "sha256": "e0e972b3fd712761a5dd2f086754cb3ed3fb2610d9f616b2e9805d710fc841dc"
   },
   "schemaVersion": 1,
   "tests": {

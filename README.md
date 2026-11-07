@@ -10,14 +10,14 @@ with implementation, review, and documentation, but neither replaces an
 independent security audit.
 
 **Current stable release: X Wallet 1.1.0 (`v1.1.0`).** Download and verify it from
-<https://github.com/jackh0006/BNB-Wallet-GUI/releases/tag/v1.1.0>. The exact
+<https://github.com/jackh0006/X-Wallet/releases/tag/v1.1.0>. The exact
 per-version evidence is in [docs/releases/1.1.0.md](docs/releases/1.1.0.md).
 
 <!-- BEGIN GENERATED:status -->
 > **Generated release status** — do not edit this block by hand.
 >
 > Version `1.1.0+5` · status **PARTIALLY VERIFIED**
-> Tests: 49 files / 308 declarations · SBOM `b5d217307d85b027`
+> Tests: 49 files / 308 declarations · SBOM `e0e972b3fd712761`
 >
 > The exact evidence commit is in `release/evidence.json` when a bundle is published. This is not an audit.
 > See [the generated status report](docs/GENERATED_STATUS.md) and [the release evidence policy](docs/RELEASE_EVIDENCE.md).
