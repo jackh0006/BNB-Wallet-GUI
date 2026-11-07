@@ -33,7 +33,7 @@
     "matches": true,
     "path": "docs/testing/test-inventory.json",
     "recordedFiles": 49,
-    "sha256": "26afb45b80b400556d4c5d7f2ffbbf71119bc7ccf4f60e9592a9fdbbfad46fea"
+    "sha256": "92f89070d12aea86f3e0bb86c4ee87f76451029ec45bf8b634b2abfc2e2156b5"
   },
   "toolchain": {
     "dart": "Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on \"linux_x64\"",
