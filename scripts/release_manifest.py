@@ -109,7 +109,7 @@ def build() -> dict:
     return {
         "schemaVersion": 1,
         "project": {
-            "name": "X Wallet GUI",
+            "name": "X Wallet",
             "repository": "https://github.com/jackh0006/X-Wallet",
             "license": "AGPL-3.0-or-later",
             "author": "Jack Hudson <jackh109867@gmail.com>",

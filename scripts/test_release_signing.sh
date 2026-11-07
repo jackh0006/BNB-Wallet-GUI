@@ -17,7 +17,7 @@ FPR="$(gpg --batch --with-colons --fingerprint | awk -F: '$1=="fpr"{print $10; e
 
 OUT="$TMP/out"
 mkdir -p "$OUT"
-DEB="$TMP/bnb-wallet-test-amd64.deb"
+DEB="$TMP/x-wallet-test-amd64.deb"
 printf 'synthetic package\n' >"$DEB"
 
 bash "$ROOT/scripts/sign-release.sh" --deb "$DEB" --key "$FPR" --outdir "$OUT" >/dev/null

@@ -6,7 +6,7 @@ import 'package:cryptography/cryptography.dart';
 
 import 'kdf.dart';
 
-/// Encrypted local vault for X Wallet GUI.
+/// Encrypted local vault for X Wallet.
 ///
 /// Version 2 envelope ("BNBVL004", version byte 2) — two independent wrappers
 /// around a random data-encryption key (DEK):

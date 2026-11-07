@@ -1,4 +1,4 @@
-# Security Notes — X Wallet GUI
+# Security Notes — X Wallet
 
 Created by jackh0006 (jackh109867@gmail.com)
 

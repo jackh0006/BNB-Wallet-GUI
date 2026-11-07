@@ -37,10 +37,10 @@ jobs:
           set -euo pipefail
           sudo mkdir -p /build
           sudo chown "$(id -u):$(id -g)" /build
-          rm -rf /build/bnb-wallet
-          mkdir -p /build/bnb-wallet
-          git archive HEAD | tar -x -C /build/bnb-wallet
-          cd /build/bnb-wallet
+          rm -rf /build/x-wallet
+          mkdir -p /build/x-wallet
+          git archive HEAD | tar -x -C /build/x-wallet
+          cd /build/x-wallet
           export SOURCE_DATE_EPOCH=0
           flutter pub get
           flutter build linux --release
@@ -81,4 +81,4 @@ jobs:
             echo "::error::NOT REPRODUCIBLE at the fixed path across runners"
             exit 1
           fi
-          echo "PASS: reproducible at fixed path /build/bnb-wallet across two runners"
+          echo "PASS: reproducible at fixed path /build/x-wallet across two runners"

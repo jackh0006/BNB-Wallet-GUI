@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          X Wallet GUI (Flutter/Dart)                  │
+│                          X Wallet (Flutter/Dart)                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  UI Layer (lib/screens/, lib/widgets/)                                  │
 │  ├── Dashboard / Home                                                   │
@@ -56,7 +56,7 @@
 ## Repository Structure
 
 ```
-/home/mhh06/BNB-Wallet-GUI/
+/home/mhh06/X-Wallet/
 ├── AGENTS.md                    # This file
 ├── pubspec.yaml / pubspec.lock
 ├── analysis_options.yaml
@@ -183,7 +183,7 @@ export BNB_KEY_ALIAS=myalias
 export BNB_STORE_PASS=storepass
 export BNB_KEY_PASS=keypass
 bash scripts/build-apk.sh
-# Output: ./dist/bnb-wallet-<version>-android-arm64.apk (+ .sha256 + optional .asc)
+# Output: ./dist/x-wallet-<version>-android-arm64.apk (+ .sha256 + optional .asc)
 ```
 
 ## Release Procedure

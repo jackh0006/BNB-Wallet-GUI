@@ -1,4 +1,4 @@
-# Threat Model — X Wallet GUI
+# Threat Model — X Wallet
 
 Created by jackh0006 (jackh109867@gmail.com)
 

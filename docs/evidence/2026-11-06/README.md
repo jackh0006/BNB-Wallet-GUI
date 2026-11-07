@@ -4,7 +4,7 @@
 **Code commit:** `e474b8956a68febf44ef780c7decf898e9050018`
 **Evidence bundle source:** `b50ad2c95fb2c204fbb7803ffcc27d30483538cb`
 **Tested code commit:** `90d0f7cce3c535455495e29a03c0f35e8d91de6c`
-**PR:** <https://github.com/jackh0006/BNB-Wallet-GUI/pull/10>
+**PR:** <https://github.com/jackh0006/X-Wallet/pull/10>
 
 | File | Contents |
 |---|---|

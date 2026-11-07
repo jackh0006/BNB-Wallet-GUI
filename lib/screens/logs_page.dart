@@ -674,7 +674,7 @@ class _LogsPageState extends State<LogsPage> {
           .split('.')
           .first;
       final path = await exportToFile(
-        'bnb-wallet-log-$stamp.${json ? 'json' : 'txt'}',
+        'x-wallet-log-$stamp.${json ? 'json' : 'txt'}',
         text,
       );
       if (!mounted) return;

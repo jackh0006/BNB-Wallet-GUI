@@ -65,7 +65,7 @@ entries and mark superseded claims.
 
 ### Artifact
 
-- Built unsigned `bnb-wallet-1.0.10-amd64.deb` from the final docs state.
+- Built the unsigned 1.0.10 package from the final docs state.
 - SHA-256: `d25ecdb2de3a8e706950158639d0366dc147f339957500a98b3f429c6b549244`.
 - `dpkg-deb -x` + `ldd` resolve all libraries; no secret-bearing filenames.
 - Not signed, not installed, not published.

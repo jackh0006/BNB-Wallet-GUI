@@ -22,18 +22,17 @@ void main() async {
   ]);
   await MemoryProtection.initialize();
   await appState.init();
-  runApp(const BnbWalletApp());
+  runApp(const XWalletApp());
 }
 
-class BnbWalletApp extends StatefulWidget {
-  const BnbWalletApp({super.key});
+class XWalletApp extends StatefulWidget {
+  const XWalletApp({super.key});
 
   @override
-  State<BnbWalletApp> createState() => _BnbWalletAppState();
+  State<XWalletApp> createState() => _XWalletAppState();
 }
 
-class _BnbWalletAppState extends State<BnbWalletApp>
-    with WidgetsBindingObserver {
+class _XWalletAppState extends State<XWalletApp> with WidgetsBindingObserver {
   DateTime _lastActivity = DateTime.now();
   Timer? _idleTimer;
   AppLifecycleListener? _lifecycle;

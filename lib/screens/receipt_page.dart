@@ -677,7 +677,7 @@ class ReceiptPage extends StatelessWidget {
           ? 'unknown'
           : clean.substring(0, clean.length < 12 ? clean.length : 12);
       final path = await exportToFile(
-        'bnb-wallet-receipt-$suffix.json',
+        'x-wallet-receipt-$suffix.json',
         _receiptJson(),
       );
       if (!context.mounted) return;
@@ -696,7 +696,7 @@ class ReceiptPage extends StatelessWidget {
           : clean.substring(0, clean.length < 12 ? clean.length : 12);
       final bytes = await renderReceiptPng(receipt);
       final path = await exportBytesToFile(
-        'bnb-wallet-receipt-$suffix.png',
+        'x-wallet-receipt-$suffix.png',
         bytes,
       );
       if (!context.mounted) return;

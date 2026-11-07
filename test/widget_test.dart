@@ -21,7 +21,7 @@ void main() {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const BnbWalletApp());
+    await tester.pumpWidget(const XWalletApp());
 
     expect(find.text('X Wallet'), findsOneWidget);
   });
@@ -37,7 +37,7 @@ void main() {
       kind: RpcStoryKind.ok,
       detail: 'in 123 ms',
     );
-    await tester.pumpWidget(const BnbWalletApp());
+    await tester.pumpWidget(const XWalletApp());
     await tester.pump();
 
     expect(find.textContaining('knocked on example-door.org'), findsOneWidget);
@@ -50,7 +50,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await appState.setUsePin(true);
-    await tester.pumpWidget(const BnbWalletApp());
+    await tester.pumpWidget(const XWalletApp());
     await tester.pump();
 
     expect(find.text('Enter your PIN to continue'), findsOneWidget);

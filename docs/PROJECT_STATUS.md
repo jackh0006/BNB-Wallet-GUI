@@ -16,7 +16,7 @@ path, but the package is unsigned and no independent audit exists.
 | Exact ERC-20 calldata | FIXED | `SendIntent.decodeErc20Transfer` rejects trailing bytes; regression test |
 | Test suite | LOCAL + HOSTED PASS | 47/47 files, 0 failed, 0 timed out; hosted CI on `773f0db` PASS |
 | Linux build | PASS | `flutter build linux --release` 2m03s |
-| `.deb` package | PARTIAL | `bnb-wallet-1.0.10-amd64.deb` built unsigned; SHA-256 `e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1`; not publishable |
+| `.deb` package | PARTIAL | the 1.0.10 package built unsigned; SHA-256 `e19917d3c50d8c3c36a13b3e0f154ae09ff15958e5d05826649124ce314dd9b1`; not publishable |
 | Machine-readable evidence | IMPLEMENTED | `release/manifest.json`, `docs/testing/test-inventory.json`, `docs/GENERATED_STATUS.md`, `release-gate.py` |
 | Release gate | INCOMPLETE / BLOCKED | Source checks pass; `.deb` is unsigned and install is untested |
 | Android | BLOCKED | Historical signing key rotation `NOT VERIFIED`; denylist empty |
@@ -98,7 +98,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **M3-25** | Atomic-write caller outcome audit | ✅ TESTED (focused) | `lib/app_state.dart`, `lib/storage.dart`; all `atomicWrite` callers inventoried with `rg`; focused filesystem and rollback suites pass (2026-11-04) |
 | **M3-26** | Drawer and encrypted-log atomic persistence | 🟡 PARTIALLY TESTED | Drawer behavior has focused evidence; encrypted-log cross-process coverage remains required. |
 | **M2-02**: Linux desktop integration (launcher, icon) | ✅ DONE | `.desktop` file in .deb, icon in assets |
-| **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced `bnb-wallet-1.0.7-amd64.deb` |
+| **M2-03**: Run `scripts/build-deb.sh` end-to-end | ✅ DONE | Produced the 1.0.7 package |
 | **M2-04**: Install .deb on clean Ubuntu VM | ⚠️ NOT TESTED | Clean VM not available |
 | **M2-05**: Verify .deb contents (no secrets, perms) | ✅ DONE | `dpkg -c` — no secrets, correct perms |
 | **M2-06**: SHA-256 + GPG signature on .deb | ✅ DONE | `.sha256` + `.asc` (verified good) |
@@ -165,7 +165,7 @@ KDF-tagged tests in 2m00s. This is local evidence, not CI validation.
 | **Flutter Version** | 3.47.6 (stable) |
 | **Dart Version** | 3.13.5 |
 | **Last Clean Build** | 2026-11-04 — `flutter build linux --release` ✅ |
-| **Last .deb Build** | 2026-11-04 — `bnb-wallet-1.0.7-amd64.deb` (9.5 MB) |
+| **Last .deb Build** | 2026-11-04 — the 1.0.7 package (9.5 MB) |
 | **Package Verify** | `dpkg -c` — no secrets, correct perms ✅ |
 | **Checksum** | `b5c6aaa4eee70f53ce7596c9da43b6129fb1391a65b510c4d9c2bc68489317dc` |
 | **GPG Signature** | Verified (EDDSA key CC819EF5E109A1518E840379D8C0CEC84BCCE06B) |

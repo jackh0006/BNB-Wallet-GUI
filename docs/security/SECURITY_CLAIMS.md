@@ -209,7 +209,7 @@ dart format --output=none --set-exit-if-changed lib test tool
 python3 scripts/release-gate.py
 
 # 9. Build verification (when .deb exists)
-dpkg -c bnb-wallet-*.deb | grep -E '\.jks|\.keystore|\.p12|\.pfx|private' && echo "FAIL" || echo "PASS"
+dpkg -c x-wallet-*.deb | grep -E '\.jks|\.keystore|\.p12|\.pfx|private' && echo "FAIL" || echo "PASS"
 ```
 
 ---

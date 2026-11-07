@@ -9,7 +9,7 @@
       "install": "NOT TESTED",
       "functional": "NOT TESTED",
       "status": "BUILD + PACKAGE ONLY",
-      "evidence": "flutter build linux --release 2m03s; bnb-wallet-1.0.10-amd64.deb sha256 see the SHA-256 published on the v1.1.0 GitHub release; dpkg-deb -x + ldd resolved all libraries; no secret-bearing filenames"
+      "evidence": "flutter build linux --release 2m03s; the 1.0.10 package sha256 see the SHA-256 published on the v1.1.0 GitHub release; dpkg-deb -x + ldd resolved all libraries; no secret-bearing filenames"
     },
     {
       "platform": "Debian 12",

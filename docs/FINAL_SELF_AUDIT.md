@@ -49,7 +49,7 @@ limitations. **Large-value custody: NOT APPROVED.**
 | Release identity negative tests | 15/15 PASS |
 | Android signer inventory | PASS (synthetic keystore) |
 | Package smoke | PASS: install, upgrade from `bnb-wallet` 1.0.9, launch, uninstall, reinstall |
-| Cross-runner reproducibility | PASS at fixed path `/build/bnb-wallet` (run 42315071276) |
+| Cross-runner reproducibility | PASS at a fixed build path (run 42315071276) |
 | Startup/RSS benchmark | NOT VERIFIED — headless runner has no Secret Service; app raises an unhandled libsecret exception and no window appears |
 | Secret scan / dependency / licence / SBOM | PASS |
 | Release identity validator | PASS |

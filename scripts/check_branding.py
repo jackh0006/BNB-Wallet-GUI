@@ -12,18 +12,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-HISTORICAL_ALLOWLIST = {
-    "docs/releases/1.0.9.md",
-    "docs/releases/1.0.10.md",
-    "docs/project/BASELINE.md",
-    "docs/evidence/m3-filesystem-security-round.md",
-    "docs/security/INCIDENT_2026-11-KEYSTORE.md",
-    "docs/CHANGELOG.md",
-    "docs/RENAME_COMPATIBILITY.md",
-    "docs/SECURITY_AUDIT_2026-11-04.md",
-}
+# The old display name and repository slug must not appear anywhere. Technical
+# compatibility identifiers such as `bnb-wallet`, `bnb_wallet_gui` and
+# `com.jackh0006.bnbwallet` are asserted separately and are intentionally kept.
+FORBIDDEN = ("BNB Wallet", "BNB-Wallet-GUI")
 
-SKIP_DIRS = {".git", "build", ".dart_tool", "node_modules", ".gradle", "dist"}
+SKIP_DIRS = {".git", "build", ".dart_tool", "node_modules", ".gradle", "dist", "ephemeral"}
 SKIP_SUFFIXES = {
     ".png", ".jpg", ".jpeg", ".ico", ".bin", ".so", ".deb", ".lock",
     ".pyc", ".dill", ".snapshot", ".zip", ".gz",
@@ -80,12 +74,16 @@ def main() -> int:
     errors: list[str] = []
     for path in tracked_text_files():
         rel = str(path.relative_to(ROOT))
-        if rel in HISTORICAL_ALLOWLIST or rel == "scripts/check_branding.py":
+        if rel == "scripts/check_branding.py":
             continue
         text = path.read_text(encoding="utf-8")
         for lineno, line in enumerate(text.splitlines(), 1):
-            if "BNB Wallet" in line:
-                errors.append(f"{rel}:{lineno}: old display name: {line.strip()[:120]}")
+            for needle in FORBIDDEN:
+                if needle in line:
+                    errors.append(
+                        f"{rel}:{lineno}: forbidden old identity {needle!r}: "
+                        f"{line.strip()[:120]}"
+                    )
 
     for rel, needle in REQUIRED:
         path = ROOT / rel

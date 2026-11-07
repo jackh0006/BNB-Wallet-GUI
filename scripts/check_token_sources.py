@@ -13,7 +13,7 @@ import json
 import sys
 import urllib.request
 
-UA = "bnb-wallet-source-check/1.0"
+UA = "x-wallet-source-check/1.0"
 TIMEOUT = 30
 
 

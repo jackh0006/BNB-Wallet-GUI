@@ -190,7 +190,7 @@ class TorManager extends ChangeNotifier {
       }
 
       await _ensurePortFree(port);
-      directory = await Directory.systemTemp.createTemp('bnb-wallet-tor-');
+      directory = await Directory.systemTemp.createTemp('x-wallet-tor-');
       await _chmod(directory.path, '700');
       final data = Directory('${directory.path}/data');
       await data.create();

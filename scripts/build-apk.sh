@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a signed Android arm64 release APK of X Wallet GUI.
+# Build a signed Android arm64 release APK of X Wallet.
 #
 # Signing material is NEVER stored in this repository. The caller must provide
 # an existing keystore and its credentials through the environment:
@@ -72,7 +72,7 @@ esac
 VERSION="${BNB_VERSION:-$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' pubspec.yaml | head -1)}"
 VERSION="${VERSION:-0.0.0}"
 OUTDIR="${BNB_OUTDIR:-$ROOT/dist}"
-APK="$OUTDIR/bnb-wallet-${VERSION}-android-arm64.apk"
+APK="$OUTDIR/x-wallet-${VERSION}-android-arm64.apk"
 
 mkdir -p "$OUTDIR"
 

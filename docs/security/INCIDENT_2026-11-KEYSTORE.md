@@ -4,7 +4,7 @@
 **Severity:** High (signing-identity compromise)
 **First observed:** 2026-11-03
 **Recorded:** 2026-11-06
-**Affected project:** BNB Wallet GUI (Android release signing only)
+**Affected project:** X Wallet (Android release signing only)
 
 This record is deliberately factual. It does not claim that the exposed key was
 revoked, that a replacement is in use, or that any store listing is safe. Those
@@ -103,7 +103,7 @@ bash scripts/secret-scan.sh
 bash scripts/secret-scan.sh --history
 
 # Verify a built APK against the approved signer and the denylist.
-bash scripts/verify-android-signer.sh dist/bnb-wallet-<version>-android-arm64.apk \
+bash scripts/verify-android-signer.sh dist/x-wallet-<version>-android-arm64.apk \
   --allow <new-cert-sha256> \
   --deny release/android-signer-denylist.txt
 ```

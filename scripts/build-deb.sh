@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build a signed Debian/Ubuntu amd64 .deb of X Wallet GUI (Linux release bundle).
+# Build a signed Debian/Ubuntu amd64 .deb of X Wallet (Linux release bundle).
 #
 # Output:
 #   /home/mhh06/Downloads/X Wallet/x-wallet-<pubspec version>-amd64.deb

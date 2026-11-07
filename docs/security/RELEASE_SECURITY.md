@@ -64,7 +64,7 @@ gpg --batch --yes --digest-algo SHA256 \
 ```
 
 - **Key management**: GPG key held by maintainer (not in repo)
-- **Verification**: `gpg --verify bnb-wallet-*.deb.asc bnb-wallet-*.deb`
+- **Verification**: `gpg --verify x-wallet-*.deb.asc x-wallet-*.deb`
 - **No key available**: the build script still emits a checksum-marked,
   explicitly unsigned diagnostic package. It is not releaseable.
 
@@ -151,8 +151,8 @@ python3 scripts/sbom.py --out docs/SBOM.json
 - [ ] `BNB_GPG_KEY=<approved key> bash scripts/build-deb.sh` → produces `.deb`, `SHA256SUMS`, `.asc`
 - [ ] Install on clean Ubuntu 22.04/24.04 amd64 VM
 - [ ] Smoke test: launch, vault create/unlock, send, network modes
-- [ ] `dpkg -c bnb-wallet-*.deb` → no secrets, correct permissions
-- [ ] `gpg --verify bnb-wallet-*.deb.asc bnb-wallet-*.deb`
+- [ ] `dpkg -c x-wallet-*.deb` → no secrets, correct permissions
+- [ ] `gpg --verify x-wallet-*.deb.asc x-wallet-*.deb`
 
 ### Git Tag & Push
 

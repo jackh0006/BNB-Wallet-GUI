@@ -170,7 +170,7 @@ See `docs/ARCHITECTURE.md` and `AGENTS.md` for module map.
 
 | Artifact | Status | Location |
 |----------|--------|----------|
-| **Linux .deb** | NOT BUILT | `scripts/build-deb.sh` outputs to `/home/mhh06/Downloads/BNB Wallet/` |
+| **Linux .deb** | NOT BUILT | `scripts/build-deb.sh` outputs to `/home/mhh06/Downloads/X Wallet/` |
 | **Android APK** | NOT BUILT | `scripts/build-apk.sh` outputs to `./dist/` (requires keystore env) |
 | **GPG Signatures** | NOT CREATED | `build-deb.sh` and `build-apk.sh` create `.asc` if GPG key provided |
 | **SHA-256 Checksums** | NOT CREATED | Build scripts generate `.sha256` files |

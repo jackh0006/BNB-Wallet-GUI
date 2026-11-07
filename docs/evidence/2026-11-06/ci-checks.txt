@@ -1,22 +1,22 @@
-CodeQL	pass	3s	https://github.com/jackh0006/BNB-Wallet-GUI/runs/128196864741	
-CodeQL (actions)	pass	35s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389810/job/128196676867	
-CodeQL (cpp)	pass	54s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389810/job/128196677058	
-CodeQL (javascript-typescript)	pass	56s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389810/job/128196677256	
-CodeQL (python)	pass	49s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389810/job/128196677080	
-anvil	pass	42s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383776/job/128196678062	
-anvil	pass	39s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389698/job/128196695555	
-cold-signature	pass	7s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383769/job/128196680294	
-cold-signature	pass	13s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389744/job/128196698941	
-flutter	pass	3m55s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383769/job/128196680716	
-flutter	pass	3m38s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389744/job/128196699109	
-generated-files	pass	31s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383897/job/128196678453	
-generated-files	pass	34s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389729/job/128196698420	
-install-launch-upgrade	pass	2m24s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383825/job/128196674988	
-install-launch-upgrade	pass	2m9s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389790/job/128196699106	
-linux-build	pass	1m51s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383769/job/128196680597	
-linux-build	pass	14m33s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389744/job/128196699186	
-review	pass	8s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389735/job/128196676776	
-secret-scan	pass	6s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383769/job/128196680642	
-secret-scan	pass	5s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389744/job/128196699089	
-sources-and-sbom	pass	52s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306383769/job/128196680577	
-sources-and-sbom	pass	52s	https://github.com/jackh0006/BNB-Wallet-GUI/actions/runs/42306389744/job/128196699024	
+CodeQL	pass	3s	https://github.com/jackh0006/X-Wallet/runs/128196864741	
+CodeQL (actions)	pass	35s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389810/job/128196676867	
+CodeQL (cpp)	pass	54s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389810/job/128196677058	
+CodeQL (javascript-typescript)	pass	56s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389810/job/128196677256	
+CodeQL (python)	pass	49s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389810/job/128196677080	
+anvil	pass	42s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383776/job/128196678062	
+anvil	pass	39s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389698/job/128196695555	
+cold-signature	pass	7s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383769/job/128196680294	
+cold-signature	pass	13s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389744/job/128196698941	
+flutter	pass	3m55s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383769/job/128196680716	
+flutter	pass	3m38s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389744/job/128196699109	
+generated-files	pass	31s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383897/job/128196678453	
+generated-files	pass	34s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389729/job/128196698420	
+install-launch-upgrade	pass	2m24s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383825/job/128196674988	
+install-launch-upgrade	pass	2m9s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389790/job/128196699106	
+linux-build	pass	1m51s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383769/job/128196680597	
+linux-build	pass	14m33s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389744/job/128196699186	
+review	pass	8s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389735/job/128196676776	
+secret-scan	pass	6s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383769/job/128196680642	
+secret-scan	pass	5s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389744/job/128196699089	
+sources-and-sbom	pass	52s	https://github.com/jackh0006/X-Wallet/actions/runs/42306383769/job/128196680577	
+sources-and-sbom	pass	52s	https://github.com/jackh0006/X-Wallet/actions/runs/42306389744/job/128196699024	
