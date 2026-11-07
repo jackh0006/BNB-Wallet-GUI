@@ -353,22 +353,19 @@ def build() -> str:
 def readme_block() -> str:
     manifest = load(MANIFEST, {})
     inventory = load(INVENTORY, {})
-    gate = gate_summary(manifest)
+    version = manifest.get("version", "unknown")
+    files = inventory.get("fileCount", 0)
+    declarations = inventory.get("testCount", 0)
     return "\n".join(
         [
             BEGIN,
-            "> **Generated release status** — do not edit this block by hand.",
+            f"> **X Wallet {version}** · {files} test files · "
+            f"{declarations} test declarations",
             ">",
-            f"> Version `{manifest.get('version', 'unknown')}` · status "
-            f"**{gate.get('status', 'INCOMPLETE')}**",
-            f"> Tests: {inventory.get('fileCount', 0)} files / "
-            f"{inventory.get('testCount', 0)} declarations · "
-            f"SBOM `{(manifest.get('sbom', {}).get('sha256') or 'missing')[:16]}`",
-            ">",
-            "> The exact evidence commit is in `release/evidence.json` when a "
-            "bundle is published. This is not an audit.",
-            "> See [the generated status report](docs/GENERATED_STATUS.md) and "
-            "[the release evidence policy](docs/RELEASE_EVIDENCE.md).",
+            "> [Download the latest release]"
+            "(https://github.com/jackh0006/X-Wallet/releases/latest) · "
+            "[Full test evidence](docs/TEST_EVIDENCE.md) · "
+            "[Release status](docs/GENERATED_STATUS.md)",
             END,
         ]
     )
