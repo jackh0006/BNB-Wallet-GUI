@@ -46,7 +46,7 @@ limitations. **Large-value custody: NOT APPROVED.**
 | Mutation testing | 5/5 killed |
 | Backup/restore E2E | 4/4 PASS |
 | Release signing tools | 6/6 PASS (disposable test key) |
-| Release identity negative tests | 12/12 PASS |
+| Release identity negative tests | 15/15 PASS |
 | Android signer inventory | PASS (synthetic keystore) |
 | Package smoke | PASS: install, upgrade from `bnb-wallet` 1.0.9, launch, uninstall, reinstall |
 | Cross-runner reproducibility | PASS at fixed path `/build/bnb-wallet` (run 42315071276) |
@@ -68,7 +68,7 @@ limitations. **Large-value custody: NOT APPROVED.**
 | FA-07 | Medium | Real-chain test uses a local Anvil node, not an independent BSC provider | Local EVM PASS; provider trust remains a residual |
 | FA-08 | Medium | Branding rename could miss technical/user-facing strings | `scripts/check_branding.py` passes; compatibility identifiers preserved |
 | FA-09 | Medium | Debian package identity migration could break upgrades | CI package smoke upgrades from `bnb-wallet` 1.0.9 and preserves data |
-| FA-10 | Low | Test inventory fixture initially missed `1.1.0` release notes | Fixed; identity negative tests 12/12 |
+| FA-10 | Low | Test inventory fixture initially missed `1.1.0` release notes | Fixed; identity negative tests 15/15 |
 | FA-11 | Medium | App raises an unhandled libsecret exception and shows no window when no Secret Service provider is running (headless/minimal desktops); package smoke only asserts process liveness | Documented limitation; stock Ubuntu/GNOME and KDE provide a keyring. Fixing requires a wallet rebuild, so it is deferred rather than invalidating the published artifact |
 
 ### Code findings resolved in this release
